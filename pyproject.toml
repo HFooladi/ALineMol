@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ALineMol"
+authors = [
+  {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
+]
+description = "Package for evaluating accuarcy and agreement on the line for molecules"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "numpy",
+    "pandas",]
+
+dynamic = ["version"]
+
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/HFooladi/ALineMol"
+"Bug Tracker" = "https://github.com/HFooladi/ALineMol/issues"
+
+[project.readme]
+file="README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+packages = ["ALineMol"]
+
+
+[tool.setuptools_scm]
+write_to = "ALineMol/_version.py"
+
+[tool.black]
+line-length = 100
+target-version = ['py37']
