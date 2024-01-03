@@ -14,6 +14,9 @@ from typing import Dict, List, Tuple
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import SMILESToBigraph, ScaffoldSplitter, RandomSplitter
 
+filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def init_featurizer(args: Dict) -> Dict:
     """Initialize node/edge featurizer
 
@@ -76,7 +79,7 @@ def get_configure(model: str) -> Dict:
     Returns:
         dict: Returns the manually specified configuration
     """
-    with open('model_configures/{}.json'.format(model), 'r') as f:
+    with open(f'{filepath}/models/model_configures/{model}.json', 'r') as f:
         config = json.load(f)
     return config
 
