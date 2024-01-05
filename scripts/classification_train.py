@@ -1,16 +1,16 @@
 # This part of the code inspired from dgl-lifesci codabase
+import json
 import os
 import sys
-import json
-import pandas as pd
+from copy import deepcopy
+from shutil import copyfile
+
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
-
-from copy import deepcopy
-from dgllife.utils import Meter, EarlyStopping
+from dgllife.utils import EarlyStopping, Meter
 from hyperopt import fmin, tpe
-from shutil import copyfile
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -22,8 +22,10 @@ os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
 from ALineMol.hyper import init_hyper_space
-from ALineMol.utils import get_configure, mkdir_p, init_trial_path, \
-    split_dataset, collate_molgraphs, load_model, predict, init_featurizer, load_dataset
+from ALineMol.utils import (collate_molgraphs, get_configure, init_featurizer,
+                            init_trial_path, load_dataset, load_model, mkdir_p,
+                            predict, split_dataset)
+
 
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
     model.train()

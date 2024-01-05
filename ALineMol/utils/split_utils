@@ -1,0 +1,67 @@
+import numpy as np
+import pandas as pd
+from astartes.molecules import train_test_split_molecules
+
+from typing import Dict, Tuple
+
+
+
+def split_hypers(sampler: str="random") -> Dict:
+    if sampler == "random":
+        hopts = {}
+    elif sampler == "scaffold":
+        hopts = {'include_chirality': False}
+    elif sampler == "kmeans":
+        hopts = {
+            "n_clusters": 100,
+            "n_init": 10,
+        }
+    return hopts
+
+
+
+def split_molecules(
+    mol_df: pd.DataFrame, train_size: float = 0.9, sampler: str = "random", random_state: int = 42
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Split molecules into train and test sets.
+
+
+    Args:
+        df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
+        train_size (float): Size of the train set.
+        sampler (str): Sampler to use. 
+            Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
+        random_state (int): Random state for reproducibility.
+
+    Returns:
+        tuple: Tuple containing the train and test sets.
+    """
+    assert "smiles" in mol_df.columns, "Dataframe must have a 'smiles' column."
+    assert "label" in mol_df.columns, "Dataframe must have a 'label' column."
+
+    X = np.array(mol_df["smiles"])
+    y = np.array(mol_df["label"])
+    *others, train_ind, test_ind = train_test_split_molecules(
+        molecules=X,
+        y=y,
+        train_size=0.8,
+        fingerprint="morgan_fingerprint",
+        fprints_hopts={
+            "radius": 2,
+            "n_bits": 2048,
+        },
+        sampler="random",
+        random_state=42,
+        hopts={
+            "shuffle": True,
+        },
+        return_indices=True,
+    )
+
+
+
+    train = mol_df.iloc[test_ind]
+    test = mol_df.iloc[train_ind]
+
+    return train, test

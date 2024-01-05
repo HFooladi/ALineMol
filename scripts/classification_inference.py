@@ -1,17 +1,18 @@
 # This part of the code inspired from dgl-lifesci codabase
 
-
 import json
 import os
+
 import pandas as pd
 import torch
-
 from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from ALineMol.utils import mkdir_p, collate_molgraphs_unlabeled, load_model, predict, init_featurizer
+from ALineMol.utils import (collate_molgraphs_unlabeled, init_featurizer,
+                            load_model, mkdir_p, predict)
+
 
 def main(args):
     mol_to_g = MolToBigraph(add_self_loop=True,

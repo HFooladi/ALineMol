@@ -23,7 +23,7 @@ def init_featurizer(args: Dict) -> Dict:
     Args:
         args (dict): Settings
         
-    Returns
+    Returns:
         dict: Settings with featurizers updated
     """
     if args['model'] in ['gin_supervised_contextpred', 'gin_supervised_infomax',
