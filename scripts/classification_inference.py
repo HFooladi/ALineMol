@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 
 import pandas as pd
 import torch
@@ -9,7 +10,14 @@ from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.metrics import roc_auc_score
 
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKOUT_PATH = repo_path
+DATASET_PATH = os.path.join(repo_path, "datasets")
+
+os.chdir(CHECKOUT_PATH)
+sys.path.insert(0, CHECKOUT_PATH)
 from ALineMol.utils import (collate_molgraphs_unlabeled, init_featurizer,
                             load_model, mkdir_p, predict)
 
@@ -33,7 +41,8 @@ def main(args):
         for batch_id, batch_data in enumerate(tqdm(dataloader, desc="Iteration")):
             batch_smiles, bg = batch_data
             smiles_list.extend(batch_smiles)
-            batch_pred = predict(args, model, bg)
+            batch_logit = predict(args, model, bg)
+            batch_pred = torch.sigmoid(batch_logit)
             if not args['soft_classification']:
                 batch_pred = (batch_pred >= 0.5).float()
             predictions.append(batch_pred.detach().cpu())
@@ -47,6 +56,9 @@ def main(args):
         args['task_names'] = args['task_names'].split(',')
     for task_id, task_name in enumerate(args['task_names']):
         output_data[task_name] = predictions[:, task_id]
+        roc_auc_score(predictions[:, task_id], predictions[:, task_id])
+
+
     df = pd.DataFrame(output_data)
     df.to_csv(args['inference_result_path'] + '/prediction.csv', index=False)
 
