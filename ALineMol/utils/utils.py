@@ -119,6 +119,27 @@ def init_trial_path(args: Dict) -> Dict:
 
     return args
 
+
+def init_inference_trial_path(args: Dict) -> Dict:
+    """Initialize the path for a hyperparameter setting
+
+    Args:
+        args (dict): Settings
+        
+    Returns:
+        dict: Settings with the trial path updated
+    """
+    trial_id = 0
+    path_exists = True
+    while path_exists:
+        trial_id += 1
+        path_to_results = args['inference_result_path'] + '/{:d}'.format(trial_id)
+        path_exists = os.path.exists(path_to_results)
+    args['trial_path'] = path_to_results
+    mkdir_p(args['trial_path'])
+
+    return args
+
 def split_dataset(args, dataset) -> Tuple:
     """Split the dataset
 
