@@ -19,7 +19,7 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 from ALineMol.utils import (collate_molgraphs_unlabeled, init_featurizer,
-                            load_model, mkdir_p, predict)
+                            load_model, mkdir_p, predict, init_inference_trial_path)
 
 
 def main(args):
@@ -56,11 +56,12 @@ def main(args):
         args['task_names'] = args['task_names'].split(',')
     for task_id, task_name in enumerate(args['task_names']):
         output_data[task_name] = predictions[:, task_id]
-        roc_auc_score(predictions[:, task_id], predictions[:, task_id])
+        #print(roc_auc_score(predictions[:, task_id], predictions[:, task_id])
 
 
     df = pd.DataFrame(output_data)
-    df.to_csv(args['inference_result_path'] + '/prediction.csv', index=False)
+    args = init_inference_trial_path(args)
+    df.to_csv(args['trial_path'] + '/prediction.csv', index=False)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
