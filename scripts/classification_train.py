@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from dgllife.utils import EarlyStopping, Meter
+from dgllife.utils import EarlyStopping #Meter
 from hyperopt import fmin, tpe
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -21,6 +21,7 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
+from ALineMol.utils import Meter
 from ALineMol.hyper import init_hyper_space
 from ALineMol.utils import (collate_molgraphs, get_configure, init_featurizer,
                             init_trial_path, load_dataset, load_model, mkdir_p,
@@ -51,7 +52,7 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
     print('epoch {:d}/{:d}, training {} {:.4f}'.format(
         epoch + 1, args['num_epochs'], args['metric'], train_score))
 
-def run_an_eval_epoch(args, model, data_loader):
+def run_an_eval_epoch(args, model, data_loader, test=False):
     model.eval()
     eval_meter = Meter()
     with torch.no_grad():
@@ -60,7 +61,15 @@ def run_an_eval_epoch(args, model, data_loader):
             labels = labels.to(args['device'])
             logits = predict(args, model, bg)
             eval_meter.update(logits, labels, masks)
-    return np.mean(eval_meter.compute_metric(args['metric']))
+    
+    if test:
+        evals = []
+        evals.append(np.mean(eval_meter.compute_metric('accuracy_score')))
+        evals.append(np.mean(eval_meter.compute_metric('roc_auc_score')))
+        evals.append(np.mean(eval_meter.compute_metric('pr_auc_score')))
+        return evals
+    else:
+        return np.mean(eval_meter.compute_metric(args['metric']))
 
 def main(args, exp_config, train_set, val_set, test_set):
     # Record settings
@@ -111,9 +120,13 @@ def main(args, exp_config, train_set, val_set, test_set):
     test_score = run_an_eval_epoch(args, model, test_loader)
     print('test {} {:.4f}'.format(args['metric'], test_score))
 
+    test_scores = run_an_eval_epoch(args, model, test_loader, test=True)
+
     with open(args['trial_path'] + '/eval.txt', 'w') as f:
         f.write('Best val {}: {}\n'.format(args['metric'], stopper.best_score))
-        f.write('Test {}: {}\n'.format(args['metric'], test_score))
+        f.write('Test {}: {}\n'.format("accuracy_score", test_scores[0]))
+        f.write('Test {}: {}\n'.format("roc_auc_score", test_scores[1]))
+        f.write('Test {}: {}\n'.format("pr_auc_score", test_scores[2]))
 
     with open(args['trial_path'] + '/configure.json', 'w') as f:
         json.dump(exp_config, f, indent=2)
@@ -169,7 +182,7 @@ if __name__ == '__main__':
     parser.add_argument('-sr', '--split-ratio', default='0.8,0.1,0.1', type=str,
                         help='Proportion of the dataset to use for training, validation and test, '
                              '(default: 0.8,0.1,0.1)')
-    parser.add_argument('-me', '--metric', choices=['roc_auc_score', 'pr_auc_score'],
+    parser.add_argument('-me', '--metric', choices=['accuracy_score', 'roc_auc_score', 'pr_auc_score'],
                         default='roc_auc_score',
                         help='Metric for evaluation (default: roc_auc_score)')
     parser.add_argument('-mo', '--model', choices=['GCN', 'GAT', 'Weave', 'MPNN', 'AttentiveFP',
