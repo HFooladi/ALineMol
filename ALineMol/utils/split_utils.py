@@ -5,23 +5,22 @@ from astartes.molecules import train_test_split_molecules, train_val_test_split_
 from typing import Dict, Tuple
 
 
-
-def split_hypers(sampler: str="random") -> Dict:
+def split_hypers(sampler: str = "random") -> Dict:
     """
     Get the hyperparameters for the sampler.
 
     Args:
-        sampler (str): Sampler to use. 
+        sampler (str): Sampler to use.
             Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
-    
+
     Returns:
         dict: Hyperparameters for the sampler.
     """
-    #ToDO: Check the parameters for the smaplers
+    # ToDO: Check the parameters for the smaplers
     if sampler == "random":
         hopts = {}
     elif sampler == "scaffold":
-        hopts = {'include_chirality': False}
+        hopts = {"include_chirality": False}
     elif sampler == "kmeans":
         hopts = {
             "n_clusters": 100,
@@ -30,9 +29,8 @@ def split_hypers(sampler: str="random") -> Dict:
     return hopts
 
 
-
 def split_molecules_train_test(
-    mol_df: pd.DataFrame, train_size: float=0.9, sampler: str="random", random_state: int=42
+    mol_df: pd.DataFrame, train_size: float = 0.9, sampler: str = "random", random_state: int = 42
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split molecules into train and test sets.
@@ -41,7 +39,7 @@ def split_molecules_train_test(
     Args:
         df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
         train_size (float): Size of the train set.
-        sampler (str): Sampler to use. 
+        sampler (str): Sampler to use.
             Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
         random_state (int): Random state for reproducibility.
 
@@ -72,8 +70,6 @@ def split_molecules_train_test(
         return_indices=True,
     )
 
-
-
     train = mol_df.iloc[train_ind]
     test = mol_df.iloc[test_ind]
 
@@ -81,7 +77,11 @@ def split_molecules_train_test(
 
 
 def split_molecules_train_val_test(
-    mol_df: pd.DataFrame, train_size: float=0.8, val_size: float=0.1, sampler: str="random", random_state: int=42
+    mol_df: pd.DataFrame,
+    train_size: float = 0.8,
+    val_size: float = 0.1,
+    sampler: str = "random",
+    random_state: int = 42,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Split molecules into train and test sets.
@@ -91,7 +91,7 @@ def split_molecules_train_val_test(
         df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
         train_size (float): Size of the train set.
         val_size (float): Size of the validation set.
-        sampler (str): Sampler to use. 
+        sampler (str): Sampler to use.
             Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
         random_state (int): Random state for reproducibility.
 
@@ -125,8 +125,6 @@ def split_molecules_train_val_test(
         hopts=hopts,
         return_indices=True,
     )
-
-
 
     train = mol_df.iloc[train_ind]
     val = mol_df.iloc[val_ind]

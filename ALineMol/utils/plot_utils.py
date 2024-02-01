@@ -28,7 +28,11 @@ matplotlib.rcParams.update(
 
 
 def plot_ID_OOD(
-    ID_test_score: List, OOD_test_score: List, dataset_name: str = "HIV", metric:str= "ROC-AUC", save: bool = False
+    ID_test_score: List,
+    OOD_test_score: List,
+    dataset_name: str = "HIV",
+    metric: str = "ROC-AUC",
+    save: bool = False,
 ):
     """
     Plot ID vs OOD test ROC-AUC scores
@@ -39,11 +43,11 @@ def plot_ID_OOD(
         dataset_name (str): name of dataset
         metric (str): name of metric
         save (bool): whether to save plot
-    
+
     Returns:
         None
     """
-    
+
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")

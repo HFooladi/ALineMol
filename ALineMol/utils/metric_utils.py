@@ -8,7 +8,19 @@ import torch
 import torch.nn.functional as F
 
 from scipy.stats import pearsonr
-from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve, precision_recall_curve, accuracy_score, f1_score, precision_score, recall_score, confusion_matrix, auc
+from sklearn.metrics import (
+    roc_auc_score,
+    average_precision_score,
+    roc_curve,
+    precision_recall_curve,
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    confusion_matrix,
+    auc,
+)
+
 
 def eval_roc_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:
     """
@@ -30,7 +42,7 @@ def eval_roc_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:
     return roc_auc_score(y_true, y_pred)
 
 
-def eval_pr_auc(df1: pd.DataFrame, df2:pd.DataFrame) -> float:
+def eval_pr_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:
     """
     Evaluate PR AUC score.
 
@@ -49,7 +61,8 @@ def eval_pr_auc(df1: pd.DataFrame, df2:pd.DataFrame) -> float:
 
     return average_precision_score(y_true, y_pred)
 
-def eval_acc(df1: pd.DataFrame, df2: pd.DataFrame, threshold: float=0.5) -> float:
+
+def eval_acc(df1: pd.DataFrame, df2: pd.DataFrame, threshold: float = 0.5) -> float:
     """
     Evaluate accuracy score.
 
@@ -72,11 +85,11 @@ def eval_acc(df1: pd.DataFrame, df2: pd.DataFrame, threshold: float=0.5) -> floa
 
 def rescale(data, scaling=None) -> np.ndarray:
     """Rescale the data.
-    
+
     Args:
         data (list, np.ndarray): data to be rescaled.
         scaling (str): scaling method. Options: 'probit', 'logit', 'linear'.
-    
+
     Returns:
         np.ndarray: rescaled data.
     """
@@ -89,6 +102,7 @@ def rescale(data, scaling=None) -> np.ndarray:
         return data
     raise NotImplementedError
 
+
 ##TODO: Needs to check whether better method is available for this function or not.
 def compute_linear_fit(x, y) -> Tuple:
     """Returns bias and slope from regression y on x.
@@ -96,7 +110,7 @@ def compute_linear_fit(x, y) -> Tuple:
     Args:
         x (list, np.ndarray): x values.
         y (list, np.ndarray): y values.
-    
+
     Returns:
         tuple: first element is parameters and second element is rsquared.
     """
@@ -107,8 +121,6 @@ def compute_linear_fit(x, y) -> Tuple:
     model = sm.OLS(y, covs)
     result = model.fit()
     return result.params, result.rsquared
-
-
 
 
 # pylint: disable=E1101
@@ -158,6 +170,7 @@ class Meter(object):
         >>> print(meter.compute_metric('mae', reduction='sum'))
         3.2815767526626587
     """
+
     def __init__(self, mean=None, std=None):
         self.mask = []
         self.y_pred = []
@@ -172,7 +185,7 @@ class Meter(object):
 
     def update(self, y_pred, y_true, mask=None):
         """Update for the result of an iteration
-        
+
         Args:
             y_pred : float32 tensor
                 Predicted labels with shape ``(B, T)``,
@@ -219,7 +232,7 @@ class Meter(object):
 
         return mask, y_pred, y_true
 
-    def _reduce_scores(self, scores, reduction='none'):
+    def _reduce_scores(self, scores, reduction="none"):
         """Finalize the scores to return.
 
         Args:
@@ -234,17 +247,18 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
-        if reduction == 'none':
+        if reduction == "none":
             return scores
-        elif reduction == 'mean':
+        elif reduction == "mean":
             return np.mean(scores)
-        elif reduction == 'sum':
+        elif reduction == "sum":
             return np.sum(scores)
         else:
             raise ValueError(
-                "Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction))
+                "Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction)
+            )
 
-    def multilabel_score(self, score_func, reduction='none'):
+    def multilabel_score(self, score_func, reduction="none"):
         """Evaluate for multi-label prediction.
 
         Args:
@@ -272,7 +286,7 @@ class Meter(object):
                 scores.append(task_score)
         return self._reduce_scores(scores, reduction)
 
-    def pearson_r2(self, reduction='none'):
+    def pearson_r2(self, reduction="none"):
         """Compute squared Pearson correlation coefficient.
 
         Args:
@@ -285,11 +299,13 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
+
         def score(y_true, y_pred):
             return pearsonr(y_true.numpy(), y_pred.numpy())[0] ** 2
+
         return self.multilabel_score(score, reduction)
 
-    def mae(self, reduction='none'):
+    def mae(self, reduction="none"):
         """Compute mean absolute error.
 
         Args:
@@ -302,11 +318,13 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
+
         def score(y_true, y_pred):
             return F.l1_loss(y_true, y_pred).data.item()
+
         return self.multilabel_score(score, reduction)
 
-    def rmse(self, reduction='none'):
+    def rmse(self, reduction="none"):
         """Compute root mean square error.
 
         Args:
@@ -319,11 +337,13 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
+
         def score(y_true, y_pred):
             return torch.sqrt(F.mse_loss(y_pred, y_true).cpu()).item()
+
         return self.multilabel_score(score, reduction)
 
-    def accuracy_score(self, reduction='none', threshold=0.5):
+    def accuracy_score(self, reduction="none", threshold=0.5):
         """Compute the accuracy score for binary classification.
         Accuracy scores are not well-defined in cases where labels for a task have one single
         class only (e.g. positive labels only or negative labels only). In this case we will
@@ -342,18 +362,25 @@ class Meter(object):
         """
         # Todo: This function only supports binary classification and we may need
         #  to support categorical classes.
-        assert (self.mean is None) and (self.std is None), \
-            'Label normalization should not be performed for binary classification.'
+        assert (self.mean is None) and (
+            self.std is None
+        ), "Label normalization should not be performed for binary classification."
+
         def score(y_true, y_pred):
             if len(y_true.unique()) == 1:
-                print('Warning: Only one class {} present in y_true for a task. '
-                      'ROC AUC score is not defined in that case.'.format(y_true[0]))
+                print(
+                    "Warning: Only one class {} present in y_true for a task. "
+                    "ROC AUC score is not defined in that case.".format(y_true[0])
+                )
                 return None
             else:
-                return accuracy_score(y_true.long().numpy(), (torch.sigmoid(y_pred)>threshold).numpy())
+                return accuracy_score(
+                    y_true.long().numpy(), (torch.sigmoid(y_pred) > threshold).numpy()
+                )
+
         return self.multilabel_score(score, reduction)
 
-    def roc_auc_score(self, reduction='none'):
+    def roc_auc_score(self, reduction="none"):
         """Compute the area under the receiver operating characteristic curve (roc-auc score)
         for binary classification.
 
@@ -373,18 +400,23 @@ class Meter(object):
         """
         # Todo: This function only supports binary classification and we may need
         #  to support categorical classes.
-        assert (self.mean is None) and (self.std is None), \
-            'Label normalization should not be performed for binary classification.'
+        assert (self.mean is None) and (
+            self.std is None
+        ), "Label normalization should not be performed for binary classification."
+
         def score(y_true, y_pred):
             if len(y_true.unique()) == 1:
-                print('Warning: Only one class {} present in y_true for a task. '
-                      'ROC AUC score is not defined in that case.'.format(y_true[0]))
+                print(
+                    "Warning: Only one class {} present in y_true for a task. "
+                    "ROC AUC score is not defined in that case.".format(y_true[0])
+                )
                 return None
             else:
                 return roc_auc_score(y_true.long().numpy(), torch.sigmoid(y_pred).numpy())
+
         return self.multilabel_score(score, reduction)
 
-    def pr_auc_score(self, reduction='none'):
+    def pr_auc_score(self, reduction="none"):
         """Compute the area under the precision-recall curve (pr-auc score)
         for binary classification.
 
@@ -402,20 +434,26 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
-        assert (self.mean is None) and (self.std is None), \
-            'Label normalization should not be performed for binary classification.'
+        assert (self.mean is None) and (
+            self.std is None
+        ), "Label normalization should not be performed for binary classification."
+
         def score(y_true, y_pred):
             if len(y_true.unique()) == 1:
-                print('Warning: Only one class {} present in y_true for a task. '
-                      'PR AUC score is not defined in that case.'.format(y_true[0]))
+                print(
+                    "Warning: Only one class {} present in y_true for a task. "
+                    "PR AUC score is not defined in that case.".format(y_true[0])
+                )
                 return None
             else:
                 precision, recall, _ = precision_recall_curve(
-                    y_true.long().numpy(), torch.sigmoid(y_pred).numpy())
+                    y_true.long().numpy(), torch.sigmoid(y_pred).numpy()
+                )
                 return auc(recall, precision)
+
         return self.multilabel_score(score, reduction)
 
-    def compute_metric(self, metric_name, reduction='none'):
+    def compute_metric(self, metric_name, reduction="none"):
         """Compute metric based on metric name.
 
         Args:
@@ -436,18 +474,20 @@ class Meter(object):
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
-        if metric_name == 'r2':
+        if metric_name == "r2":
             return self.pearson_r2(reduction)
-        elif metric_name == 'mae':
+        elif metric_name == "mae":
             return self.mae(reduction)
-        elif metric_name == 'rmse':
+        elif metric_name == "rmse":
             return self.rmse(reduction)
-        elif metric_name == 'accuracy_score':
+        elif metric_name == "accuracy_score":
             return self.accuracy_score(reduction)
-        elif metric_name == 'roc_auc_score':
+        elif metric_name == "roc_auc_score":
             return self.roc_auc_score(reduction)
-        elif metric_name == 'pr_auc_score':
+        elif metric_name == "pr_auc_score":
             return self.pr_auc_score(reduction)
         else:
-            raise ValueError('Expect metric_name to be "r2" or "mae" or "rmse" '
-                             'or "accuracy_score" or "roc_auc_score" or "pr_auc", got {}'.format(metric_name))
+            raise ValueError(
+                'Expect metric_name to be "r2" or "mae" or "rmse" '
+                'or "accuracy_score" or "roc_auc_score" or "pr_auc", got {}'.format(metric_name)
+            )
