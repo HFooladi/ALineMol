@@ -1,6 +1,7 @@
 # This part of the code inspired from dgl-lifesci codabase
 
-
+import os
+import sys
 import json
 import pandas as pd
 import numpy as np
@@ -13,6 +14,14 @@ from hyperopt import fmin, tpe
 from shutil import copyfile
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKOUT_PATH = repo_path
+DATASET_PATH = os.path.join(repo_path, "datasets")
+
+os.chdir(CHECKOUT_PATH)
+sys.path.insert(0, CHECKOUT_PATH)
+
 
 from ALineMol.hyper import init_hyper_space
 from ALineMol.utils import get_configure, mkdir_p, init_trial_path, \

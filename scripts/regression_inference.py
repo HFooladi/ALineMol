@@ -1,8 +1,8 @@
 # This part of the code inspired from dgl-lifesci codabase
 
-
-import json
 import os
+import sys
+import json
 import pandas as pd
 import torch
 
@@ -10,6 +10,13 @@ from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKOUT_PATH = repo_path
+DATASET_PATH = os.path.join(repo_path, "datasets")
+
+os.chdir(CHECKOUT_PATH)
+sys.path.insert(0, CHECKOUT_PATH)
 
 from ALineMol.utils import mkdir_p, collate_molgraphs_unlabeled, load_model, predict, init_featurizer
 
