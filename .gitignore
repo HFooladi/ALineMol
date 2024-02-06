@@ -166,4 +166,7 @@ classification_inference_results/
 # put assets folder in gitignore
 assets/
 
+# put datasets folder in gitignore
+datasets/
+
 
