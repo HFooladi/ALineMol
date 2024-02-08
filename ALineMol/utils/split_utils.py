@@ -15,6 +15,9 @@ def split_hypers(sampler: str = "random") -> Dict:
 
     Returns:
         dict: Hyperparameters for the sampler.
+
+    Notes:
+        url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
     """
     # ToDO: Check the parameters for the smaplers
     if sampler == "random":
@@ -25,6 +28,22 @@ def split_hypers(sampler: str = "random") -> Dict:
         hopts = {
             "n_clusters": 100,
             "n_init": 10,
+        }
+    elif sampler == "dbscan":
+        hopts = {
+            "eps": 0.5,
+            "metric": "euclidean",
+        }
+    elif sampler == "sphere_exclusion":
+        hopts = {
+            "metric": "euclidean",
+            "distance_cutoff": 0.25,
+        }
+    elif sampler == "optisim":
+        hopts = {
+            "n_clusters": 10,
+            "max_subsample_size": 1000,
+            "distance_cutoff": 0.1,
         }
     return hopts
 
