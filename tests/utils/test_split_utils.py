@@ -1,4 +1,5 @@
 
+from ALineMol.utils.split_utils import *
 
 
 def test_split_hypers():
