@@ -52,7 +52,7 @@ def plot_ID_OOD(
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40)
+    ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")
     ax.axline((0.5, 0.6), (1, 1.1), color=dark_color, linestyle="--")
     ax.axline((0.5, 0.4), (1, 0.9), color=dark_color, linestyle="--")
