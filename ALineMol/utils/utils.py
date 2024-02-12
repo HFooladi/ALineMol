@@ -123,7 +123,6 @@ def init_trial_path(args: Dict) -> Dict:
     Args:
         args (dict): Settings
 
-
     Returns:
         dict: Settings with the trial path updated
     """
@@ -241,7 +240,7 @@ def collate_molgraphs_unlabeled(data: List) -> Tuple:
         data (list of 2-tuples): Each tuple is for a single datapoint, consisting of
         a SMILES and a DGLGraph.
 
-    Returns
+    Returns:
         smiles (list): List of smiles
         bg (DGLGraph): The batched DGLGraph.
     """
@@ -253,7 +252,14 @@ def collate_molgraphs_unlabeled(data: List) -> Tuple:
     return smiles, bg
 
 
-def load_model(exp_configure):
+def load_model(exp_configure: Dict):
+    """
+    Args:
+        exp_configure (dict)
+    
+    Returns:
+        dgllife.model
+    """
     if exp_configure["model"] == "GCN":
         from dgllife.model import GCNPredictor
 
@@ -366,6 +372,15 @@ def load_model(exp_configure):
 
 
 def predict(args: Dict, model, bg):
+    """
+    Args:
+        args (dict)
+        model
+        bg
+    
+    Returns:
+        Torch.Tesnor
+    """
     bg = bg.to(args["device"])
     if args["edge_featurizer"] is None:
         node_feats = bg.ndata.pop("h").to(args["device"])
