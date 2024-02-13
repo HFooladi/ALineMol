@@ -373,6 +373,8 @@ def load_model(exp_configure: Dict):
 
 def predict(args: Dict, model, bg):
     """
+    Predict the output of the models for the input batch graphs.
+
     Args:
         args (dict)
         model

@@ -13,6 +13,8 @@ from ALineMol.utils.utils import (
 )
 
 from ALineMol.utils.split_utils import (
+    featurize,
+    compute_similarities,
     split_molecules_train_test,
     split_molecules_train_val_test,
     split_hypers,

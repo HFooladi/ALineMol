@@ -27,7 +27,7 @@ except ImportError:  # pragma: no cover
 AVAILABLE_SPLITTERS = ['random', 'scaffold', 'kmeans', 'dbscan', 'sphere_exclusion', 'optisim']
 
 
-def _featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
+def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
     """Call AIMSim's Molecule to featurize the molecules according to the arguments.
 
     Args:
@@ -61,20 +61,23 @@ def _featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hop
     return np.array(X)
 
 
-def compute_similarities(mol_list1: List, mol_list2: List) -> np.ndarray:
+def compute_similarities(source_molecules: Union[List, np.ndarray], target_molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
     """
     Compute similarities between two lists of molecules. It receives two lists of
     smiles or RDKit molecule objects, extracts their fingerprints and computes the similarities
     between them.
 
     Args:
-        mol_list1: List of MoleculeDatapoint objects
-        mol_list2: List of MoleculeDatapoint objects
+        source_molecules (np.array or list): SMILES strings or RDKit molecule objects.
+        target_molecules (np.array or list): SMILES strings or RDKit molecule objects.
+        fingerprint (str): The molecular fingerprint to be used.
+        fprints_hopts (dict): Hyperparameters for AIMSim.
+
     Returns:
         np.ndarray: Matrix of similarities between the two lists of molecules
     """
-    fps1 = [_featurize(mol) for mol in mol_list1]  # assumed train set
-    fps2 = [_featurize(mol)  for mol in mol_list2]  # assumed test set
+    fps1 = featurize(source_molecules, fingerprint, fprints_hopts)  # assumed train set
+    fps2 = featurize(target_molecules, fingerprint, fprints_hopts)  # assumed test set
     sims = 1 - distance.cdist(fps1, fps2, metric="jaccard")
     return sims.astype(np.float32)
 
@@ -111,7 +114,7 @@ def split_hypers(sampler: str = "random") -> Dict:
     elif sampler == "sphere_exclusion":
         hopts = {
             "metric": "euclidean",
-            "distance_cutoff": 0.25,
+            "distance_cutoff": 0.5,
         }
     elif sampler == "optisim":
         hopts = {

@@ -2,6 +2,14 @@
 from ALineMol.utils.split_utils import *
 
 
+def test_featurize():
+    pass
+
+
+def test_compute_similarities():
+    pass
+
+
 def test_split_hypers():
     pass
 
