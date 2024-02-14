@@ -2,46 +2,41 @@ from dataclasses import dataclass
 
 
 @dataclass
-class RandomSplitter():
+class RandomSplit():
     """A random split."""
-    name: str = 'random'
+    shuffle: bool = True
 
 
 @dataclass
-class ScaffoldSplitter():
+class ScaffoldSplit():
     """A scaffold split."""
     include_chirality: bool = False
-    name: str = 'scaffold'
 
 
 @dataclass
-class KMeansSplitter():
+class KMeansSplit():
     """A k-means split."""
     n_clusters: int = 100
     n_init: int = 10
-    name: str = 'kmeans'
 
 
 @dataclass
-class DBScanSplitter():
+class DBScanSplit():
     """A DBScan split."""
     eps: float = 0.5
     metric: str = 'euclidean'
-    name: str = 'dbscan'
 
 
 @dataclass
-class SphereExclusionSplitter():
+class SphereExclusionSplit():
     """A sphere exclusion split."""
-    metrics: str
-    distance_cutoff: float
-    name: str = 'sphere_exclusion'
+    metrics: str = 'euclidean'
+    distance_cutoff: float = 0.5
 
 
 @dataclass
-class OptiSimSplitter():
+class OptiSimSplit():
     """An OptiSim split."""
     n_clusters: int = 10
     max_subsample_size: int = 1000
     distance_cutoff: float = 0.1
-    name: str = 'optisim'

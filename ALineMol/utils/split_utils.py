@@ -5,8 +5,7 @@ from scipy.spatial import distance
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
 
-from typing import Dict, List, Tuple, Union
-
+from typing import List, Dict, Union, Tuple
 try:
     """
     aimsim depends on sklearn_extra, which uses a version checking technique that is due to
@@ -23,11 +22,22 @@ except ImportError:  # pragma: no cover
         """To use molecule featurizer, install astartes with pip install astartes[molecules]."""
     )
 
+from ALineMol.splitters import RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit
 
-AVAILABLE_SPLITTERS = ['random', 'scaffold', 'kmeans', 'dbscan', 'sphere_exclusion', 'optisim']
+AVAILABLE_SPLITTERS = ["random", "scaffold", "kmeans", "dbscan", "sphere_exclusion", "optisim"]
+SPLITTERS_MAPPER = {RandomSplit: "random", 
+                    ScaffoldSplit: "scaffold", 
+                    KMeansSplit: "kmeans", 
+                    DBScanSplit: "dbscan", 
+                    SphereExclusionSplit: "sphere_exclusion", 
+                    OptiSimSplit: "optisim"}
+# url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
+# Splitter: A type alias for the different types of splitters.
+Splitter = Union[RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit]
 
-
-def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
+def featurize(
+    molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict
+) -> np.ndarray:
     """Call AIMSim's Molecule to featurize the molecules according to the arguments.
 
     Args:
@@ -61,7 +71,12 @@ def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopt
     return np.array(X)
 
 
-def compute_similarities(source_molecules: Union[List, np.ndarray], target_molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
+def compute_similarities(
+    source_molecules: Union[List, np.ndarray],
+    target_molecules: Union[List, np.ndarray],
+    fingerprint: str,
+    fprints_hopts: Dict,
+) -> np.ndarray:
     """
     Compute similarities between two lists of molecules. It receives two lists of
     smiles or RDKit molecule objects, extracts their fingerprints and computes the similarities
@@ -82,51 +97,8 @@ def compute_similarities(source_molecules: Union[List, np.ndarray], target_molec
     return sims.astype(np.float32)
 
 
-def split_hypers(sampler: str = "random") -> Dict:
-    """
-    Get the hyperparameters for the sampler.
-
-    Args:
-        sampler (str): Sampler to use.
-            Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
-
-    Returns:
-        dict: Hyperparameters for the sampler.
-
-    Notes:
-        url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
-    """
-    # ToDO: Check the parameters for the smaplers
-    if sampler == "random":
-        hopts = {}
-    elif sampler == "scaffold":
-        hopts = {"include_chirality": False}
-    elif sampler == "kmeans":
-        hopts = {
-            "n_clusters": 100,
-            "n_init": 10,
-        }
-    elif sampler == "dbscan":
-        hopts = {
-            "eps": 0.5,
-            "metric": "euclidean",
-        }
-    elif sampler == "sphere_exclusion":
-        hopts = {
-            "metric": "euclidean",
-            "distance_cutoff": 0.5,
-        }
-    elif sampler == "optisim":
-        hopts = {
-            "n_clusters": 10,
-            "max_subsample_size": 1000,
-            "distance_cutoff": 0.1,
-        }
-    return hopts
-
-
 def split_molecules_train_test(
-    mol_df: pd.DataFrame, train_size: float = 0.9, sampler: str = "random", random_state: int = 42
+    mol_df: pd.DataFrame, sampler: Splitter, train_size: float = 0.9, random_state: int = 42
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split molecules into train and test sets.
@@ -134,9 +106,9 @@ def split_molecules_train_test(
 
     Args:
         df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
+        sampler (Splitter object): Sampler to use.
+            Options: RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit.
         train_size (float): Size of the train set.
-        sampler (str): Sampler to use.
-            Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
         random_state (int): Random state for reproducibility.
 
     Returns:
@@ -148,9 +120,10 @@ def split_molecules_train_test(
     X = np.array(mol_df["smiles"])
     y = np.array(mol_df["label"])
 
-
     hopts = {"shuffle": True}
-    hopts.update(split_hypers(sampler))
+    sampler_name = SPLITTERS_MAPPER[type(sampler)]
+    assert sampler_name in AVAILABLE_SPLITTERS, f"Sampler must be one of {AVAILABLE_SPLITTERS}"
+    hopts.update(vars(sampler))
 
     *others, train_ind, test_ind = train_test_split_molecules(
         molecules=X,
@@ -161,7 +134,7 @@ def split_molecules_train_test(
             "radius": 2,
             "n_bits": 2048,
         },
-        sampler=sampler,
+        sampler=sampler_name,
         random_state=random_state,
         hopts=hopts,
         return_indices=True,
@@ -175,9 +148,9 @@ def split_molecules_train_test(
 
 def split_molecules_train_val_test(
     mol_df: pd.DataFrame,
+    sampler: Splitter,
     train_size: float = 0.8,
     val_size: float = 0.1,
-    sampler: str = "random",
     random_state: int = 42,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
@@ -186,10 +159,10 @@ def split_molecules_train_val_test(
 
     Args:
         df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
+        sampler (Splitter object): Sampler to use.
+            Options: RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit.
         train_size (float): Size of the train set.
         val_size (float): Size of the validation set.
-        sampler (str): Sampler to use.
-            Options: 'random', 'scaffold', 'kmeans', 'dbscan'.
         random_state (int): Random state for reproducibility.
 
     Returns:
@@ -204,7 +177,9 @@ def split_molecules_train_val_test(
     test_size = 1 - train_size - val_size
 
     hopts = {"shuffle": True}
-    hopts.update(split_hypers(sampler))
+    sampler_name = SPLITTERS_MAPPER[type(sampler)]
+    assert sampler_name in AVAILABLE_SPLITTERS, f"Sampler must be one of {AVAILABLE_SPLITTERS}"
+    hopts.update(vars(sampler))
 
     *others, train_ind, val_ind, test_ind = train_val_test_split_molecules(
         molecules=X,
@@ -217,7 +192,7 @@ def split_molecules_train_val_test(
             "radius": 2,
             "n_bits": 2048,
         },
-        sampler=sampler,
+        sampler=sampler_name,
         random_state=random_state,
         hopts=hopts,
         return_indices=True,

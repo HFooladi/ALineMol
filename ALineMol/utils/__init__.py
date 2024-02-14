@@ -16,9 +16,7 @@ from ALineMol.utils.split_utils import (
     featurize,
     compute_similarities,
     split_molecules_train_test,
-    split_molecules_train_val_test,
-    split_hypers,
-)
+    split_molecules_train_val_test,)
 
 from ALineMol.utils.metric_utils import (
     eval_roc_auc,
@@ -33,3 +31,4 @@ from ALineMol.utils.plot_utils import (
     plot_ID_OOD,
     plot_ID_OOD_sns,
 )
+
