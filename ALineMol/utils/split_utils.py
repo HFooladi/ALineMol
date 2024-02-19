@@ -2,8 +2,11 @@ import warnings
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance
+import datamol as dm
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
+import rdkit
+from rdkit import Chem
 
 from typing import List, Dict, Union, Tuple
 
@@ -108,6 +111,24 @@ def compute_similarities(
     fps2 = featurize(target_molecules, fingerprint, fprints_hopts)  # assumed test set
     sims = 1 - distance.cdist(fps1, fps2, metric="jaccard")
     return sims.astype(np.float32)
+
+
+def get_scaffold(mol: Union[str, rdkit.Chem.Mol], make_generic: bool = False):
+    """
+    Computes the Bemis-Murcko scaffold of a compound.
+    If make_generic is True, the scaffold is made generic by replacing all side chains with R groups.
+
+    Args:
+        mol (str or rdkit.Chem.Mol): SMILES string or RDKit molecule object.
+        make_generic (bool): Whether to make the scaffold generic.
+    
+    Returns:
+        str: The scaffold of the molecule.
+    """
+    mol = dm.to_mol(mol)
+    scaffold = dm.to_scaffold_murcko(mol, make_generic=make_generic)
+    scaffold = dm.to_smiles(scaffold)
+    return scaffold
 
 
 def split_molecules_train_test(

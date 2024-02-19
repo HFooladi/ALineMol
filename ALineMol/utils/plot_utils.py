@@ -159,7 +159,7 @@ def plot_ID_OOD_sns(
 
 
 
-def visualize_chemspace(data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None):
+def visualize_chemspace(data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None, size=10):
     """
     Visualize chemical space using UMAP
 
@@ -178,6 +178,6 @@ def visualize_chemspace(data: pd.DataFrame, split_names: List[str], mol_col: str
     data["UMAP_0"], data["UMAP_1"] = embedding[:, 0], embedding[:, 1]
     for split_name in split_names:
         plt.figure(figsize=(12, 8))
-        fig = sns.scatterplot(data=data, x="UMAP_0", y="UMAP_1", style=size_col, hue=split_name, alpha=0.7)
+        fig = sns.scatterplot(data=data, x="UMAP_0", y="UMAP_1", s=size, style=size_col, hue=split_name, alpha=0.7)
         fig.set_title(f"UMAP Embedding of compounds for {split_name} split")
     return figs
