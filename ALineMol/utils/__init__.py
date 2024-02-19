@@ -30,5 +30,6 @@ from ALineMol.utils.metric_utils import (
 from ALineMol.utils.plot_utils import (
     plot_ID_OOD,
     plot_ID_OOD_sns,
+    visualize_chemspace,
 )
 

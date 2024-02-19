@@ -256,7 +256,7 @@ def load_model(exp_configure: Dict):
     """
     Args:
         exp_configure (dict)
-    
+
     Returns:
         dgllife.model
     """
@@ -379,7 +379,7 @@ def predict(args: Dict, model, bg):
         args (dict)
         model
         bg
-    
+
     Returns:
         Torch.Tesnor
     """

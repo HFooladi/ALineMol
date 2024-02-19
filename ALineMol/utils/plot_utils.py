@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.manifold import TSNE
 import pandas as pd
+import umap
+import datamol as dm
 
 from typing import List, Tuple, Dict, Union
 
@@ -84,7 +86,8 @@ def plot_ID_OOD_sns(
     Plot ID vs OOD test ROC-AUC scores using seaborn
 
     Args:
-        data: pd.DataFrame with columns "ID", "OOD"
+        data (pd.DataFrame): DataFrame with the following columns:
+            "model", "ID_test_accuracy", "OOD_test_accuracy", "ID_test_roc_auc", "OOD_test_roc_auc", "ID_test_pr_auc", "OOD_test_pr_auc"
         dataset_category (str): category of dataset
         dataset_name (str): name of dataset
         save (bool): whether to save plot
@@ -153,3 +156,28 @@ def plot_ID_OOD_sns(
             backend="pgf",
         )
     plt.show()
+
+
+
+def visualize_chemspace(data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None):
+    """
+    Visualize chemical space using UMAP
+
+    Args:
+        data (pd.DataFrame): pd.DataFrame with columns "smiles", "label", "split"
+        split_names (list): list of split names
+        mol_col (str): name of column containing SMILES
+        size_col: name of column containing size information
+    
+    Returns:
+        None
+    """
+    figs = plt.figure(num=3)
+    features = [dm.to_fp(mol) for mol in data[mol_col]]
+    embedding = umap.UMAP().fit_transform(features)
+    data["UMAP_0"], data["UMAP_1"] = embedding[:, 0], embedding[:, 1]
+    for split_name in split_names:
+        plt.figure(figsize=(12, 8))
+        fig = sns.scatterplot(data=data, x="UMAP_0", y="UMAP_1", style=size_col, hue=split_name, alpha=0.7)
+        fig.set_title(f"UMAP Embedding of compounds for {split_name} split")
+    return figs

@@ -6,6 +6,7 @@ from astartes.molecules import train_test_split_molecules, train_val_test_split_
 from astartes.utils.exceptions import MoleculesNotInstalledError
 
 from typing import List, Dict, Union, Tuple
+
 try:
     """
     aimsim depends on sklearn_extra, which uses a version checking technique that is due to
@@ -22,18 +23,30 @@ except ImportError:  # pragma: no cover
         """To use molecule featurizer, install astartes with pip install astartes[molecules]."""
     )
 
-from ALineMol.splitters import RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit
+from ALineMol.splitters import (
+    RandomSplit,
+    ScaffoldSplit,
+    KMeansSplit,
+    DBScanSplit,
+    SphereExclusionSplit,
+    OptiSimSplit,
+)
 
 AVAILABLE_SPLITTERS = ["random", "scaffold", "kmeans", "dbscan", "sphere_exclusion", "optisim"]
-SPLITTERS_MAPPER = {RandomSplit: "random", 
-                    ScaffoldSplit: "scaffold", 
-                    KMeansSplit: "kmeans", 
-                    DBScanSplit: "dbscan", 
-                    SphereExclusionSplit: "sphere_exclusion", 
-                    OptiSimSplit: "optisim"}
+SPLITTERS_MAPPER = {
+    RandomSplit: "random",
+    ScaffoldSplit: "scaffold",
+    KMeansSplit: "kmeans",
+    DBScanSplit: "dbscan",
+    SphereExclusionSplit: "sphere_exclusion",
+    OptiSimSplit: "optisim",
+}
 # url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
 # Splitter: A type alias for the different types of splitters.
-Splitter = Union[RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit]
+Splitter = Union[
+    RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit
+]
+
 
 def featurize(
     molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict
