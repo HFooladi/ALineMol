@@ -1,42 +1,21 @@
 from dataclasses import dataclass
+import numpy as np
+from astartes.samplers import AbstractSampler
 
 
-@dataclass
-class RandomSplit():
-    """A random split."""
-    shuffle: bool = True
 
+class TargetProperty(AbstractSampler):
+    def _sample(self):
+        """
+        This sampler partitions the data based on the regression target y. It first sorts the
+        data by y value and then constructs the training set to have either the smallest (largest)
+        y values, the validation set to have the next smallest (largest) set of y values, and the
+        testing set to have the largest (smallest) y values.
+        Implements the target property sampler to create an extrapolation split.
+        """
+        data = [(y, idx) for y, idx in zip(self.y, np.arange(len(self.y)))]
 
-@dataclass
-class ScaffoldSplit():
-    """A scaffold split."""
-    include_chirality: bool = False
+        # by default, the smallest property values are placed in the training set
+        sorted_list = sorted(data, reverse=self.get_config("descending", False))
 
-
-@dataclass
-class KMeansSplit():
-    """A k-means split."""
-    n_clusters: int = 100
-    n_init: int = 10
-
-
-@dataclass
-class DBScanSplit():
-    """A DBScan split."""
-    eps: float = 0.5
-    metric: str = 'euclidean'
-
-
-@dataclass
-class SphereExclusionSplit():
-    """A sphere exclusion split."""
-    metrics: str = 'euclidean'
-    distance_cutoff: float = 0.5
-
-
-@dataclass
-class OptiSimSplit():
-    """An OptiSim split."""
-    n_clusters: int = 10
-    max_subsample_size: int = 1000
-    distance_cutoff: float = 0.1
+        self._samples_idxs = np.array([idx for time, idx in sorted_list], dtype=int)
