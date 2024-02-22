@@ -1,25 +1,15 @@
-import numpy as np
-import pandas as pd
-from scipy.stats import norm
-import statsmodels.api as sm
 from typing import Dict, Tuple
 
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
 import torch
 import torch.nn.functional as F
-
-from scipy.stats import pearsonr
-from sklearn.metrics import (
-    roc_auc_score,
-    average_precision_score,
-    roc_curve,
-    precision_recall_curve,
-    accuracy_score,
-    f1_score,
-    precision_score,
-    recall_score,
-    confusion_matrix,
-    auc,
-)
+from scipy.stats import norm, pearsonr
+from sklearn.metrics import (accuracy_score, auc, average_precision_score,
+                             confusion_matrix, f1_score,
+                             precision_recall_curve, precision_score,
+                             recall_score, roc_auc_score, roc_curve)
 
 
 def eval_roc_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:

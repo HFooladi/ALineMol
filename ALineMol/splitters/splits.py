@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+
 import numpy as np
 from astartes.samplers import AbstractSampler
-
+from astartes.samplers.extrapolation import Scaffold
+from astartes.utils.aimsim_featurizer import featurize_molecules
 
 
 class TargetProperty(AbstractSampler):
@@ -19,3 +21,18 @@ class TargetProperty(AbstractSampler):
         sorted_list = sorted(data, reverse=self.get_config("descending", False))
 
         self._samples_idxs = np.array([idx for time, idx in sorted_list], dtype=int)
+
+
+class MolecularWeight(AbstractSampler):
+    def _before_sample(self):
+        # check for invalid data types using the method in the Scaffold sampler
+        Scaffold._validate_input(self.X)
+        # calculate the average molecular weight of the molecule
+        self.y_backup = self.y
+        self.y = featurize_molecules(
+            (Scaffold.str_to_mol(i) for i in self.X), "mordred:MW", fprints_hopts={}
+        )
+
+    def _after_sample(self):
+        # restore the original y values
+        self.y = self.y_backup

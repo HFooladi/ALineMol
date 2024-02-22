@@ -1,15 +1,14 @@
 # import visualization packages
 import os
+from typing import Dict, List, Tuple, Union
 
+import datamol as dm
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.manifold import TSNE
 import pandas as pd
+import seaborn as sns
 import umap
-import datamol as dm
-
-from typing import List, Tuple, Dict, Union
+from sklearn.manifold import TSNE
 
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

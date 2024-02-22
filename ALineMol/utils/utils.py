@@ -3,16 +3,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-import dgl
 import errno
 import json
 import os
-import torch
-import torch.nn.functional as F
 from typing import Dict, List, Tuple
 
+import dgl
+import torch
+import torch.nn.functional as F
 from dgllife.data import MoleculeCSVDataset
-from dgllife.utils import SMILESToBigraph, ScaffoldSplitter, RandomSplitter
+from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
 
 filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -32,7 +32,8 @@ def init_featurizer(args: Dict) -> Dict:
         "gin_supervised_edgepred",
         "gin_supervised_masking",
     ]:
-        from dgllife.utils import PretrainAtomFeaturizer, PretrainBondFeaturizer
+        from dgllife.utils import (PretrainAtomFeaturizer,
+                                   PretrainBondFeaturizer)
 
         args["atom_featurizer_type"] = "pre_train"
         args["bond_featurizer_type"] = "pre_train"
@@ -332,8 +333,7 @@ def load_model(exp_configure: Dict):
         "gin_supervised_edgepred",
         "gin_supervised_masking",
     ]:
-        from dgllife.model import GINPredictor
-        from dgllife.model import load_pretrained
+        from dgllife.model import GINPredictor, load_pretrained
 
         model = GINPredictor(
             num_node_emb_list=[120, 3],
