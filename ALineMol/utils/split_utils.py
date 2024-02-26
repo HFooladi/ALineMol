@@ -27,10 +27,18 @@ except ImportError:  # pragma: no cover
         """To use molecule featurizer, install astartes with pip install astartes[molecules]."""
     )
 
-AVAILABLE_SPLITTERS = ["random", "scaffold", "kmeans", "dbscan", "sphere_exclusion", "optisim", "target_property", "molecular_weight"]
+AVAILABLE_SPLITTERS = [
+    "random",
+    "scaffold",
+    "kmeans",
+    "dbscan",
+    "sphere_exclusion",
+    "optisim",
+    "target_property",
+    "molecular_weight",
+]
 
 # url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
-
 
 
 def featurize(
@@ -103,7 +111,7 @@ def get_scaffold(mol: Union[str, rdkit.Chem.Mol], make_generic: bool = False):
     Args:
         mol (str or rdkit.Chem.Mol): SMILES string or RDKit molecule object.
         make_generic (bool): Whether to make the scaffold generic.
-    
+
     Returns:
         str: The scaffold of the molecule.
     """
@@ -114,7 +122,11 @@ def get_scaffold(mol: Union[str, rdkit.Chem.Mol], make_generic: bool = False):
 
 
 def split_molecules_train_test(
-    mol_df: pd.DataFrame, sampler: str, train_size: float = 0.9, random_state: int = 42, hopts: dict = {}
+    mol_df: pd.DataFrame,
+    sampler: str,
+    train_size: float = 0.9,
+    random_state: int = 42,
+    hopts: dict = {},
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split molecules into train and test sets.
