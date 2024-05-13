@@ -5,8 +5,7 @@ import datamol as dm
 import numpy as np
 import pandas as pd
 import rdkit
-from astartes.molecules import (train_test_split_molecules,
-                                train_val_test_split_molecules)
+from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from rdkit import Chem
 from scipy.spatial import distance

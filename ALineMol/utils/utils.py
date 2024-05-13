@@ -32,8 +32,7 @@ def init_featurizer(args: Dict) -> Dict:
         "gin_supervised_edgepred",
         "gin_supervised_masking",
     ]:
-        from dgllife.utils import (PretrainAtomFeaturizer,
-                                   PretrainBondFeaturizer)
+        from dgllife.utils import PretrainAtomFeaturizer, PretrainBondFeaturizer
 
         args["atom_featurizer_type"] = "pre_train"
         args["bond_featurizer_type"] = "pre_train"

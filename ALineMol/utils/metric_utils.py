@@ -6,10 +6,18 @@ import statsmodels.api as sm
 import torch
 import torch.nn.functional as F
 from scipy.stats import norm, pearsonr
-from sklearn.metrics import (accuracy_score, auc, average_precision_score,
-                             confusion_matrix, f1_score,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_auc_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
 
 
 def eval_roc_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:
