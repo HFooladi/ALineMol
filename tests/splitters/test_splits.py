@@ -13,9 +13,8 @@ def test_TargetProperty():
     pass
 
 
-def test_MolecularWeight():
-    smiles = molecules()
-    mw = MolecularWeight(smiles)
+def test_MolecularWeight(molecules):
+    mw = MolecularWeight(molecules)
     mw._before_sample()
     mw._sample()
     mw._after_sample()
