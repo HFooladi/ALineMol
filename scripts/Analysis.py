@@ -6,7 +6,7 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     from dgllife.utils import analyze_mols
 
-    from ALineMol.utils import mkdir_p
+    from alinemol.utils import mkdir_p
 
     parser = ArgumentParser('Dataset analysis')
     parser.add_argument('-c', '--csv-path', type=str, required=True,

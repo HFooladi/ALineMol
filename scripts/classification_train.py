@@ -21,9 +21,9 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
-from ALineMol.utils import Meter
-from ALineMol.hyper import init_hyper_space
-from ALineMol.utils import (collate_molgraphs, get_configure, init_featurizer,
+from alinemol.utils import Meter
+from alinemol.hyper import init_hyper_space
+from alinemol.utils import (collate_molgraphs, get_configure, init_featurizer,
                             init_trial_path, load_dataset, load_model, mkdir_p,
                             predict, split_dataset)
 

@@ -1,5 +1,5 @@
 import pytest
-from ALineMol.splitters.splits import *
+from alinemol.splitters.splits import *
 
 @pytest.fixture
 def molecules():

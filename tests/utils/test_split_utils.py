@@ -1,5 +1,5 @@
 
-from ALineMol.utils.split_utils import *
+from alinemol.utils.split_utils import *
 
 
 def test_featurize():

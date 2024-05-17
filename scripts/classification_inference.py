@@ -18,7 +18,7 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
-from ALineMol.utils import (collate_molgraphs_unlabeled, init_featurizer,
+from alinemol.utils import (collate_molgraphs_unlabeled, init_featurizer,
                             load_model, mkdir_p, predict, init_inference_trial_path)
 
 

@@ -4,8 +4,8 @@ import pandas
 
 from argparse import ArgumentParser
 
-from ALineMol.utils.split_utils import split_molecules_train_test, split_molecules_train_val_test
-from ALineMol.utils.utils import increment_path
+from alinemol.utils.split_utils import split_molecules_train_test, split_molecules_train_val_test
+from alinemol.utils.utils import increment_path
 
 
 def parse_args():

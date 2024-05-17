@@ -18,7 +18,7 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
-from ALineMol.utils import mkdir_p, collate_molgraphs_unlabeled, load_model, predict, init_featurizer
+from alinemol.utils import mkdir_p, collate_molgraphs_unlabeled, load_model, predict, init_featurizer
 
 def main(args):
     mol_to_g = MolToBigraph(add_self_loop=True,

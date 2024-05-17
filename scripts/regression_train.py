@@ -23,8 +23,8 @@ os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
 
-from ALineMol.hyper import init_hyper_space
-from ALineMol.utils import get_configure, mkdir_p, init_trial_path, \
+from alinemol.hyper import init_hyper_space
+from alinemol.utils import get_configure, mkdir_p, init_trial_path, \
     split_dataset, collate_molgraphs, load_model, predict, init_featurizer, load_dataset
 
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):

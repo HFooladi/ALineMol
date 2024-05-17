@@ -16,7 +16,10 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
-    "pandas",]
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "scikit-learn",]
 
 dynamic = ["version"]
 
