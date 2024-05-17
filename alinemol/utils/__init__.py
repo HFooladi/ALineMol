@@ -1,4 +1,4 @@
-from ALineMol.utils.metric_utils import (
+from alinemol.utils.metric_utils import (
     Meter,
     compute_linear_fit,
     eval_acc,
@@ -6,14 +6,14 @@ from ALineMol.utils.metric_utils import (
     eval_roc_auc,
     rescale,
 )
-from ALineMol.utils.plot_utils import plot_ID_OOD, plot_ID_OOD_sns, visualize_chemspace
-from ALineMol.utils.split_utils import (
+from alinemol.utils.plot_utils import plot_ID_OOD, plot_ID_OOD_sns, visualize_chemspace
+from alinemol.utils.split_utils import (
     compute_similarities,
     featurize,
     split_molecules_train_test,
     split_molecules_train_val_test,
 )
-from ALineMol.utils.utils import (
+from alinemol.utils.utils import (
     collate_molgraphs,
     collate_molgraphs_unlabeled,
     get_configure,
