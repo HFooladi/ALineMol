@@ -6,6 +6,9 @@
 import errno
 import json
 import os
+from pathlib import Path
+import glob
+import re
 from typing import Dict, List, Tuple
 
 import dgl
@@ -99,6 +102,29 @@ def get_configure(model: str) -> Dict:
     with open(f"{filepath}/models/model_configures/{model}.json", "r") as f:
         config = json.load(f)
     return config
+
+
+def increment_path(path, exist_ok=True, sep='_'):
+    """
+    Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.
+
+    Args:
+        path (str): Original path.
+        exist_ok (bool): Whether to increment path or not if path exists.
+        sep (str): Separator between name and number.
+    
+    Returns:
+        str: Incremented path.
+    """
+    path = Path(path)  # os-agnostic
+    if (path.exists() and exist_ok) or (not path.exists()):
+        return str(path)
+    else:
+        dirs = glob.glob(f"{path}{sep}*")  # similar paths
+        matches = [re.search(rf"%s{sep}(\d+)" % path.stem, d) for d in dirs]
+        i = [int(m.groups()[0]) for m in matches if m]  # indices
+        n = max(i) + 1 if i else 2  # increment number
+        return f"{path}{sep}{n}"  # update path
 
 
 def mkdir_p(path: str):

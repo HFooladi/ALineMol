@@ -7,8 +7,8 @@ name = "ALineMol"
 authors = [
   {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
 ]
-description = "Package for evaluating accuarcy and agreement on the line for molecules"
-requires-python = ">=3.7"
+description = "Package for evaluating accuracy and agreement on the line for molecules"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -40,8 +40,8 @@ packages = ["ALineMol"]
 
 
 [tool.setuptools_scm]
-write_to = "ALineMol/_version.py"
+write_to = "alinemol/_version.py"
 
 [tool.black]
-line-length = 100
-target-version = ['py37']
+line-length = 110
+target-version = ['py39', 'py310']
