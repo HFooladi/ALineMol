@@ -252,9 +252,7 @@ class Meter(object):
         elif reduction == "sum":
             return np.sum(scores)
         else:
-            raise ValueError(
-                "Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction)
-            )
+            raise ValueError("Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction))
 
     def multilabel_score(self, score_func, reduction="none"):
         """Evaluate for multi-label prediction.
@@ -372,9 +370,7 @@ class Meter(object):
                 )
                 return None
             else:
-                return accuracy_score(
-                    y_true.long().numpy(), (torch.sigmoid(y_pred) > threshold).numpy()
-                )
+                return accuracy_score(y_true.long().numpy(), (torch.sigmoid(y_pred) > threshold).numpy())
 
         return self.multilabel_score(score, reduction)
 

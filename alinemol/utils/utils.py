@@ -53,8 +53,9 @@ def init_featurizer(args: Dict) -> Dict:
         args["node_featurizer"] = AttentiveFPAtomFeaturizer()
     else:
         return ValueError(
-            "Expect node_featurizer to be in ['canonical', 'attentivefp'], "
-            "got {}".format(args["atom_featurizer_type"])
+            "Expect node_featurizer to be in ['canonical', 'attentivefp'], " "got {}".format(
+                args["atom_featurizer_type"]
+            )
         )
 
     if args["model"] in ["Weave", "MPNN", "AttentiveFP"]:
@@ -104,7 +105,7 @@ def get_configure(model: str) -> Dict:
     return config
 
 
-def increment_path(path, exist_ok=True, sep='_'):
+def increment_path(path, exist_ok=True, sep="_"):
     """
     Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.
 
@@ -112,7 +113,7 @@ def increment_path(path, exist_ok=True, sep='_'):
         path (str): Original path.
         exist_ok (bool): Whether to increment path or not if path exists.
         sep (str): Separator between name and number.
-    
+
     Returns:
         str: Incremented path.
     """
@@ -219,9 +220,7 @@ def split_dataset(args, dataset) -> Tuple:
             dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio
         )
     else:
-        return ValueError(
-            "Expect the splitting method to be 'scaffold', got {}".format(args["split"])
-        )
+        return ValueError("Expect the splitting method to be 'scaffold', got {}".format(args["split"]))
 
     return train_set, val_set, test_set
 

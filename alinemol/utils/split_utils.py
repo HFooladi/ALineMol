@@ -40,9 +40,7 @@ AVAILABLE_SPLITTERS = [
 # url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
 
 
-def featurize(
-    molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict
-) -> np.ndarray:
+def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopts: Dict) -> np.ndarray:
     """Call AIMSim's Molecule to featurize the molecules according to the arguments.
 
     Args:

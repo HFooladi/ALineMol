@@ -53,9 +53,7 @@ def plot_ID_OOD(
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    ax.scatter(
-        ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1
-    )
+    ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")
     ax.axline((0.5, 0.6), (1, 1.1), color=dark_color, linestyle="--")
     ax.axline((0.5, 0.4), (1, 0.9), color=dark_color, linestyle="--")
@@ -78,9 +76,7 @@ def plot_ID_OOD(
     plt.show()
 
 
-def plot_ID_OOD_sns(
-    data: pd.DataFrame, dataset_category="TDC", dataset_name="CYP2C19", save: bool = False
-):
+def plot_ID_OOD_sns(data: pd.DataFrame, dataset_category="TDC", dataset_name="CYP2C19", save: bool = False):
     """
     Plot ID vs OOD test ROC-AUC scores using seaborn
 

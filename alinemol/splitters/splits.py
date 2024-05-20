@@ -29,9 +29,7 @@ class MolecularWeight(AbstractSampler):
         Scaffold._validate_input(self.X)
         # calculate the average molecular weight of the molecule
         self.y_backup = self.y
-        self.y = featurize_molecules(
-            (Scaffold.str_to_mol(i) for i in self.X), "mordred:MW", fprints_hopts={}
-        )
+        self.y = featurize_molecules((Scaffold.str_to_mol(i) for i in self.X), "mordred:MW", fprints_hopts={})
 
     def _after_sample(self):
         # restore the original y values
