@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+
 @pytest.fixture(scope="module")
 def manual_smiles():
     return [

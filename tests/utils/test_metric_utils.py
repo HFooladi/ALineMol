@@ -1,5 +1,5 @@
-
 from alinemol.utils.metric_utils import *
+
 
 def test_eval_roc_auc():
     pass
@@ -17,15 +17,9 @@ def test_rescale():
     pass
 
 
-
 def test_compute_linear_fit():
     pass
 
 
-
 def test_Meter():
-    pass    
-
-
-
-
+    pass
