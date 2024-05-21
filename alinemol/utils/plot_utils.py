@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, Union
 import datamol as dm
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import umap
@@ -31,6 +32,7 @@ matplotlib.rcParams.update(
 def plot_ID_OOD(
     ID_test_score: List,
     OOD_test_score: List,
+    threshold: float = 0.0,
     dataset_category: str = "MoleculeNet",
     dataset_name: str = "HIV",
     metric: str = "ROC-AUC",
@@ -51,7 +53,10 @@ def plot_ID_OOD(
     Returns:
         None
     """
-
+    chosen_index = np.where(np.array(ID_test_score) > threshold)
+    ID_test_score = np.array(ID_test_score)[chosen_index]
+    OOD_test_score = np.array(OOD_test_score)[chosen_index]
+    
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")

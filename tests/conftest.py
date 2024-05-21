@@ -14,3 +14,14 @@ def manual_smiles():
         "CN1C=NC2=C1C(=O)NC(=O)N2C",
         "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
     ]
+
+
+@pytest.fixture(scope="module")
+def manual_smiles_for_scaffold():
+    return [
+    "CCOC1=CC=CC=C1C(=O)OCC(=O)NC1=CC=CC=C1",
+    "NC(=O)C1=C(NC(=O)COC2=CC=CC=C2C(F)(F)F)SC=C1",
+    "CC(C)NC(=O)CSCC1=CC=CC=C1Br",
+    "CC1=CC=C(C(=O)NC(C)C)C=C1NC(=O)C1=CC=CO1",
+    "O=C(CN1CCCCCC1=O)NCC1=CC=C(N2C=CN=C2)C(F)=C1",
+]
