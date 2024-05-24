@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 
@@ -25,3 +26,15 @@ def manual_smiles_for_scaffold():
     "CC1=CC=C(C(=O)NC(C)C)C=C1NC(=O)C1=CC=CO1",
     "O=C(CN1CCCCCC1=O)NCC1=CC=C(N2C=CN=C2)C(F)=C1",
 ]
+
+
+@pytest.fixture(scope="module")
+def dataset_dili():
+    # Load the dataset
+    # The DILI dataset contains SMILES strings and binary labels
+    # size of the datsaet: 475
+    # number of unique scaffolds (Bemis-Murcko): 311
+    # number of molecules with empty scaffolds (Bemis-Murcko): 35
+    # number ofactive/inactive: 236/239
+    dataset = pd.read_csv("tests/conftest/dili.csv")
+    return dataset
