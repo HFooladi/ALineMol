@@ -4,8 +4,12 @@
 
 import logging
 
+import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem.MolStandardize import rdMolStandardize
+from rdkit.Chem.Descriptors import MolWt
+
+from typing import Optional
 
 
 class BaseLogger:
@@ -52,17 +56,16 @@ class Standardizer(BaseLogger):
 
     def __init__(
         self,
-        metal_disconnect=None,
-        canon_taut=None,
+        metal_disconnect: Optional[bool] = None,
+        canon_taut: Optional[bool] = None,
     ):
         """
         Constructor.
 
         All parameters are optional.
-        :param metal_disconnect:    if True, metallorganic complexes are
-                                    disconnected
-        :param canon_taut:          if True, molecules are converted to their
-                                    canonical tautomer
+        Arges:
+            metal_disconnect: if True, metallorganic complexes are disconnected
+            canon_taut:if True, molecules are converted to their canonical tautomer
         """
         super().__init__()
         if metal_disconnect is None:
@@ -178,12 +181,12 @@ class Standardizer(BaseLogger):
         """
         Standardize a single molecule.
 
-        :param mol_in:  a Chem.Mol
-        :return:        * (standardized Chem.Mol, n_taut) tuple
-                          if success. n_taut will be negative if
-                          tautomer enumeration was aborted due
-                          to reaching a limit
-                        * (None, error_msg) if failure
+        Args:
+            mol_in:a Chem.Mol
+        Returns:
+            (standardized Chem.Mol, n_taut) tuple if success. n_taut will be negative if
+            tautomer enumeration was aborted due to reaching a limit
+            * (None, error_msg) if failure
 
         This calls self.charge_parent() and, if self._canon_taut
         is True, runs tautomer canonicalization.
@@ -242,3 +245,42 @@ class Standardizer(BaseLogger):
                 return None, error
         mol_out.SetProp("_Name", name)
         return mol_out, n_tautomers
+
+
+
+def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> pd.DataFrame:
+
+    """
+    Standardization of a SMILES string.
+
+    Uses the 'Standardizer' to perform sequence of cleaning operations on a SMILES string.
+
+    Args:
+        x: pd.DataFrame with 'smiles' column
+        taut_canonicalization: whether or not to use tautomer canonicalization
+    
+    Returns:
+        pd.DataFrame with 'canonical_smiles', 'molecular_weight', and 'num_atoms' additional columns
+    """
+    # reads in a SMILES, and returns it in canonicalized form.
+    # can select whether or not to use tautomer canonicalization
+    sm = Standardizer(canon_taut=taut_canonicalization)
+    df = pd.DataFrame(x)
+
+    def standardize_smile(x: str):
+        try:
+            mol = Chem.MolFromSmiles(x)
+            mol_weight = MolWt(mol)  # get molecular weight to do downstream filtering
+            num_atoms = mol.GetNumAtoms()
+            standardized_mol, _ = sm.standardize_mol(mol)
+            return Chem.MolToSmiles(standardized_mol), mol_weight, num_atoms
+        except Exception:
+            # return a fail as None (downstream filtering)
+            return None
+
+    standard = df["smiles"].apply(lambda row: standardize_smile(row))
+    df["canonical_smiles"] = standard.apply(lambda row: row[0])
+    df["molecular_weight"] = standard.apply(lambda row: row[1])
+    df["num_atoms"] = standard.apply(lambda row: row[2])
+
+    return df
