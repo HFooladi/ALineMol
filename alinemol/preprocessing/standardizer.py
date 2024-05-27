@@ -268,6 +268,14 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
     df = pd.DataFrame(x)
 
     def standardize_smile(x: str):
+        """
+        Standardize a single SMILES string.
+        Args:
+            x: SMILES string
+        Returns:
+            (canonicalized SMILES, mol_weight, num_atoms) tuple if success
+            * None if failure
+        """
         try:
             mol = Chem.MolFromSmiles(x)
             mol_weight = MolWt(mol)  # get molecular weight to do downstream filtering
@@ -279,8 +287,33 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
             return None
 
     standard = df["smiles"].apply(lambda row: standardize_smile(row))
+    standard = standard.dropna()
+    standard = standard.reset_index(drop=True)
     df["canonical_smiles"] = standard.apply(lambda row: row[0])
     df["molecular_weight"] = standard.apply(lambda row: row[1])
     df["num_atoms"] = standard.apply(lambda row: row[2])
 
+    return df
+
+
+def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop conflicting duplicates from a DataFrame.
+    rows that have the same smiles but different labels are dropped
+    from rows that have the same smiles but the same label, only one is kept
+
+    Args:
+        x: pd.DataFrame with 'canonical_smiles' column
+    
+    Returns:
+        pd.DataFrame with conflicting duplicates dropped and unique rows
+    """
+    df = pd.DataFrame(x)
+    assert "smiles" in df.columns, "Dataframe must have a 'smiles' column."
+    assert "label" in df.columns, "Dataframe must have a 'label' column."
+    # remove the rows with conflicting labels
+    df = df[df.groupby('smiles').label.transform('nunique') == 1]
+    # remove duplicates (with the same label)
+    df = df.drop_duplicates(subset=['smiles'], keep='first')
+    df.reset_index(drop=True, inplace=True)
     return df

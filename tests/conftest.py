@@ -27,6 +27,13 @@ def manual_smiles_for_scaffold():
     "O=C(CN1CCCCCC1=O)NCC1=CC=C(N2C=CN=C2)C(F)=C1",
 ]
 
+@pytest.fixture(scope="module")
+def manual_df_for_drop_duplicate():
+    smiles  = ['CC', 'CC', 'CC', 'CCC', 'CCC', 'CCCC', 'CCCCC', 'CCCCC']
+    label= [1, 1, 0, 1, 1, 1, 1, 0]
+    df = pd.DataFrame({'smiles': smiles, 'label': label})
+    return df
+
 
 @pytest.fixture(scope="module")
 def dataset_dili():
