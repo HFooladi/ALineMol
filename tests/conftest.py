@@ -36,12 +36,13 @@ def manual_df_for_drop_duplicate():
 
 
 @pytest.fixture(scope="module")
-def dataset_dili():
+def test_dataset_dili():
     # Load the dataset
     # The DILI dataset contains SMILES strings and binary labels
-    # size of the datsaet: 475
+    # size of the datsaet: 474
     # number of unique scaffolds (Bemis-Murcko): 311
+    # number of unique scaffolds (Bemis-Murcko, generic=True): 263
     # number of molecules with empty scaffolds (Bemis-Murcko): 35
-    # number ofactive/inactive: 236/239
+    # number ofactive/inactive: 236/238
     dataset = pd.read_csv("tests/conftest/dili.csv")
     return dataset
