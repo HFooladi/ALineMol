@@ -1,5 +1,6 @@
-from typing import Dict, Tuple
-
+from typing import Dict, List, Tuple
+from typing_extensions import Literal
+from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -8,6 +9,7 @@ import torch.nn.functional as F
 from scipy.stats import norm, pearsonr
 from sklearn.metrics import (
     accuracy_score,
+    balanced_accuracy_score,
     auc,
     average_precision_score,
     confusion_matrix,
@@ -17,7 +19,55 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
     roc_curve,
+    cohen_kappa_score,
 )
+
+
+@dataclass(frozen=True)
+class BinaryEvalMetrics:
+    size: int
+    acc: float
+    balanced_acc: float
+    f1: float
+    prec: float
+    recall: float
+    roc_auc: float
+    avg_precision: float
+    kappa: float
+
+
+BinaryMetricType = Literal["acc", "balanced_acc", "f1", "prec", "recall", "roc_auc", "avg_precision", "kappa"]
+
+
+def compute_binary_task_metrics(predictions: List[float], labels: List[float]) -> BinaryEvalMetrics:
+    """
+    Compute binary classification evaluation metrics.
+
+    Args:
+        predictions (List[float]): list of predicted probabilities.
+        labels (List[float]): list of true labels.
+    
+    Returns:
+        BinaryEvalMetrics: evaluation metrics.
+    """
+    normalized_predictions = [pred >= 0.5 for pred in predictions]  # Normalise probabilities to bool values
+
+    if np.sum(labels) == len(labels) or np.sum(labels) == 0:
+        roc_auc = 0.0
+    else:
+        roc_auc = roc_auc_score(labels, predictions)
+
+    return BinaryEvalMetrics(
+        size=len(predictions),
+        acc=accuracy_score(labels, normalized_predictions),
+        balanced_acc=balanced_accuracy_score(labels, normalized_predictions),
+        f1=f1_score(labels, normalized_predictions, zero_division=1),
+        prec=precision_score(labels, normalized_predictions, zero_division=1),
+        recall=recall_score(labels, normalized_predictions, zero_division=1),
+        roc_auc=roc_auc,
+        avg_precision=average_precision_score(labels, predictions),
+        kappa=cohen_kappa_score(labels, normalized_predictions),
+    )
 
 
 def eval_roc_auc(df1: pd.DataFrame, df2: pd.DataFrame) -> float:
