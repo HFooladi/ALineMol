@@ -1,0 +1,108 @@
+site_name: "ALineMol"
+site_description: "ALineMol:   Exploring agreement-on-the-line and accuracy-on-the-line for molecule property and activity prediction "
+site_url: "https://github.com/HFooladi/ALineMol"
+repo_url: "https://github.com/HFooladi/ALineMol"
+repo_name: "HFooladi/ALineMol"
+copyright: Copyright 2023 - 2024 datamol.io
+
+remote_branch: "gh-pages"
+use_directory_urls: false
+docs_dir: "docs"
+
+# Fail on warnings to detect issues with types and docstring
+strict: true
+
+nav:
+  - Getting started: index.md
+  #- Tutorials:
+      #- The Basics: tutorials/The_Basics.ipynb
+      #- Structure-based Splitters: tutorials/Structure_based_Splitters.ipynb
+      #- MOOD Protocol: tutorials/MOOD_Protocol.ipynb
+      #- MPO Splitters: tutorials/MPO_Splitters.ipynb
+      #- Lo Splitter: tutorials/Lo_splitter.ipynb
+      #- Other Splitters: tutorials/Other_Splitters.ipynb
+  #- API:
+      #- splito: api/splito.md
+      #- splito.utils: api/utils.md
+      #- splito.simpd: api/simpd.md
+      #- splito.lohi: api/lohi.md
+      #- splito.plot: api/plot.md
+
+theme:
+  name: material
+  # NOTE(hadim): to customize the material primary and secondary color,
+  # see check `docs/assets/css/custom.css`.
+  palette:
+    primary: deep purple
+    accent: indigo
+
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+  favicon: images/logo-black.svg
+  logo: images/logo-white.svg
+
+extra_css:
+  - assets/css/custom-splito.css
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+watch:
+  - alinemol/
+
+plugins:
+  - search
+
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+            - import sys
+            - sys.path.append("docs")
+            - sys.path.append("themap")
+          options:
+            show_root_heading: yes
+            heading_level: 3
+            show_source: false
+            group_by_category: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            line_length: 80
+
+  - mkdocs-jupyter:
+      execute: False
+
+  - mike:
+      version_selector: true
+
+extra:
+  version:
+    # Multi versioning provider for mkdocs-material (used for the JS selector)
+    provider: mike

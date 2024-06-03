@@ -61,3 +61,11 @@ target-version = "py310"
     "F401", # imported but unused
     "E402", # Module level import not at top of file
 ]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
+testpaths = ["tests"]
