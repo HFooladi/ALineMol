@@ -10,8 +10,7 @@ The goal is to explore and assess quantitavely the relationship between the perf
 ```bash
 conda env create -f environment.yml
 conda activate alinemol
-git clone https://github.com/HFooladi/ALineMol.git
-cd ALineMol 
+
 pip install --no-deps -e .
 ```
 
