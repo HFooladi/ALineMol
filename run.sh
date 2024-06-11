@@ -1,9 +1,9 @@
 #!/bin/bash
 
 dataset_category="TDC"
-dataset_names="CYP2C19"
-split_type="sphere_exclusion"
-filename="train_05.csv"
+dataset_names="CYP3A4"
+split_type="scaffold"
+filename="train.csv"
 declare -a model_names=("GCN" "GAT" "Weave" "MPNN" "AttentiveFP" "gin_supervised_contextpred" "gin_supervised_infomax" "gin_supervised_edgepred" "gin_supervised_masking" "NF")
 #declare -a model_names=("gin_supervised_contextpred" "gin_supervised_infomax" "gin_supervised_edgepred" "gin_supervised_masking")
 #declare -a model_names=("GCN")
