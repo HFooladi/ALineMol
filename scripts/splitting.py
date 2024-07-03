@@ -1,5 +1,5 @@
 from pathlib import Path
-import pandas
+import pandas as pd
 
 
 from argparse import ArgumentParser
@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument(
         "-sp", "--splitter", type=str, default="scaffold", help="The name of the splitter to use"
     )
-    parser.add_argument("-tr", "--test-size", type=float, default=0.2, help="The size of the train set")
+    parser.add_argument("-tr", "--test-size", type=float, default=0.2, help="The size of the test set")
     parser.add_argument("--n_jobs", type=int, default=1, help="Number of jobs to run in parallel")
     parser.add_argument("--n_splits", type=int, default=1, help="Number of splits to make")
     args = vars(parser.parse_args())
@@ -40,9 +40,9 @@ if __name__ == "__main__":
     n_splits = args["n_splits"]
 
     if file_path.suffix == ".csv":
-        df = pandas.read_csv(file_path)
+        df = pd.read_csv(file_path)
     elif file_path.suffix == ".txt":
-        df = pandas.read_csv(file_path, sep="\t")
+        df = pd.read_csv(file_path, sep="\t")
     else:
         raise ValueError("File must be a .csv or .txt file")
 
