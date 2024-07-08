@@ -169,4 +169,7 @@ assets/
 # put datasets folder in gitignore
 datasets/
 
+# ignore all the checkpoints
+*.pth 
+*.ckpt
 
