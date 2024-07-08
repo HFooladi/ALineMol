@@ -1,13 +1,30 @@
+import os
+import sys
 from pathlib import Path
 import pandas as pd
 import logging
+import json
 
 
 from argparse import ArgumentParser
 from typing import Any, Dict
 from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, PerimeterSplit
 
+# Setting up local details:
+# This should be the location of the checkout of the ALineMol repository:
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKOUT_PATH = repo_path
+
+os.chdir(CHECKOUT_PATH)
+sys.path.insert(0, CHECKOUT_PATH)
+
 from alinemol.utils.utils import increment_path
+from alinemol.splitters.splitting_configures import (
+    MolecularWeightSplitConfig,
+    ScaffoldSplitConfig,
+    KMeansSplitConfig,
+    PerimeterSplitConfig,
+)
 
 NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "scaffold": ScaffoldSplit,
@@ -16,14 +33,27 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "perimeter": PerimeterSplit,
 }
 
+
+NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
+    "scaffold": ScaffoldSplitConfig,
+    "kmeans": KMeansSplitConfig,
+    "molecular_weight": MolecularWeightSplitConfig,
+    "perimeter": PerimeterSplitConfig,
+}
+
+
 # Create a logger
-logger = logging.getLogger(__name__)
-logger.basicConfig(
+logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    filename="splitting.log",
+    handlers=[
+        logging.FileHandler("splitting.log"),
+        logging.StreamHandler(),
+    ],
 )
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -34,20 +64,29 @@ def parse_args():
     parser.add_argument(
         "-sp", "--splitter", type=str, default="scaffold", help="The name of the splitter to use"
     )
-    parser.add_argument("-tr", "--test-size", type=float, default=0.2, help="The size of the test set")
-    parser.add_argument("--n_jobs", type=int, default=1, help="Number of jobs to run in parallel")
-    parser.add_argument("--n_splits", type=int, default=1, help="Number of splits to make")
+    parser.add_argument("-te", "--test-size", type=float, default=0.2, help="The size of the test set")
+    parser.add_argument("-nj", "--n_jobs", type=int, default=-1, help="Number of jobs to run in parallel")
+    parser.add_argument(
+        "-ns",
+        "--n_splits",
+        type=int,
+        default=10,
+        help="Number of splits to make (Reapeating the splitting process)",
+    )
     args = vars(parser.parse_args())
     return args
 
 
 if __name__ == "__main__":
+    config = {}
     args = parse_args()
     file_path = Path(args["file_path"])
     splitter = args["splitter"]
     test_size = args["test_size"]
     n_jobs = args["n_jobs"]
     n_splits = args["n_splits"]
+
+    config.update(args)
 
     if file_path.suffix == ".csv":
         df = pd.read_csv(file_path)
@@ -56,12 +95,14 @@ if __name__ == "__main__":
     else:
         raise ValueError("File must be a .csv or .txt file")
 
-    split_folder = (file_path.parent / "split").mkdir(parents=True, exist_ok=True)
-    split_path = (split_folder / splitter).mkdir(parents=True, exist_ok=True)
+    split_folder = file_path.parent / "split"
+    split_folder.mkdir(parents=True, exist_ok=True)
+    split_path = file_path.parent / "split" / splitter
+    split_path.mkdir(parents=True, exist_ok=True)
 
     method = NAME_TO_MODEL_CLS[splitter]
     smiles = df["smiles"].values
-    hopts = {"make_generic": False}
+    hopts = NAME_TO_MODEL_CONFIG[splitter]
     splitter = method(smiles, n_splits=n_splits, n_jobs=n_jobs, **hopts)
 
     for i, (train_ind, test_ind) in enumerate(splitter.split(smiles)):
@@ -70,7 +111,25 @@ if __name__ == "__main__":
         train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
         test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
 
-        print("percentage of actives in the train set:", train["label"].sum() / train["label"].shape[0])
-        print("percentage of actives in the external test set:", test["label"].sum() / test["label"].shape[0])
-        print("number of molecules in the train set:", train.shape[0])
-        print("number of molecules in the external test set:", test.shape[0])
+        logging.info(
+            "percentage of actives in the train set: {}".format(
+                train["label"].sum() / train["label"].shape[0]
+            )
+        )
+        logging.info(
+            "percentage of actives in the external test set: {}".format(
+                test["label"].sum() / test["label"].shape[0]
+            )
+        )
+        logging.info("number of molecules in the train set: {}".format(train.shape[0]))
+        logging.info("number of molecules in the external test set: {}".format(test.shape[0]))
+
+        config["train_size_" + str(i)] = train.shape[0]
+        config["test_size_" + str(i)] = test.shape[0]
+        config["train_actives_" + str(i)] = int(train["label"].sum())
+        config["test_actives_" + str(i)] = int(test["label"].sum())
+        config["train_actives_percentage_" + str(i)] = train["label"].sum() / train["label"].shape[0]
+        config["test_actives_percentage_" + str(i)] = test["label"].sum() / test["label"].shape[0]
+
+    with open(split_path / "config.json", "w") as f:
+        json.dump(config, f)
