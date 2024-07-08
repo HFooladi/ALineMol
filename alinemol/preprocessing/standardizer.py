@@ -296,22 +296,30 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
 
 def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
     """
-    Drop conflicting duplicates from a DataFrame.
-    rows that have the same smiles but different labels are dropped
-    from rows that have the same smiles but the same label, only one is kept
+    Remove conflicting duplicates from a DataFrame.
+
+    This function processes the DataFrame to:
+    - Drop rows where the 'canonical_smiles' values are the same but the labels differ.
+    - Retain only one row for each set of identical 'canonical_smiles' values with the same label.
 
     Args:
-        x: pd.DataFrame with 'canonical_smiles' column
+        x (pd.DataFrame): The input DataFrame containing a 'canonical_smiles' column.
 
     Returns:
-        pd.DataFrame with conflicting duplicates dropped and unique rows
+        pd.DataFrame: A DataFrame with conflicting duplicates removed, ensuring unique rows.
     """
     df = pd.DataFrame(x)
     assert "smiles" in df.columns, "Dataframe must have a 'smiles' column."
+    assert "canonical_smiles" in df.columns, "Dataframe must have a 'canonical_smiles' column."
     assert "label" in df.columns, "Dataframe must have a 'label' column."
+    # remove the rows with "NaN" values
+    df.dropna(subset=["canonical_smiles"], inplace=True)
+    print(f"Number of rows after removing NaN values: {df.shape[0]}")
     # remove the rows with conflicting labels
-    df = df[df.groupby("smiles").label.transform("nunique") == 1]
+    df = df[df.groupby("canonical_smiles").label.transform("nunique") == 1]
+    print(f"Number of rows after removing conflicting labels: {df.shape[0]}")
     # remove duplicates (with the same label)
-    df = df.drop_duplicates(subset=["smiles"], keep="first")
+    df = df.drop_duplicates(subset=["canonical_smiles"], keep="first")
+    print(f"Number of rows after removing duplicates: {df.shape[0]}")
     df.reset_index(drop=True, inplace=True)
     return df
