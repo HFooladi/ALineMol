@@ -20,18 +20,19 @@ def manual_smiles():
 @pytest.fixture(scope="module")
 def manual_smiles_for_scaffold():
     return [
-    "CCOC1=CC=CC=C1C(=O)OCC(=O)NC1=CC=CC=C1",
-    "NC(=O)C1=C(NC(=O)COC2=CC=CC=C2C(F)(F)F)SC=C1",
-    "CC(C)NC(=O)CSCC1=CC=CC=C1Br",
-    "CC1=CC=C(C(=O)NC(C)C)C=C1NC(=O)C1=CC=CO1",
-    "O=C(CN1CCCCCC1=O)NCC1=CC=C(N2C=CN=C2)C(F)=C1",
-]
+        "CCOC1=CC=CC=C1C(=O)OCC(=O)NC1=CC=CC=C1",
+        "NC(=O)C1=C(NC(=O)COC2=CC=CC=C2C(F)(F)F)SC=C1",
+        "CC(C)NC(=O)CSCC1=CC=CC=C1Br",
+        "CC1=CC=C(C(=O)NC(C)C)C=C1NC(=O)C1=CC=CO1",
+        "O=C(CN1CCCCCC1=O)NCC1=CC=C(N2C=CN=C2)C(F)=C1",
+    ]
+
 
 @pytest.fixture(scope="module")
 def manual_df_for_drop_duplicate():
-    smiles  = ['CC', 'CC', 'CC', 'CCC', 'CCC', 'CCCC', 'CCCCC', 'CCCCC']
-    label= [1, 1, 0, 1, 1, 1, 1, 0]
-    df = pd.DataFrame({'smiles': smiles, 'label': label})
+    smiles = ["CC", "CC", "CC", "CCC", "CCC", "CCCC", "CCCCC", "CCCCC"]
+    label = [1, 1, 0, 1, 1, 1, 1, 0]
+    df = pd.DataFrame({"smiles": smiles, "label": label})
     return df
 
 

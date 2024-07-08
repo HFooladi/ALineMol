@@ -46,7 +46,7 @@ def compute_binary_task_metrics(predictions: List[float], labels: List[float]) -
     Args:
         predictions (List[float]): list of predicted probabilities.
         labels (List[float]): list of true labels.
-    
+
     Returns:
         BinaryEvalMetrics: evaluation metrics.
     """

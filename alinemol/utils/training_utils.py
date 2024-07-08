@@ -3,6 +3,7 @@ import torch
 from alinemol.utils import Meter
 from alinemol.utils import predict
 
+
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
     """
     Run a training epoch over the entire training set.
@@ -54,7 +55,7 @@ def run_an_eval_epoch(args, model, data_loader, test=False):
         model (nn.Module): The model to evaluate.
         data_loader (DataLoader): The DataLoader object for the validation or test set.
         test (bool): Whether to evaluate on the test set.
-    
+
     Returns:
         float: The evaluation score.
     """

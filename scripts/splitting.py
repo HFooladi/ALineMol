@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+import logging
 
 
 from argparse import ArgumentParser
@@ -14,6 +15,15 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "molecular_weight": MolecularWeightSplit,
     "perimeter": PerimeterSplit,
 }
+
+# Create a logger
+logger = logging.getLogger(__name__)
+logger.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="splitting.log",
+)
 
 
 def parse_args():

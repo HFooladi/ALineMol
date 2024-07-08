@@ -36,6 +36,7 @@ from alinemol.utils import (
 )
 from alinemol.utils.training_utils import run_a_train_epoch, run_an_eval_epoch
 
+
 def main(args, exp_config, train_set, val_set, test_set):
     # Record settings
     exp_config.update(

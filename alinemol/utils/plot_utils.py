@@ -56,7 +56,7 @@ def plot_ID_OOD(
     chosen_index = np.where(np.array(ID_test_score) > threshold)
     ID_test_score = np.array(ID_test_score)[chosen_index]
     OOD_test_score = np.array(OOD_test_score)[chosen_index]
-    
+
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")

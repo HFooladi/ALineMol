@@ -247,9 +247,7 @@ class Standardizer(BaseLogger):
         return mol_out, n_tautomers
 
 
-
 def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> pd.DataFrame:
-
     """
     Standardization of a SMILES string.
 
@@ -258,7 +256,7 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
     Args:
         x: pd.DataFrame with 'smiles' column
         taut_canonicalization: whether or not to use tautomer canonicalization
-    
+
     Returns:
         pd.DataFrame with 'canonical_smiles', 'molecular_weight', and 'num_atoms' additional columns
     """
@@ -304,7 +302,7 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         x: pd.DataFrame with 'canonical_smiles' column
-    
+
     Returns:
         pd.DataFrame with conflicting duplicates dropped and unique rows
     """
@@ -312,8 +310,8 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
     assert "smiles" in df.columns, "Dataframe must have a 'smiles' column."
     assert "label" in df.columns, "Dataframe must have a 'label' column."
     # remove the rows with conflicting labels
-    df = df[df.groupby('smiles').label.transform('nunique') == 1]
+    df = df[df.groupby("smiles").label.transform("nunique") == 1]
     # remove duplicates (with the same label)
-    df = df.drop_duplicates(subset=['smiles'], keep='first')
+    df = df.drop_duplicates(subset=["smiles"], keep="first")
     df.reset_index(drop=True, inplace=True)
     return df
