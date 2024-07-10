@@ -25,6 +25,7 @@ from alinemol.splitters.splitting_configures import (
     KMeansSplitConfig,
     PerimeterSplitConfig,
 )
+from alinemol.utils.logger_utils import logger
 
 NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "scaffold": ScaffoldSplit,
@@ -40,8 +41,7 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "molecular_weight": MolecularWeightSplitConfig,
     "perimeter": PerimeterSplitConfig,
 }
-
-
+"""
 # Create a logger
 logging.basicConfig(
     level=logging.INFO,
@@ -54,7 +54,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
+"""
 
 def parse_args():
     parser = ArgumentParser("Splitting molecules into train and test sets")
@@ -111,18 +111,18 @@ if __name__ == "__main__":
         train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
         test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
 
-        logging.info(
+        logger.info(
             "percentage of actives in the train set: {}".format(
                 train["label"].sum() / train["label"].shape[0]
             )
         )
-        logging.info(
+        logger.info(
             "percentage of actives in the external test set: {}".format(
                 test["label"].sum() / test["label"].shape[0]
             )
         )
-        logging.info("number of molecules in the train set: {}".format(train.shape[0]))
-        logging.info("number of molecules in the external test set: {}".format(test.shape[0]))
+        logger.info("number of molecules in the train set: {}".format(train.shape[0]))
+        logger.info("number of molecules in the external test set: {}".format(test.shape[0]))
 
         config["train_size_" + str(i)] = train.shape[0]
         config["test_size_" + str(i)] = test.shape[0]
