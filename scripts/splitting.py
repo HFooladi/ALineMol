@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 import pandas as pd
-import logging
 import json
 
 
@@ -56,6 +55,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 """
 
+
 def parse_args():
     parser = ArgumentParser("Splitting molecules into train and test sets")
     parser.add_argument(
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     method = NAME_TO_MODEL_CLS[splitter]
     smiles = df["smiles"].values
     hopts = NAME_TO_MODEL_CONFIG[splitter]
-    splitter = method(smiles, n_splits=n_splits, n_jobs=n_jobs, **hopts)
+    splitter = method(smiles, n_splits=n_splits, n_jobs=n_jobs, test_size=test_size, random_state=42, **hopts)
 
     for i, (train_ind, test_ind) in enumerate(splitter.split(smiles)):
         train = df.iloc[train_ind]
