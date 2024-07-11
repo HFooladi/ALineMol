@@ -40,20 +40,6 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "molecular_weight": MolecularWeightSplitConfig,
     "perimeter": PerimeterSplitConfig,
 }
-"""
-# Create a logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler("splitting.log"),
-        logging.StreamHandler(),
-    ],
-)
-
-logger = logging.getLogger(__name__)
-"""
 
 
 def parse_args():

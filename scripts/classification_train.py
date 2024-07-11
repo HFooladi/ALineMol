@@ -3,7 +3,6 @@ import json
 import os
 import sys
 from copy import deepcopy
-from shutil import copyfile
 
 import numpy as np
 import pandas as pd
@@ -21,7 +20,6 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
-from alinemol.utils import Meter
 from alinemol.hyper import init_hyper_space
 from alinemol.utils import (
     collate_molgraphs,
@@ -31,10 +29,10 @@ from alinemol.utils import (
     load_dataset,
     load_model,
     mkdir_p,
-    predict,
     split_dataset,
 )
 from alinemol.utils.training_utils import run_a_train_epoch, run_an_eval_epoch
+from alinemol.utils.logger_utils import logger
 
 
 def main(args, exp_config, train_set, val_set, test_set):
@@ -75,6 +73,9 @@ def main(args, exp_config, train_set, val_set, test_set):
         num_workers=args["num_workers"],
     )
     model = load_model(exp_config).to(args["device"])
+    logger.info("Model architecture: {}".format(args["model"]))
+    logger.info(model)
+    logger.info("Number of parameters: {:,}".format(sum(p.numel() for p in model.parameters())))
 
     loss_criterion = nn.BCEWithLogitsLoss(reduction="none")
     optimizer = Adam(model.parameters(), lr=exp_config["lr"], weight_decay=exp_config["weight_decay"])
@@ -89,7 +90,7 @@ def main(args, exp_config, train_set, val_set, test_set):
         # Validation and early stop
         val_score = run_an_eval_epoch(args, model, val_loader)
         early_stop = stopper.step(val_score, model)
-        print(
+        logger.info(
             "epoch {:d}/{:d}, validation {} {:.4f}, best validation {} {:.4f}".format(
                 epoch + 1, args["num_epochs"], args["metric"], val_score, args["metric"], stopper.best_score
             )
@@ -99,17 +100,35 @@ def main(args, exp_config, train_set, val_set, test_set):
             break
 
     stopper.load_checkpoint(model)
-    test_score = run_an_eval_epoch(args, model, test_loader)
-    print("test {} {:.4f}".format(args["metric"], test_score))
+    ## For validation score
+    valid_score = run_an_eval_epoch(args, model, val_loader, test=False)
+    logger.info("best validation {} {:.4f}".format(args["metric"], valid_score))
 
-    test_scores = run_an_eval_epoch(args, model, test_loader, test=True)
+    ## For test score
+    test_score = run_an_eval_epoch(args, model, test_loader, test=True)
 
     with open(args["trial_path"] + "/eval.txt", "w") as f:
         f.write("Best val {}: {}\n".format(args["metric"], stopper.best_score))
-        f.write("Test {}: {}\n".format("accuracy_score", test_scores[0]))
-        f.write("Test {}: {}\n".format("roc_auc_score", test_scores[1]))
-        f.write("Test {}: {}\n".format("pr_auc_score", test_scores[2]))
+        f.write("Test {}: {}\n".format("accuracy_score", test_score[0]))
+        f.write("Test {}: {}\n".format("roc_auc_score", test_score[1]))
+        f.write("Test {}: {}\n".format("pr_auc_score", test_score[2]))
 
+    # save the metrics
+    reports = {
+        f"{args['metric']}_val": stopper.best_score.item(),
+        "acc": test_score[0],
+        "roc_auc": test_score[1],
+        "pr_auc": test_score[2],
+        "model": args["model"],
+        "test_size": len(test_set),
+        "val_size": len(val_set),
+        "train_size": len(train_set),
+    }
+    df = pd.DataFrame(reports, index=[0])
+    df.to_csv(args["trial_path"] + "/metrics.csv")
+
+    exp_config.update({"filepath": args["csv_path"]})
+    logger.info("experimetns_config: {}".format(exp_config))
     with open(args["trial_path"] + "/configure.json", "w") as f:
         json.dump(exp_config, f, indent=2)
 
@@ -176,9 +195,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sr",
         "--split-ratio",
-        default="0.8,0.1,0.1",
+        default="0.7,0.1,0.2",
         type=str,
-        help="Proportion of the dataset to use for training, validation and test, " "(default: 0.8,0.1,0.1)",
+        help="Proportion of the dataset to use for training, validation and test, " "(default: 0.7,0.1,0.2)",
     )
     parser.add_argument(
         "-me",
@@ -229,7 +248,7 @@ if __name__ == "__main__":
         "will be performed. (default: 1000)",
     )
     parser.add_argument(
-        "-nw", "--num-workers", type=int, default=1, help="Number of processes for data loading (default: 1)"
+        "-nw", "--num-workers", type=int, default=4, help="Number of processes for data loading (default: 1)"
     )
     parser.add_argument(
         "-pe", "--print-every", type=int, default=20, help="Print the training progress every X mini-batches"
@@ -248,7 +267,7 @@ if __name__ == "__main__":
         default=None,
         help="Number of trials for hyperparameter search (default: None)",
     )
-    args = parser.parse_args().__dict__
+    args = vars(parser.parse_args())
 
     if torch.cuda.is_available():
         args["device"] = torch.device("cuda:0")
@@ -281,9 +300,3 @@ if __name__ == "__main__":
         print("Use the manually specified hyperparameters")
         exp_config = get_configure(args["model"])
         main(args, exp_config, train_set, val_set, test_set)
-        trial_path = args["result_path"] + "/1"
-
-    # Copy final
-    copyfile(trial_path + "/model.pth", args["result_path"] + "/model.pth")
-    copyfile(trial_path + "/configure.json", args["result_path"] + "/configure.json")
-    copyfile(trial_path + "/eval.txt", args["result_path"] + "/eval.txt")
