@@ -69,7 +69,8 @@ def main(args):
         # print(roc_auc_score(predictions[:, task_id], predictions[:, task_id])
 
     df = pd.DataFrame(output_data)
-    args = init_inference_trial_path(args)
+    #args = init_inference_trial_path(args)
+    args["trial_path"] = args["inference_result_path"]
     df.to_csv(args["trial_path"] + "/prediction.csv", index=False)
 
 
@@ -121,9 +122,9 @@ if __name__ == "__main__":
         "This flag allows performing soft classification instead.",
     )
     parser.add_argument(
-        "-nw", "--num-workers", type=int, default=1, help="Number of processes for data loading (default: 1)"
+        "-nw", "--num-workers", type=int, default=4, help="Number of processes for data loading (default: 1)"
     )
-    args = parser.parse_args().__dict__
+    args = vars(parser.parse_args())
 
     # Load configuration
     with open(args["train_result_path"] + "/configure.json", "r") as f:
