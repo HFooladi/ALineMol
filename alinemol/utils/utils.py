@@ -11,13 +11,18 @@ import glob
 import re
 from typing import Dict, List, Tuple
 
+import pandas as pd
 import dgl
 import torch
 import torch.nn.functional as F
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
 
+from alinemol.utils.metric_utils import eval_roc_auc, eval_pr_auc, eval_acc
+
 filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATASET_PATH = os.path.join(repo_path, "datasets")
 
 
 def init_featurizer(args: Dict) -> Dict:
@@ -425,3 +430,67 @@ def predict(args: Dict, model, bg):
         node_feats = bg.ndata.pop("h").to(args["device"])
         edge_feats = bg.edata.pop("e").to(args["device"])
         return model(bg, node_feats, edge_feats)
+
+
+def compute_ID_OOD(dataset_category: str="TDC", dataset_names: str="CYP2C19", split_type: str="scaffold",
+num_of_splits: int=10) -> pd.DataFrame:
+    """
+    compute ID and OOd metrics for the given external dataset and a trained model.
+    Args:
+        dataset_category (str): Dataset category
+        dataset_names (str): Dataset names
+        split_type (str): Split type
+        num_of_splits (int): Number of splits
+    
+    Returns:
+        pd.DataFrame
+
+    NOTE: NEEDS MORE WORK/PLOISHING
+    """
+    filenames=[f"test_{i}.csv" for i in range(0, num_of_splits)]
+    SPLIT_PATH = os.path.join(DATASET_PATH, dataset_category, dataset_names, "split")
+    RESULTS_PATH = os.path.join(repo_path, "classification_results", dataset_category, dataset_names, split_type)
+
+
+    model_names=["GCN","GAT", "Weave", "MPNN", "AttentiveFP", "NF", "gin_supervised_contextpred", "gin_supervised_edgepred", "gin_supervised_masking", "gin_supervised_infomax"]
+    #model_names=["GCN"]
+    ID_test_accuracy=[]
+    OOD_test_accuracy=[]
+
+    ID_test_roc_auc=[]
+    OOD_test_roc_auc=[]
+
+    ID_test_pr_auc=[]
+    OOD_test_pr_auc=[]
+
+    test_size = []
+
+    for i in range(0, 10):
+        for model_name in model_names:
+                df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None)
+                ID_test_accuracy.append(df.iloc[1, 1])
+                ID_test_roc_auc.append(df.iloc[2, 1])
+                ID_test_pr_auc.append(df.iloc[3, 1])
+
+
+    for i, filename in enumerate(filenames):
+        df1 = pd.read_csv(os.path.join(SPLIT_PATH, split_type, filename))
+        print(df1.shape)
+        for model_name in model_names:
+            df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i+1), "prediction.csv"))
+            print(df.shape)
+            OOD_test_accuracy.append(eval_acc(df1, df))
+            OOD_test_roc_auc.append(eval_roc_auc(df1, df))
+            OOD_test_pr_auc.append(eval_pr_auc(df1, df))
+            test_size.append(df1.shape[0])
+
+    result_df = pd.DataFrame({"ID_test_accuracy": ID_test_accuracy, "OOD_test_accuracy": OOD_test_accuracy,
+                                "ID_test_roc_auc": ID_test_roc_auc, "OOD_test_roc_auc": OOD_test_roc_auc,
+                                "ID_test_pr_auc": ID_test_pr_auc, "OOD_test_pr_auc": OOD_test_pr_auc})
+
+    result_df["model"] = ([model_name for i in range(0, 10) for model_name in model_names])
+    result_df["test_size"] = test_size
+    result_df["split"] = split_type
+    result_df["dataset"] = dataset_names
+
+    return result_df
