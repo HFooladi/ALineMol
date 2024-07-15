@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from argparse import ArgumentParser
 
 import pandas as pd
 import torch
@@ -75,7 +76,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
 
     parser = ArgumentParser("Inference for Multi-label Binary Classification")
     parser.add_argument(
