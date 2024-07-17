@@ -432,8 +432,12 @@ def predict(args: Dict, model, bg):
         return model(bg, node_feats, edge_feats)
 
 
-def compute_ID_OOD(dataset_category: str="TDC", dataset_names: str="CYP2C19", split_type: str="scaffold",
-num_of_splits: int=10) -> pd.DataFrame:
+def compute_ID_OOD(
+    dataset_category: str = "TDC",
+    dataset_names: str = "CYP2C19",
+    split_type: str = "scaffold",
+    num_of_splits: int = 10,
+) -> pd.DataFrame:
     """
     compute ID and OOd metrics for the given external dataset and a trained model.
     Args:
@@ -441,56 +445,101 @@ num_of_splits: int=10) -> pd.DataFrame:
         dataset_names (str): Dataset names
         split_type (str): Split type
         num_of_splits (int): Number of splits
-    
+
     Returns:
         pd.DataFrame
 
     NOTE: NEEDS MORE WORK/PLOISHING
     """
-    filenames=[f"test_{i}.csv" for i in range(0, num_of_splits)]
+    filenames = [f"test_{i}.csv" for i in range(0, num_of_splits)]
     SPLIT_PATH = os.path.join(DATASET_PATH, dataset_category, dataset_names, "split")
-    RESULTS_PATH = os.path.join(repo_path, "classification_results", dataset_category, dataset_names, split_type)
+    RESULTS_PATH = os.path.join(
+        repo_path, "classification_results", dataset_category, dataset_names, split_type
+    )
 
+    model_names = [
+        "GCN",
+        "GAT",
+        "Weave",
+        "MPNN",
+        "AttentiveFP",
+        "NF",
+        "gin_supervised_contextpred",
+        "gin_supervised_edgepred",
+        "gin_supervised_masking",
+        "gin_supervised_infomax",
+    ]
+    ID_test_accuracy = []
+    OOD_test_accuracy = []
 
-    model_names=["GCN","GAT", "Weave", "MPNN", "AttentiveFP", "NF", "gin_supervised_contextpred", "gin_supervised_edgepred", "gin_supervised_masking", "gin_supervised_infomax"]
-    #model_names=["GCN"]
-    ID_test_accuracy=[]
-    OOD_test_accuracy=[]
+    ID_test_roc_auc = []
+    OOD_test_roc_auc = []
 
-    ID_test_roc_auc=[]
-    OOD_test_roc_auc=[]
-
-    ID_test_pr_auc=[]
-    OOD_test_pr_auc=[]
+    ID_test_pr_auc = []
+    OOD_test_pr_auc = []
 
     test_size = []
 
     for i in range(0, 10):
         for model_name in model_names:
-                df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None)
-                ID_test_accuracy.append(df.iloc[1, 1])
-                ID_test_roc_auc.append(df.iloc[2, 1])
-                ID_test_pr_auc.append(df.iloc[3, 1])
-
+            df = pd.read_csv(
+                os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None
+            )
+            ID_test_accuracy.append(df.iloc[1, 1])
+            ID_test_roc_auc.append(df.iloc[2, 1])
+            ID_test_pr_auc.append(df.iloc[3, 1])
 
     for i, filename in enumerate(filenames):
         df1 = pd.read_csv(os.path.join(SPLIT_PATH, split_type, filename))
         print(df1.shape)
         for model_name in model_names:
-            df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i+1), "prediction.csv"))
+            df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i + 1), "prediction.csv"))
             print(df.shape)
             OOD_test_accuracy.append(eval_acc(df1, df))
             OOD_test_roc_auc.append(eval_roc_auc(df1, df))
             OOD_test_pr_auc.append(eval_pr_auc(df1, df))
             test_size.append(df1.shape[0])
 
-    result_df = pd.DataFrame({"ID_test_accuracy": ID_test_accuracy, "OOD_test_accuracy": OOD_test_accuracy,
-                                "ID_test_roc_auc": ID_test_roc_auc, "OOD_test_roc_auc": OOD_test_roc_auc,
-                                "ID_test_pr_auc": ID_test_pr_auc, "OOD_test_pr_auc": OOD_test_pr_auc})
+    result_df = pd.DataFrame(
+        {
+            "ID_test_accuracy": ID_test_accuracy,
+            "OOD_test_accuracy": OOD_test_accuracy,
+            "ID_test_roc_auc": ID_test_roc_auc,
+            "OOD_test_roc_auc": OOD_test_roc_auc,
+            "ID_test_pr_auc": ID_test_pr_auc,
+            "OOD_test_pr_auc": OOD_test_pr_auc,
+        }
+    )
 
-    result_df["model"] = ([model_name for i in range(0, 10) for model_name in model_names])
+    result_df["model"] = [model_name for i in range(0, 10) for model_name in model_names]
     result_df["test_size"] = test_size
     result_df["split"] = split_type
     result_df["dataset"] = dataset_names
 
     return result_df
+
+
+def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"]):
+    """
+    Compute the difference between ID and OOD metrics for the given external dataset and a trained model.
+    Args:
+        results (pd.DataFrame): Results dataframe
+        metrics (list): List of metrics
+
+    Returns:
+        pd.DataFrame
+    """
+    assert "model" in results.columns, "model column is missing in the results dataframe"
+    diff = []
+    for metric in metrics:
+        assert (
+            f"ID_test_{metric}" in results.columns
+        ), f'{f"ID_test_{metric}"} column is missing in the results dataframe'
+        assert (
+            f"OOD_test_{metric}" in results.columns
+        ), f'{f"OOD_test_{metric}"} column is missing in the results dataframe'
+        results[f"diff_{metric}"] = results[f"ID_test_{metric}"] - results[f"OOD_test_{metric}"]
+        diff.append(results.groupby("model")[f"diff_{metric}"].mean())
+
+    diff = pd.concat(diff, axis=1)
+    return diff

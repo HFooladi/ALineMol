@@ -158,6 +158,45 @@ def plot_ID_OOD_sns(data: pd.DataFrame, dataset_category="TDC", dataset_name="CY
     plt.show()
 
 
+def plot_ID_OOD_bar(
+    data: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"], save: bool = False
+) -> None:
+    """
+    Plot ID vs OOD scores bar plot
+
+    Args:
+        data (pd.DataFrame): DataFrame with the following columns:
+            "model", "ID_test_accuracy", "OOD_test_accuracy", "ID_test_roc_auc", "OOD_test_roc_auc", "ID_test_pr_auc", "OOD_test_pr_auc"
+        save (bool): whether to save plot
+
+    Returns:
+        None
+    """
+    for metric in metrics:
+        tidy = data.melt(
+            id_vars=["model"],
+            value_vars=[f"ID_test_{metric}", f"OOD_test_{metric}"],
+            var_name="split",
+            value_name=metric,
+        )
+        fig, ax = plt.subplots(figsize=(10, 6), nrows=1, ncols=1)
+        sns.barplot(y="model", x=metric, hue="split", data=tidy, ax=ax, orient="h")
+        ax.grid(True, axis="x", linestyle="--")
+        ax.spines["right"].set_visible(False)
+        ax.set_xlabel(metric, fontsize=20)
+        ax.set_ylabel("Model", fontsize=20)
+        ax.set_xlim(0.5, 1.0)
+        ax.set_xticks(np.arange(0.5, 1.0, 0.05))
+        ax.set_title(f"{metric} comparison between ID and OOD", fontsize=20)
+        if save:
+            fig.savefig(
+                os.path.join(REPO_PATH, "assets" "dummy.pdf"),
+                bbox_inches="tight",
+                backend="pgf",
+            )
+        plt.show()
+
+
 def visualize_chemspace(
     data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None, size=10
 ):

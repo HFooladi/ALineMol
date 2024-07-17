@@ -89,7 +89,14 @@ if __name__ == "__main__":
     method = NAME_TO_MODEL_CLS[splitter]
     smiles = df["smiles"].values
     hopts = NAME_TO_MODEL_CONFIG[splitter]
-    splitter = method(smiles, n_splits=n_splits, n_jobs=n_jobs, test_size=test_size, random_state=42, **hopts)
+    if method == KMeansSplit:
+        splitter = method(n_splits=n_splits, test_size=test_size, random_state=42, **hopts)
+    elif method == MolecularWeightSplit:
+        splitter = method(smiles=smiles, n_splits=n_splits, test_size=test_size, random_state=42, **hopts)
+    else:
+        splitter = method(
+            smiles=smiles, n_splits=n_splits, n_jobs=n_jobs, test_size=test_size, random_state=42, **hopts
+        )
 
     for i, (train_ind, test_ind) in enumerate(splitter.split(smiles)):
         train = df.iloc[train_ind]
