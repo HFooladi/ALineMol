@@ -2,7 +2,7 @@ import numpy as np
 import datamol as dm
 import pytest
 
-from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit
+from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, MaxDissimilaritySplit, PerimeterSplit
 
 from alinemol.utils.split_utils import get_scaffold
 
@@ -59,3 +59,46 @@ def test_splits_kmeans():
         assert len(set(train_ind).intersection(set(test_ind))) == 0
         assert len(train_ind) > 0 and len(test_ind) > 0
         assert splitter._cluster_metric == "euclidean"
+
+
+
+def test_splits_max_dissimilar_default_feats(test_dataset_dili):
+    smiles = test_dataset_dili["smiles"].values
+    splitter = MaxDissimilaritySplit(n_splits=2)
+
+    for train_ind, test_ind in splitter.split(smiles):
+        assert len(train_ind) + len(test_ind) == len(smiles)
+        assert len(set(train_ind).intersection(set(test_ind))) == 0
+        assert len(train_ind) > 0 and len(test_ind) > 0
+
+
+def test_splits_max_dissimilar():
+    X = np.random.random((100, 100))
+    splitter = MaxDissimilaritySplit(n_splits=2, metric="euclidean")
+
+    for train_ind, test_ind in splitter.split(X):
+        assert len(train_ind) + len(test_ind) == len(X)
+        assert len(set(train_ind).intersection(set(test_ind))) == 0
+        assert len(train_ind) > 0 and len(test_ind) > 0
+
+
+def test_splits_perimeter(test_dataset_dili):
+    smiles = test_dataset_dili["smiles"].values
+    splitter = PerimeterSplit(n_splits=2)
+
+    for train_ind, test_ind in splitter.split(smiles):
+        assert len(train_ind) + len(test_ind) == len(smiles)
+        assert len(set(train_ind).intersection(set(test_ind))) == 0
+        assert len(train_ind) > 0 and len(test_ind) > 0
+        assert splitter._metric == "jaccard"
+
+
+def test_splits_perimeter_euclidean():
+    X = np.random.random((100, 100))
+    splitter = PerimeterSplit(n_splits=2, metric="euclidean")
+
+    for train_ind, test_ind in splitter.split(X):
+        assert len(train_ind) + len(test_ind) == len(X)
+        assert len(set(train_ind).intersection(set(test_ind))) == 0
+        assert len(train_ind) > 0 and len(test_ind) > 0
+        assert splitter._metric == "euclidean"

@@ -7,7 +7,7 @@ import json
 
 from argparse import ArgumentParser
 from typing import Any, Dict
-from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, PerimeterSplit
+from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, PerimeterSplit, MaxDissimilaritySplit
 
 # Setting up local details:
 # This should be the location of the checkout of the ALineMol repository:
@@ -23,6 +23,7 @@ from alinemol.splitters.splitting_configures import (
     ScaffoldSplitConfig,
     KMeansSplitConfig,
     PerimeterSplitConfig,
+    MaxDissimilaritySplitConfig,
 )
 from alinemol.utils.logger_utils import logger
 
@@ -31,6 +32,7 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "kmeans": KMeansSplit,
     "molecular_weight": MolecularWeightSplit,
     "perimeter": PerimeterSplit,
+    "max_dissimilarity": MaxDissimilaritySplit,
 }
 
 
@@ -39,6 +41,7 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "kmeans": KMeansSplitConfig,
     "molecular_weight": MolecularWeightSplitConfig,
     "perimeter": PerimeterSplitConfig,
+    "max_dissimilarity": MaxDissimilaritySplitConfig,
 }
 
 
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     method = NAME_TO_MODEL_CLS[splitter]
     smiles = df["smiles"].values
     hopts = NAME_TO_MODEL_CONFIG[splitter]
-    if method == KMeansSplit:
+    if method in [KMeansSplit, MaxDissimilaritySplit, PerimeterSplit]:
         splitter = method(n_splits=n_splits, test_size=test_size, random_state=42, **hopts)
     elif method == MolecularWeightSplit:
         splitter = method(smiles=smiles, n_splits=n_splits, test_size=test_size, random_state=42, **hopts)
@@ -97,6 +100,9 @@ if __name__ == "__main__":
         splitter = method(
             smiles=smiles, n_splits=n_splits, n_jobs=n_jobs, test_size=test_size, random_state=42, **hopts
         )
+    
+    logger.info(splitter)
+    logger.info(hopts)
 
     for i, (train_ind, test_ind) in enumerate(splitter.split(smiles)):
         train = df.iloc[train_ind]
