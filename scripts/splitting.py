@@ -114,6 +114,7 @@ if __name__ == "__main__":
             **hopts,
         )
 
+    logger.info(file_path)
     logger.info(splitter)
     logger.info(hopts)
 
@@ -160,24 +161,24 @@ if __name__ == "__main__":
             and config["train_actives_percentage_" + str(i)] - config["test_actives_percentage_" + str(i)]
             > -tol
         ):
+            train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
+            test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
+
+            logger.info(
+                "percentage of actives in the train set: {}".format(
+                    train["label"].sum() / train["label"].shape[0]
+                )
+            )
+            logger.info(
+                "percentage of actives in the external test set: {}".format(
+                    test["label"].sum() / test["label"].shape[0]
+                )
+            )
+            logger.info("number of molecules in the train set: {}".format(train.shape[0]))
+            logger.info("number of molecules in the external test set: {}".format(test.shape[0]))
             i += 1
         else:
             continue
-        train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
-        test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
-
-        logger.info(
-            "percentage of actives in the train set: {}".format(
-                train["label"].sum() / train["label"].shape[0]
-            )
-        )
-        logger.info(
-            "percentage of actives in the external test set: {}".format(
-                test["label"].sum() / test["label"].shape[0]
-            )
-        )
-        logger.info("number of molecules in the train set: {}".format(train.shape[0]))
-        logger.info("number of molecules in the external test set: {}".format(test.shape[0]))
 
         if i == n_splits:
             break
