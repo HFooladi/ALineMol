@@ -1,0 +1,12 @@
+{
+    "n_estimators": 500,
+    "max_depth": 6,
+    "learning_rate": 0.01,
+    "objective": "binary:logistic",
+    "reg_alpha": 1,
+    "reg_lambda": 1,
+    "min_child_weight": 1,
+    "colsample_bytree": 0.8,
+    "subsample": 0.9,
+    "device": "cpu"
+}

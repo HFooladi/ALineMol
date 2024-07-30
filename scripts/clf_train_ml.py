@@ -11,6 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from xgboost import XGBClassifier
 
 
 from typing import Any, Dict
@@ -33,7 +34,9 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "kNN": KNeighborsClassifier,
     "SVM": SVC,
     "MLP": MLPClassifier,
+    "XGB": XGBClassifier,
 }
+
 
 def main(args: Dict, exp_config: Dict):
     # get data in to form for sklearn
@@ -61,7 +64,7 @@ def main(args: Dict, exp_config: Dict):
     else:
         logger.info(f"exp_config: {exp_config}")
         model = model_cls(**exp_config)
-    
+
     logger.info("Model architecture: {}".format(args["model"]))
     logger.info(model)
     model.fit(X_train, y_train)
@@ -105,7 +108,14 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser("Multi-label Binary Classification")
-    parser.add_argument("-mo", "--model", type=str, default="randomForest", choices=["randomForest", "kNN", "SVM"], help="The model to use.")
+    parser.add_argument(
+        "-mo",
+        "--model",
+        type=str,
+        default="randomForest",
+        choices=["randomForest", "kNN", "SVM", "XGB"],
+        help="The model to use.",
+    )
     parser.add_argument(
         "--model_params",
         type=lambda s: json.loads(s),
