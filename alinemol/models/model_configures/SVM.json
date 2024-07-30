@@ -1,0 +1,6 @@
+{
+    "kernel": "rbf",
+    "gamma": "auto",
+    "probability": true,
+    "C": 1.0
+}

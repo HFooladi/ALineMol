@@ -10,6 +10,7 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 
 
 from typing import Any, Dict
@@ -30,6 +31,8 @@ from alinemol.utils.metric_utils import compute_binary_task_metrics
 NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "randomForest": RandomForestClassifier,
     "kNN": KNeighborsClassifier,
+    "SVM": SVC,
+    "MLP": MLPClassifier,
 }
 
 def main(args: Dict, exp_config: Dict):
@@ -52,7 +55,13 @@ def main(args: Dict, exp_config: Dict):
 
     # train model
     model_cls = NAME_TO_MODEL_CLS[args["model"]]
-    model = model_cls(**args["model_params"])
+    if bool(args["model_params"]):
+        logger.info("model_params: ", args["model_params"])
+        model = model_cls(**args["model_params"])
+    else:
+        logger.info(f"exp_config: {exp_config}")
+        model = model_cls(**exp_config)
+    
     logger.info("Model architecture: {}".format(args["model"]))
     logger.info(model)
     model.fit(X_train, y_train)
@@ -96,9 +105,9 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser("Multi-label Binary Classification")
-    parser.add_argument("-mo", "--model", type=str, default="randomForest", choices=["randomForest", "kNN"], help="The model to use.")
+    parser.add_argument("-mo", "--model", type=str, default="randomForest", choices=["randomForest", "kNN", "SVM"], help="The model to use.")
     parser.add_argument(
-        "--model-params",
+        "--model_params",
         type=lambda s: json.loads(s),
         default={},
         help="JSON dictionary containing model hyperparameters.",
