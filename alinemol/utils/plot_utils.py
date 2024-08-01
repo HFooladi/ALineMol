@@ -212,6 +212,7 @@ def visualize_chemspace(
     Returns:
         None
     """
+    assert mol_col in data.columns, f"{mol_col} not found in data"
     figs = plt.figure(num=3)
     features = [dm.to_fp(mol) for mol in data[mol_col]]
     embedding = umap.UMAP().fit_transform(features)
@@ -222,4 +223,6 @@ def visualize_chemspace(
             data=data, x="UMAP_0", y="UMAP_1", s=size, style=size_col, hue=split_name, alpha=0.7
         )
         fig.set_title(f"UMAP Embedding of compounds for {split_name} split")
+        fig.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
+        plt.show()
     return figs

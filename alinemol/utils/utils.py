@@ -449,7 +449,7 @@ def compute_ID_OOD(
     Returns:
         pd.DataFrame
 
-    NOTE: NEEDS MORE WORK/PLOISHING
+    NOTE: NEEDS MORE WORK/POLISHING
     """
     filenames = [f"test_{i}.csv" for i in range(0, num_of_splits)]
     SPLIT_PATH = os.path.join(DATASET_PATH, dataset_category, dataset_names, "split")
@@ -468,6 +468,9 @@ def compute_ID_OOD(
         "gin_supervised_edgepred",
         "gin_supervised_masking",
         "gin_supervised_infomax",
+        "randomForest",
+        "SVM",
+        "XGB",
     ]
     ID_test_accuracy = []
     OOD_test_accuracy = []
@@ -480,7 +483,7 @@ def compute_ID_OOD(
 
     test_size = []
 
-    for i in range(0, 10):
+    for i in range(0, num_of_splits):
         for model_name in model_names:
             df = pd.read_csv(
                 os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None
@@ -511,7 +514,7 @@ def compute_ID_OOD(
         }
     )
 
-    result_df["model"] = [model_name for i in range(0, 10) for model_name in model_names]
+    result_df["model"] = [model_name for i in range(0, num_of_splits) for model_name in model_names]
     result_df["test_size"] = test_size
     result_df["split"] = split_type
     result_df["dataset"] = dataset_names

@@ -58,3 +58,17 @@ gaussian histogram in computing graph representations.
 GNN layer, performing max pooling across all GNN layer output, and summing all GNN layer output.
 - `readout`: (str) The way to compute graph-level representations out of node-level representations, which 
 can be one of `'sum'`, `'mean'`, `'max'`, and `'attention'`.
+
+## randomForest
+
+- `n_estimators`: (int) Number of trees in the forest
+- `max_depth`: (int) Maximum depth of the tree
+- `max_features`: (str) Number of features to consider when looking for the best split
+- -`min_samples_leaf`: (int) Minimum number of samples required to be at a leaf node
+
+## SVM
+
+- `C`: (float) Regularization parameter
+- `kernel`: (str) Specifies the kernel type to be used in the algorithm
+- `gamma`: (str) Kernel coefficient for ‘rbf’, ‘poly’ and ‘sigmoid’
+- `probability`: (bool) Whether to enable probability estimates

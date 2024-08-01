@@ -5,6 +5,7 @@ import datamol as dm
 import numpy as np
 import pandas as pd
 import rdkit
+from sklearn.model_selection import train_test_split
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from rdkit import Chem
@@ -228,3 +229,18 @@ def split_molecules_train_val_test(
     test = mol_df.iloc[test_ind]
 
     return train, val, test
+
+
+def sklearn_random_split(X, y, split_ratio, random_state=42):
+    """create random train/val/test split in sklearn
+    Args:
+        X (np.array): features
+        y (np.array): labels
+        split_ratio (tuple): train, val, test split ratio
+    """
+    assert sum(split_ratio) == 1, "split ratio must sum to 1"
+    train_ratio, val_ratio, test_ratio = split_ratio
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=random_state)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_ratio, random_state=random_state)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+    
