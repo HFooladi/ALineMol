@@ -28,6 +28,16 @@ matplotlib.rcParams.update(
     }
 )
 
+ML_MODELS = ['randomForest', 'SVM', 'XGB']
+GNN_MODELS = ["GCN",
+        "GAT",
+        "Weave",
+        "MPNN",
+        "AttentiveFP",
+        "NF",]
+
+PRETRAINED_GNN_MODELS = ["gin_supervised_contextpred", "gin_supervised_edgepred", "gin_supervised_masking", "gin_supervised_infomax"]
+ALL_MODELS = [ML_MODELS,  GNN_MODELS, PRETRAINED_GNN_MODELS]
 
 def plot_ID_OOD(
     ID_test_score: List,
@@ -226,3 +236,25 @@ def visualize_chemspace(
         fig.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         plt.show()
     return figs
+
+
+def plot_ml_gnn_comparisson(dataset:str="CYP2C19", split_type:str="scaffold") -> None:
+    
+    diff = []
+    for models in ALL_MODELS:
+        results = pd.read_csv(os.path.join("classification_results", "TDC", dataset, split_type, "results.csv"))
+        results = results[results['model'].isin(models)]
+        metrics = ['accuracy', 'roc_auc', 'pr_auc']
+        diff_models = []
+        for metric in metrics:
+            results[f'diff_{metric}'] = results[f'ID_test_{metric}'] - results[f'OOD_test_{metric}']
+            diff_models.append(results.groupby('model')[f'diff_{metric}'].mean())
+        diff_models = pd.concat(diff_models, axis=1)
+        diff.append(diff_models)
+    mean_df = pd.DataFrame([diff[0].mean(axis=0), diff[1].mean(axis=0), diff[2].mean(axis=0)], index=["ML_MODELS", "GNN_MODELS", "PRETRAINED_GNN_MODELS"])
+    fig, ax = plt.subplots(figsize=(10, 6), nrows=1, ncols=1)
+    mean_df.plot(kind='bar', ax=ax)
+    ax.set_xlabel("Model", fontsize=20)
+    ax.set_ylabel("Difference", fontsize=20)
+    ax.grid(True, axis='y', linestyle='--')
+    plt.show()
