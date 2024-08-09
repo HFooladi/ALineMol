@@ -546,3 +546,31 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
 
     diff = pd.concat(diff, axis=1)
     return diff
+
+
+def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
+    """
+    Downsample the majority class in the given dataframe
+    Args:
+        df (pd.DataFrame): Dataframe
+        ratio (float): Ratio of majority to minority class
+
+    Returns:
+        pd.DataFrame
+    """
+    # Separate majority and minority classes
+    df_majority = df[df.label==0]
+    df_minority = df[df.label==1]
+     
+    # Downsample majority class
+    df_majority_downsampled = df_majority.sample(n=int(len(df_minority)*ratio), random_state=42)
+
+    # Combine minority class with downsampled majority class
+    df_downsampled = pd.concat([df_majority_downsampled, df_minority])
+
+    # Shuffle the dataframe
+    df_downsampled = df_downsampled.sample(frac=1).reset_index(drop=False)
+
+    return df_downsampled
+
+    
