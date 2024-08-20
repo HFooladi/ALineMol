@@ -43,13 +43,12 @@ def main(args):
         # print(roc_auc_score(predictions[:, task_id], predictions[:, task_id])
 
     df = pd.DataFrame(output_data)
-    #args = init_inference_trial_path(args)
+    # args = init_inference_trial_path(args)
     args["trial_path"] = args["inference_result_path"]
     df.to_csv(args["trial_path"] + "/prediction.csv", index=False)
 
 
 if __name__ == "__main__":
-
     parser = ArgumentParser("Inference for Multi-label Binary Classification")
     parser.add_argument(
         "-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
@@ -102,7 +101,6 @@ if __name__ == "__main__":
     # Load configuration
     with open(args["train_result_path"] + "/configure.json", "r") as f:
         args.update(json.load(f))
-
 
     if args["file_path"].endswith(".csv") or args["file_path"].endswith(".csv.gz"):
         import pandas

@@ -70,20 +70,19 @@ def main(args):
         # print(roc_auc_score(predictions[:, task_id], predictions[:, task_id])
 
     df = pd.DataFrame(output_data)
-    #args = init_inference_trial_path(args)
+    # args = init_inference_trial_path(args)
     args["trial_path"] = args["inference_result_path"]
     df.to_csv(args["trial_path"] + "/prediction.csv", index=False)
 
 
 if __name__ == "__main__":
-
     parser = ArgumentParser("Inference for Multi-label Binary Classification")
     parser.add_argument(
         "-f", "--file-path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
     )
     parser.add_argument(
         "-sc",
-        "--smiles-column",
+        "--smiles_column",
         type=str,
         help="Header for the SMILES column in the CSV file, can be "
         "omitted if the input file is a .txt file or the .csv "
@@ -91,7 +90,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-tp",
-        "--train-result-path",
+        "--train_result_path",
         type=str,
         default="classification_results",
         help="Path to the saved training results, which will be used for "
@@ -99,14 +98,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-ip",
-        "--inference-result-path",
+        "--inference_result_path",
         type=str,
         default="classification_inference_results",
         help="Path to save the inference results",
     )
     parser.add_argument(
         "-t",
-        "--task-names",
+        "--task_names",
         default=None,
         type=str,
         help="Task names for saving model predictions in the CSV file to output, "
@@ -115,14 +114,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-s",
-        "--soft-classification",
+        "--soft_classification",
         action="store_true",
         default=False,
         help="By default we will perform hard classification with binary labels. "
         "This flag allows performing soft classification instead.",
     )
     parser.add_argument(
-        "-nw", "--num-workers", type=int, default=4, help="Number of processes for data loading (default: 1)"
+        "-nw", "--num_workers", type=int, default=4, help="Number of processes for data loading (default: 1)"
     )
     args = vars(parser.parse_args())
 
