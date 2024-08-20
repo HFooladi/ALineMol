@@ -25,6 +25,7 @@ from alinemol.splitters.splitting_configures import (
     KMeansSplitConfig,
     PerimeterSplitConfig,
     MaxDissimilaritySplitConfig,
+    MolecularWeightReverseSplitConfig,
 )
 from alinemol.utils.logger_utils import logger
 
@@ -34,6 +35,7 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "molecular_weight": MolecularWeightSplit,
     "perimeter": PerimeterSplit,
     "max_dissimilarity": MaxDissimilaritySplit,
+    "molecular_weight_reverse": MolecularWeightSplit,
 }
 
 
@@ -43,6 +45,7 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "molecular_weight": MolecularWeightSplitConfig,
     "perimeter": PerimeterSplitConfig,
     "max_dissimilarity": MaxDissimilaritySplitConfig,
+    "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
 }
 
 

@@ -1,10 +1,18 @@
 # This part of the code inspired from dgl-lifesci codabase
+import os
+import sys
 
 if __name__ == "__main__":
     import pandas
 
     from argparse import ArgumentParser
     from dgllife.utils import analyze_mols
+
+    repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    CHECKOUT_PATH = repo_path
+
+    os.chdir(CHECKOUT_PATH)
+    sys.path.insert(0, CHECKOUT_PATH)
 
     from alinemol.utils import mkdir_p
 
