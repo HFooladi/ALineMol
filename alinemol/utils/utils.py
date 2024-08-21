@@ -33,6 +33,22 @@ def init_featurizer(args: Dict) -> Dict:
 
     Returns:
         dict: Settings with featurizers updated
+    
+    Raises:
+        ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
+
+    Example:
+    ```
+    from alinemol.utils.utils import init_featurizer
+    args = {
+        "model": "GCN",
+        "atom_featurizer_type": "canonical",
+        "bond_featurizer_type": "canonical",
+    }
+    args = init_featurizer(args)
+    print(args)
+    ```
+
     """
     if args["model"] in [
         "gin_supervised_contextpred",
@@ -79,6 +95,29 @@ def init_featurizer(args: Dict) -> Dict:
 
 
 def load_dataset(args: Dict, df):
+    """Load the dataset
+
+    Args:
+        args (dict): Settings
+        df: Dataframe
+    
+    Returns:
+        MoleculeCSVDataset
+    
+    Example:
+    ```
+    from alinemol.utils.utils import load_dataset
+    args = {
+        "smiles_column": "smiles",
+        "task_names": "task_1,task_2",
+        "result_path": "results",
+        "num_workers": 4,
+    }
+    df = pd.read_csv("data.csv")
+    dataset = load_dataset(args, df)
+    print(dataset)
+    ```
+    """
     smiles_to_g = SMILESToBigraph(
         add_self_loop=True,
         node_featurizer=args["node_featurizer"],
@@ -406,8 +445,8 @@ def predict(args: Dict, model, bg):
 
     Args:
         args (dict)
-        model
-        bg
+        model (nn.Module): The model to predict
+        bg (DGLGraph): The input batch graphs
 
     Returns:
         Torch.Tesnor
@@ -448,6 +487,13 @@ def compute_ID_OOD(
 
     Returns:
         pd.DataFrame
+    
+    Example:
+    ```
+    from alinemol.utils.utils import compute_ID_OOD
+    results = compute_ID_OOD(dataset_category="TDC", dataset_names="CYP2C19", split_type="scaffold", num_of_splits=10)
+    print(results)
+    ```
 
     NOTE: NEEDS MORE WORK/POLISHING
     """
@@ -531,6 +577,15 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
 
     Returns:
         pd.DataFrame
+    
+    Example:
+    ```
+    import pandas as pd
+    from alinemol.utils.utils import compute_difference
+    results = pd.read_csv("results.csv")
+    diff = compute_difference(results, metrics=["accuracy", "roc_auc", "pr_auc"])
+    print(diff)
+    ```
     """
     assert "model" in results.columns, "model column is missing in the results dataframe"
     diff = []
@@ -554,13 +609,24 @@ def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
     Args:
         df (pd.DataFrame): Dataframe
         ratio (float): Ratio of majority to minority class
+    
+    Example:
+    ```
+    import pandas as pd
+    from alinemol.utils.utils import downsample_majority_class
+    df = pd.DataFrame({'label': [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]})
+    df_downsampled = downsample_majority_class(df, ratio=1.5)
+    print(df_downsampled)
+    ```
 
     Returns:
         pd.DataFrame
     """
-    # Separate majority and minority classes
+    # Separate majority and minority classes (assuming class 1 is the minority class)
     df_majority = df[df.label==0]
     df_minority = df[df.label==1]
+
+    assert len(df_majority) > int(len(df_minority)*ratio) , "Majority class should be greater than minority class * ratio"
      
     # Downsample majority class
     df_majority_downsampled = df_majority.sample(n=int(len(df_minority)*ratio), random_state=42)
