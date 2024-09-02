@@ -568,7 +568,7 @@ def compute_ID_OOD(
     return result_df
 
 
-def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"]):
+def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"]) -> pd.DataFrame:
     """
     Compute the difference between ID and OOD metrics for the given external dataset and a trained model.
     Args:
@@ -600,6 +600,7 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
         diff.append(results.groupby("model")[f"diff_{metric}"].mean())
 
     diff = pd.concat(diff, axis=1)
+    diff.rename_axis(None, inplace=True)
     return diff
 
 
