@@ -61,7 +61,6 @@ def test_splits_kmeans():
         assert splitter._cluster_metric == "euclidean"
 
 
-
 def test_splits_max_dissimilar_default_feats(test_dataset_dili):
     smiles = test_dataset_dili["smiles"].values
     splitter = MaxDissimilaritySplit(n_splits=2)
