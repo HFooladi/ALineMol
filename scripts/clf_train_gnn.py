@@ -267,10 +267,17 @@ if __name__ == "__main__":
         default=None,
         help="Number of trials for hyperparameter search (default: None)",
     )
+    parser.add_argument(
+        "-de",
+        "--device",
+        type=str,
+        default="cpu",
+        help="Device for PyTorch. Either 'cpu' or 'cuda:x' where x is the GPU number. (default: cpu)",
+    )
     args = vars(parser.parse_args())
 
-    if torch.cuda.is_available():
-        args["device"] = torch.device("cuda:3")
+    if torch.cuda.is_available() and args["device"] != "cpu":
+        args["device"] = torch.device(args["device"])
     else:
         args["device"] = torch.device("cpu")
 
