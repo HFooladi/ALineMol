@@ -24,6 +24,8 @@ filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(repo_path, "datasets")
 
+SPLITTING_METHODS = ["scaffold", "molecular_weight", "kmeans", "max_dissimilarity", "perimeter"]
+
 
 def init_featurizer(args: Dict) -> Dict:
     """Initialize node/edge featurizer
@@ -583,7 +585,7 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
     import pandas as pd
     from alinemol.utils.utils import compute_difference
     results = pd.read_csv("results.csv")
-    diff = compute_difference(results, metrics=["accuracy", "roc_auc", "pr_auc"])
+    diff = compute_difference(results.copy(), metrics=["accuracy", "roc_auc", "pr_auc"])
     print(diff)
     ```
     """
@@ -596,8 +598,9 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
         assert (
             f"OOD_test_{metric}" in results.columns
         ), f'{f"OOD_test_{metric}"} column is missing in the results dataframe'
-        results[f"diff_{metric}"] = results[f"ID_test_{metric}"] - results[f"OOD_test_{metric}"]
-        diff.append(results.groupby("model")[f"diff_{metric}"].mean())
+        results_copy = results.copy()
+        results_copy[f"diff_{metric}"] = results_copy[f"ID_test_{metric}"] - results_copy[f"OOD_test_{metric}"]
+        diff.append(results_copy.groupby("model")[f"diff_{metric}"].mean())
 
     diff = pd.concat(diff, axis=1)
     diff.rename_axis(None, inplace=True)

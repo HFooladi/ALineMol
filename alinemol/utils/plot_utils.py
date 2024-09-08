@@ -16,7 +16,7 @@ REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 light_color = plt.get_cmap("plasma").colors[170]
 dark_color = "black"
 
-
+"""
 matplotlib.rcParams.update(
     {
         "pgf.texsystem": "pdflatex",
@@ -27,7 +27,7 @@ matplotlib.rcParams.update(
         "pgf.rcfonts": False,
     }
 )
-
+"""
 ML_MODELS = ['randomForest', 'SVM', 'XGB']
 GNN_MODELS = ["GCN",
         "GAT",

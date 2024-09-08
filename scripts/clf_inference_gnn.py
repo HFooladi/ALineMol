@@ -78,7 +78,7 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser("Inference for Multi-label Binary Classification")
     parser.add_argument(
-        "-f", "--file-path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
+        "-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
     )
     parser.add_argument(
         "-sc",
