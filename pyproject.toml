@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ALineMol"
 authors = [
-  {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
+    {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
 ]
 description = "Package for evaluating accuracy and agreement on the line for molecules"
 requires-python = ">=3.8"
@@ -19,7 +19,8 @@ dependencies = [
     "pandas",
     "matplotlib",
     "seaborn",
-    "scikit-learn",]
+    "scikit-learn",
+]
 
 dynamic = ["version"]
 
@@ -31,11 +32,11 @@ test = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/HFooladi/ALineMol"
-"Bug Tracker" = "https://github.com/HFooladi/ALineMol/issues"
+homepage = "https://github.com/HFooladi/ALineMol"
+bug_tracker = "https://github.com/HFooladi/ALineMol/issues"
 
 [project.readme]
-file="README.md"
+file = "README.md"
 content-type = "text/markdown"
 
 [tool.setuptools]
@@ -47,25 +48,25 @@ write_to = "alinemol/_version.py"
 
 [tool.black]
 line-length = 110
-target-version = ['py39', 'py310']
+target-version = ["py39", "py310"]
 
 [tool.ruff]
 lint.ignore = [
-    "E501", # Never enforce `E501` (line length violations).
+    "E501",  # Never enforce `E501` (line length violations).
 ]
 line-length = 110
 target-version = "py310"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = [
-    "F401", # imported but unused
-    "E402", # Module level import not at top of file
+    "F401",  # imported but unused
+    "E402",  # Module level import not at top of file
 ]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "serial",
+    "serial"
 ]
 testpaths = ["tests"]
