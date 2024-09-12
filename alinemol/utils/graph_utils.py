@@ -1,5 +1,6 @@
 import torch
 from torch_geometric.data import Data
+from torch_geometric.utils import from_dgl
 
 from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
@@ -74,22 +75,42 @@ def choose_featurizer(model:str, atom_featurizer_type:str = "canonical", bond_fe
     return node_featurizer, edge_featurizer
 
 
-def create_dgl_graph(smiles: str, node_featurizer=None, edge_featurizer=None, add_self_loop=True):
-    mol_to_g = MolToBigraph(add_self_loop=add_self_loop)
+def create_dgl_graphs(smiles: list[str], node_featurizer=None, edge_featurizer=None, add_self_loop=True) -> UnlabeledSMILES:
+    """Create DGL graph from SMILES string
+
+    Args:
+        smiles (list[str]): List of SMILES strings
+        node_featurizer (Callable): Node featurizer
+        edge_featurizer (Callable): Edge featurizer
+        add_self_loop (bool): Whether to add self loop
+    
+    Returns:
+        UnlabeledSMILES: UnlabeledSMILES object
+    
+    Note:
+        UnlabeledSMILES contains the SMILES strings and the corresponding DGL graph
+    """
+    mol_to_g = MolToBigraph(add_self_loop=add_self_loop, node_featurizer=node_featurizer, edge_featurizer=edge_featurizer)
     dataset = UnlabeledSMILES(smiles, mol_to_graph=mol_to_g)
-    return dataset[0]
+    return dataset
 
 
 
-def convert_dgl_pyg(dgl_graph):
-    edge_index = torch.stack(dgl_graph.edges())
-    edge_attr = dgl_graph.edata["feat"]
-    x = dgl_graph.ndata["feat"]
-    y = dgl_graph.ndata["label"]
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+def convert_dgl_pyg(dgl_graph) -> Data:
+    """Convert DGL graph to PyG Data object
 
-
-def create_pyg_graph(smiles: str, model: str, add_self_loop=True):
+    Args:
+        dgl_graph (DGLGraph): DGL graph object
+    
+    Returns:
+        PyG Data: PyG Data object
+    """
+    data = from_dgl(dgl_graph)
+    if "e" in data:
+        return Data(x=data["h"], edge_index=data.edge_index, edge_attr=data["e"])
+    else:
+        return Data(x=data["h"], edge_index=data.edge_index)
+def create_pyg_graphs(smiles: str, model: str, add_self_loop=True):
     """
     Create PyG graph from SMILES string
 
@@ -102,5 +123,6 @@ def create_pyg_graph(smiles: str, model: str, add_self_loop=True):
         PyG Data: PyG Data object
     """
     node_featurizer, edge_featurizer = choose_featurizer(model)
-    dgl_graph = create_dgl_graph(smiles, node_featurizer, edge_featurizer, add_self_loop)
-    return convert_dgl_pyg(dgl_graph)
+    dgl_graphs = create_dgl_graphs(smiles, node_featurizer, edge_featurizer, add_self_loop=add_self_loop)
+    pyg_graphs = [convert_dgl_pyg(dgl_graph[1]) for dgl_graph in dgl_graphs]
+    return pyg_graphs
