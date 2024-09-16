@@ -8,6 +8,7 @@ from alinemol.utils.graph_utils import (
     create_pyg_graphs,
     get_neighbors,
     TMD,
+    pairwise_graph_distances,
 )
 from dgllife.utils import (
     CanonicalAtomFeaturizer,
@@ -230,3 +231,17 @@ def test_TMD_3():
         for j, tgt_pyg_graph in enumerate(pyg_graphs):
             with pytest.raises(TypeError):
                 tmd = TMD(src_pyg_graph, tgt_pyg_graph, w=1.0)
+
+
+# Test 20: test pairwise_graph_distances
+@pytest.mark.slow
+def test_pairwise_graph_distances_1():
+    smiles = ["C", "CC", "CCC"] * 10
+    model = "GCN"
+    pyg_graphs = create_pyg_graphs(smiles, model)
+    distance = pairwise_graph_distances(pyg_graphs, n_jobs=8)
+    assert distance.shape == (30, 30)
+    assert distance[0, 0] == 0
+    assert distance[1, 2] == distance[2, 1]
+    assert distance[0, 3] == 0
+

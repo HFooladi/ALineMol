@@ -9,6 +9,11 @@ from dgllife.utils import MolToBigraph
 from torch_geometric.data import Data
 from torch_geometric.utils import from_dgl
 
+from functools import partial
+from joblib import Parallel, delayed, effective_n_jobs
+from joblib_progress import joblib_progress
+
+
 
 def choose_featurizer(
     model: str, atom_featurizer_type: str = "canonical", bond_featurizer_type: str = "canonical"
@@ -169,16 +174,17 @@ def get_neighbors(g: Data) -> Dict:
 # Author: Ching-Yao Chuang <cychuang@mit.edu>
 # License: MIT License
 # URL: https://github.com/chingyaoc/TMD
-def TMD(g1: Data, g2: Data, w, L: int = 4) -> float:
+def TMD(g1: Data, g2: Data = None, w=1.0, L: int = 4) -> float:
     """
     return the Tree Mover’s Distance (TMD) between g1 and g2
 
     Args:
-        g1, g2 : two torch_geometric graphs
-        w : weighting constant for each depth
+        g1: First torch_geometric graph Data object
+        g2: Second torch_geometric graph Data object (default is None)
+        w: weighting constant for each depth
             if it is a list, then w[l] is the weight for depth-(l+1) tree
             if it is a constant, then every layer shares the same weight
-        L    : Depth of computation trees for calculating TMD
+        L: Depth of computation trees for calculating TMD
 
     Returns:
         wass : The TMD between g1 and g2
@@ -187,6 +193,9 @@ def TMD(g1: Data, g2: Data, w, L: int = 4) -> float:
         Chuang et al., Tree Mover’s Distance: Bridging Graph Metrics and
         Stability of Graph Neural Networks, NeurIPS 2022
     """
+    # check if g2 is None
+    if g2 is None:
+        g2 = g1
 
     if isinstance(w, list):
         assert len(w) == L - 1
@@ -302,4 +311,58 @@ def TMD(g1: Data, g2: Data, w, L: int = 4) -> float:
         dist_2[n2] = max_n - float(n2)
 
     wass = ot.emd2(dist_1, dist_2, M)
-    return wass
+    return round(wass, 2)
+
+PAIRWISE_DISTANCE_FUNCTIONS = {
+    "TMD": TMD,
+}
+
+
+def pairwise_graph_distances(src_pyg_graphs: list[Data], tgt_pyg_graphs=None, metric="TMD", n_jobs=1, **kwds) -> np.ndarray:
+    """
+    Calculate pairwise Tree Mover's Distance (TMD) between graphs
+
+    If tgt_pyg_graphs is given (default is None), then the returned matrix is the pairwise
+    distance between the arrays from both src_pyg_graphs and tgt_pyg_graphs.
+
+    Args:
+        src_pyg_graphs (list[Data]): List of PyG Data objects
+        tgt_pyg_graphs (list[Data]): List of PyG Data objects (default is None)
+        metric (str): The metric to use when calculating distance
+        n_jobs (int): The number of jobs to run in parallel (default is 1)
+        **kwrds: Additional keyword arguments
+
+    Returns:
+        np.ndarray: Pairwise TMD matrix
+    """
+    symmetric = False
+    if tgt_pyg_graphs is None:
+        tgt_pyg_graphs = src_pyg_graphs
+        symmetric = True
+    
+    func = PAIRWISE_DISTANCE_FUNCTIONS[metric]
+    func = partial(func, **kwds)
+    n_jobs = effective_n_jobs(n_jobs)
+    distance_array = np.zeros((len(src_pyg_graphs), len(tgt_pyg_graphs)))
+
+    if symmetric:
+        number_of_comparisons = len(src_pyg_graphs) * (len(src_pyg_graphs) + 1) // 2
+        with joblib_progress("computing the distance matrix ...", total= number_of_comparisons) as progress:
+            distances = Parallel(n_jobs=n_jobs)(
+                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(i, len(tgt_pyg_graphs))
+            )
+        for i in range(len(src_pyg_graphs)):
+            for j in range(i, len(tgt_pyg_graphs)):
+                distance_array[i, j] = distances.pop(0)
+                distance_array[j, i] = distance_array[i, j]
+    else:
+        number_of_comparisons = len(src_pyg_graphs) * len(tgt_pyg_graphs)
+        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
+            distances = Parallel(n_jobs=n_jobs)(
+                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(len(tgt_pyg_graphs))
+            )
+        for i in range(len(src_pyg_graphs)):
+            for j in range(len(tgt_pyg_graphs)):
+                distance_array[i, j] = distances.pop(0)
+    
+    return distance_array
