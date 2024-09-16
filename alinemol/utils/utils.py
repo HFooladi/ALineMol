@@ -6,9 +6,11 @@
 import errno
 import json
 import os
+import os.path as osp
 from pathlib import Path
 import glob
 import re
+import yaml
 from typing import Dict, List, Tuple
 
 import pandas as pd
@@ -24,8 +26,12 @@ filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(repo_path, "datasets")
 
-SPLITTING_METHODS = ["scaffold", "molecular_weight", "kmeans", "max_dissimilarity", "perimeter"]
+with open (osp.join(DATASET_PATH, "config.yml"), "r") as f:
+    CONFIG = yaml.safe_load(f)
 
+SPLITTING_METHODS = CONFIG["splitting"]
+DATASET_NAMES = CONFIG["datasets"]["TDC"]
+MODELS = CONFIG["models"]
 
 def init_featurizer(args: Dict) -> Dict:
     """Initialize node/edge featurizer
@@ -643,4 +649,17 @@ def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
 
     return df_downsampled
 
-    
+
+def concatanate_results(dataset_names: str, dataset_category: str= "TDC", split_types: List[str]=SPLITTING_METHODS) -> pd.DataFrame:
+    """
+    Concatanate the results of the model evaluation
+
+    Note:
+    - The results are stored in the classification_results folder for each dataset
+    """
+    results = []
+    for split_type in split_types:
+        results.append(pd.read_csv(os.path.join("classification_results", dataset_category, dataset_names, split_type, "results.csv")))
+    results = pd.concat(results)
+    results.to_csv(os.path.join("classification_results", dataset_category, dataset_names, "results.csv"), index=False)
+    return results

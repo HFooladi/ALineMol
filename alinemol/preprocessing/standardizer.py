@@ -299,8 +299,8 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
     Remove conflicting duplicates from a DataFrame.
 
     This function processes the DataFrame to:
-    - Drop rows where the 'canonical_smiles' values are the same but the labels differ.
-    - Retain only one row for each set of identical 'canonical_smiles' values with the same label.
+        - Drop rows where the 'canonical_smiles' values are the same but the labels differ (conflicting rows).
+        - Retain only one row for each set of identical 'canonical_smiles' values with the same label.
 
     Args:
         x (pd.DataFrame): The input DataFrame containing a 'canonical_smiles' column.
@@ -314,12 +314,13 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
     assert "label" in df.columns, "Dataframe must have a 'label' column."
     # remove the rows with "NaN" values
     df.dropna(subset=["canonical_smiles"], inplace=True)
-    print(f"Number of rows after removing NaN values: {df.shape[0]}")
+    logger = logging.getLogger(__name__)
+    logger.info(f"Number of rows after removing NaN values: {df.shape[0]}")
     # remove the rows with conflicting labels
     df = df[df.groupby("canonical_smiles").label.transform("nunique") == 1]
-    print(f"Number of rows after removing conflicting labels: {df.shape[0]}")
+    logger.info(f"Number of rows after removing conflicting labels: {df.shape[0]}")
     # remove duplicates (with the same label)
     df = df.drop_duplicates(subset=["canonical_smiles"], keep="first")
-    print(f"Number of rows after removing duplicates: {df.shape[0]}")
+    logger.info(f"Number of rows after removing duplicates: {df.shape[0]}")
     df.reset_index(drop=True, inplace=True)
     return df
