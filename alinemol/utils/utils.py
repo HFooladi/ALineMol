@@ -13,12 +13,14 @@ import re
 import yaml
 from typing import Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
 import dgl
 import torch
 import torch.nn.functional as F
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
+from sklearn.metrics import brier_score_loss
 
 from alinemol.utils.metric_utils import eval_roc_auc, eval_pr_auc, eval_acc
 
@@ -663,3 +665,57 @@ def concatanate_results(dataset_names: str, dataset_category: str= "TDC", split_
     results = pd.concat(results)
     results.to_csv(os.path.join("classification_results", dataset_category, dataset_names, "results.csv"), index=False)
     return results
+
+def brier_score(y_true, y_pred_prob):
+    """
+    Compute the Brier score for the given true labels and predicted probabilities
+    Args:
+        y_true (np.array): True labels
+        y_pred_prob (np.array): Predicted probabilities
+    
+    Example:
+    ```
+    import numpy as np
+    from alinemol.utils.utils import brier_score
+    y_true = np.array([0, 1, 0, 1])
+    y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
+    brier_score = brier_score(y_true, y_pred_prob)
+    print(brier_score)
+    ```
+    """
+    brier_score = brier_score_loss(y_true, y_pred_prob)
+    return brier_score
+
+def expected_calibration_error(y_true, y_pred_prob, n_bins=10):
+    """
+    Compute the expected calibration error for the given true labels and predicted probabilities
+    Args:
+        y_true (np.array): True labels
+        y_pred_prob (np.array): Predicted probabilities
+        n_bins (int): Number of bins
+    
+    Example:
+    ```
+    import numpy as np
+    from alinemol.utils.utils import expected_calibration_error
+    y_true = np.array([0, 1, 0, 1])
+    y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
+    ece = expected_calibration_error(y_true, y_pred_prob)
+    print(ece)
+    ```
+    """
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+    bin_lowers = bin_edges[:-1]
+    bin_uppers = bin_edges[1:]
+
+    ece = 0.0
+    for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+        in_bin = (y_pred_prob >= bin_lower) & (y_pred_prob < bin_upper)
+        prop_in_bin = np.mean(in_bin)
+
+        if prop_in_bin > 0:
+            accuracy_in_bin = np.mean(y_true[in_bin])
+            avg_pred_prob_in_bin = np.mean(y_pred_prob[in_bin])
+            ece += np.abs(avg_pred_prob_in_bin - accuracy_in_bin) * prop_in_bin
+
+    return ece
