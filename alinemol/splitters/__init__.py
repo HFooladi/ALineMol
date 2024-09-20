@@ -1,1 +1,1 @@
-from alinemol.splitters.splits import MolecularWeight, TargetProperty
+from alinemol.splitters.splits import MolecularLogPSplit

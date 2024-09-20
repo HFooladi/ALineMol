@@ -69,6 +69,14 @@ def parse_args():
     parser.add_argument(
         "-to", "--tolerance", type=float, default=0.1, help="Tolerance for the splitting process"
     )
+    parser.add_argument(
+        "-sv",
+        "--save",
+        action="store_true",
+        help="Save the final results of the splitting process",
+    )
+
+    
     args = vars(parser.parse_args())
     return args
 
@@ -82,6 +90,7 @@ if __name__ == "__main__":
     n_jobs = args["n_jobs"]
     n_splits = args["n_splits"]
     tol = args["tolerance"]
+    save = args["save"]
 
     internal_n_splits = 100  # Number of splits to make for test set
     config.update(args)
@@ -164,8 +173,9 @@ if __name__ == "__main__":
             and config["train_actives_percentage_" + str(i)] - config["test_actives_percentage_" + str(i)]
             > -tol
         ):
-            train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
-            test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
+            if save:
+                train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
+                test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
 
             logger.info(
                 "percentage of actives in the train set: {}".format(
@@ -186,5 +196,6 @@ if __name__ == "__main__":
         if i == n_splits:
             break
 
-    with open(split_path / "config.json", "w") as f:
-        json.dump(config, f)
+    if save:
+        with open(split_path / "config.json", "w") as f:
+            json.dump(config, f)

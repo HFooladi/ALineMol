@@ -5,8 +5,9 @@ import pytest
 from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, MaxDissimilaritySplit, PerimeterSplit
 
 from alinemol.utils.split_utils import get_scaffold
+from alinemol.splitters.splits import MolecularLogPSplit
 
-
+# Test 1: Test the MolecularWeightSplit class
 @pytest.mark.parametrize("generalize_to_larger", [True, False])
 def test_splits_molecular_weight(test_dataset_dili, generalize_to_larger):
     smiles = test_dataset_dili["smiles"].values
@@ -25,6 +26,7 @@ def test_splits_molecular_weight(test_dataset_dili, generalize_to_larger):
             assert all(dm.descriptors.mw(dm.to_mol(smi)) <= min(train_mws) for smi in smiles[test_ind])
 
 
+# Test 2: Test the ScaffoldSplit class
 @pytest.mark.parametrize("make_generic", [True, False])
 def test_splits_scaffold(test_dataset_dili, make_generic):
     smiles = test_dataset_dili["smiles"].values
@@ -39,6 +41,7 @@ def test_splits_scaffold(test_dataset_dili, make_generic):
         assert not any(test_scf in train_scfs for test_scf in test_scfs)
 
 
+# Test 3: Test the KMeansSplit class
 def test_splits_kmeans_default_feats(test_dataset_dili):
     smiles = test_dataset_dili["smiles"].values
     splitter = KMeansSplit(n_splits=2)
@@ -101,3 +104,21 @@ def test_splits_perimeter_euclidean():
         assert len(set(train_ind).intersection(set(test_ind))) == 0
         assert len(train_ind) > 0 and len(test_ind) > 0
         assert splitter._metric == "euclidean"
+
+
+@pytest.mark.parametrize("generalize_to_larger", [True, False])
+def test_splits_molecular_logp(test_dataset_dili, generalize_to_larger):
+    smiles = test_dataset_dili["smiles"].values
+    splitter = MolecularLogPSplit(generalize_to_larger=generalize_to_larger, n_splits=2)
+
+    for train_ind, test_ind in splitter.split(smiles):
+        assert len(train_ind) + len(test_ind) == len(smiles)
+        assert len(set(train_ind).intersection(set(test_ind))) == 0
+        assert len(train_ind) > len(test_ind)
+        assert len(train_ind) > 0 and len(test_ind) > 0
+
+        train_mlogps = [dm.descriptors.clogp(dm.to_mol(smi)) for smi in smiles[train_ind]]
+        if generalize_to_larger:
+            assert all(dm.descriptors.clogp(dm.to_mol(smi)) >= max(train_mlogps) for smi in smiles[test_ind])
+        else:
+            assert all(dm.descriptors.clogp(dm.to_mol(smi)) <= min(train_mlogps) for smi in smiles[test_ind])

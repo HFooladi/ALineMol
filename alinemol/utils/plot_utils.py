@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Tuple, Union
 
 import datamol as dm
+import yaml
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,13 +11,14 @@ import pandas as pd
 import seaborn as sns
 import umap
 from sklearn.manifold import TSNE
+from sklearn.calibration import calibration_curve
 
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATASET_PATH = os.path.join(REPO_PATH, "datasets")
 
 light_color = plt.get_cmap("plasma").colors[170]
 dark_color = "black"
 
-"""
 matplotlib.rcParams.update(
     {
         "pgf.texsystem": "pdflatex",
@@ -27,16 +29,12 @@ matplotlib.rcParams.update(
         "pgf.rcfonts": False,
     }
 )
-"""
-ML_MODELS = ['randomForest', 'SVM', 'XGB']
-GNN_MODELS = ["GCN",
-        "GAT",
-        "Weave",
-        "MPNN",
-        "AttentiveFP",
-        "NF",]
+sns.set_palette("Set2")
+CFG = yaml.safe_load(open(os.path.join(DATASET_PATH, "config.yml"), "r"))
 
-PRETRAINED_GNN_MODELS = ["gin_supervised_contextpred", "gin_supervised_edgepred", "gin_supervised_masking", "gin_supervised_infomax"]
+ML_MODELS = CFG["models"]["ML"]
+GNN_MODELS = CFG["models"]["GNN"]["scratch"]
+PRETRAINED_GNN_MODELS =  CFG["models"]["GNN"]["pretrained"]
 ALL_MODELS = [ML_MODELS,  GNN_MODELS, PRETRAINED_GNN_MODELS]
 
 def plot_ID_OOD(
@@ -239,6 +237,16 @@ def visualize_chemspace(
 
 
 def plot_ml_gnn_comparisson(dataset:str="CYP2C19", split_type:str="scaffold") -> None:
+    """
+    Plot difference between ML models, GNN models and pretrained GNN models
+
+    Args:
+        dataset (str): name of dataset
+        split_type (str): type of split
+    
+    Returns:
+        None
+    """
     
     diff = []
     for models in ALL_MODELS:
@@ -257,4 +265,43 @@ def plot_ml_gnn_comparisson(dataset:str="CYP2C19", split_type:str="scaffold") ->
     ax.set_xlabel("Model", fontsize=20)
     ax.set_ylabel("Difference", fontsize=20)
     ax.grid(True, axis='y', linestyle='--')
+    plt.show()
+
+
+def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type="scaffold", model_name="GCN"):
+    """
+    Plot calibration curve for each split
+    This function plots the calibration curve for each split of the dataset
+
+    Args:
+        dataset_category (str): category of dataset
+        dataset_names (str): name of dataset
+        split_type (str): type of split
+        model_name (str): name of model
+    
+    Returns:
+        None
+    """
+
+    SPLIT_PATH = os.path.join(DATASET_PATH, dataset_category, dataset_names, "split")
+    # Load your predictions and labels
+    indices = 10
+    fig, ax = plt.subplots(2, 5, figsize=(20, 10))
+    for i in range(indices):
+        df = pd.read_csv(os.path.join("classification_results", dataset_category, dataset_names, split_type, model_name, str(i + 1), "prediction.csv"))
+        y_pred_prob = df["label"].values
+        df1 = pd.read_csv(os.path.join(SPLIT_PATH, split_type, f"test_{i}.csv"))
+        y_true = df1["label"].values
+
+        # Compute calibration curve
+        prob_true, prob_pred = calibration_curve(y_true, y_pred_prob, n_bins=10)
+
+        # Plot calibration curve
+        ax[i // 5, i % 5].plot(prob_pred, prob_true, marker='o', label=model_name)
+        ax[i // 5, i % 5].plot([0, 1], [0, 1], linestyle='--', color='black')
+        ax[i // 5, i % 5].set_title(f"Calibration plot for split {i + 1}")
+        ax[i // 5, i % 5].set_xlabel("Predicted probability")
+        ax[i // 5, i % 5].set_ylabel("True probability")
+        ax[i // 5, i % 5].legend()
+    plt.tight_layout()
     plt.show()
