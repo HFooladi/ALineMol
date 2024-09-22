@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 import numpy as np
 import ot
 import torch
+from tqdm import tqdm
 from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
 from torch_geometric.data import Data
@@ -351,18 +352,24 @@ def pairwise_graph_distances(src_pyg_graphs: list[Data], tgt_pyg_graphs=None, me
             distances = Parallel(n_jobs=n_jobs)(
                 delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(i, len(tgt_pyg_graphs))
             )
-        for i in range(len(src_pyg_graphs)):
+        k = 0    
+        for i in tqdm(range(len(src_pyg_graphs))):
             for j in range(i, len(tgt_pyg_graphs)):
-                distance_array[i, j] = distances.pop(0)
-                distance_array[j, i] = distance_array[i, j]
+                if k < len(distances):
+                    distance_array[i, j] = distances[k]
+                    distance_array[j, i] = distance_array[i, j]
+                    k += 1        
+
     else:
         number_of_comparisons = len(src_pyg_graphs) * len(tgt_pyg_graphs)
         with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
             distances = Parallel(n_jobs=n_jobs)(
                 delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(len(tgt_pyg_graphs))
             )
-        for i in range(len(src_pyg_graphs)):
+        k = 0
+        for i in tqdm(range(len(src_pyg_graphs))):
             for j in range(len(tgt_pyg_graphs)):
-                distance_array[i, j] = distances.pop(0)
+                distance_array[i, j] = distances[k]
+                k += 1
     
     return distance_array
