@@ -245,3 +245,17 @@ def test_pairwise_graph_distances_1():
     assert distance[1, 2] == distance[2, 1]
     assert distance[0, 3] == 0
 
+
+# Test 21: test pairwise_graph_distances
+@pytest.mark.slow
+def test_pairwise_graph_distances_2():
+    smiles = ["C", "CC", "CCC"]
+    model = "GCN"
+    pyg_graphs = create_pyg_graphs(smiles, model)
+    distance = pairwise_graph_distances(pyg_graphs, n_jobs=8)
+    assert distance.shape == (3, 3)
+    assert distance[0, 0] == 0
+    assert distance[1, 2] == distance[2, 1]
+    assert np.allclose(distance, distance.T)
+    assert np.all(distance >= 0)
+    assert np.allclose(distance, np.array([[0, 67.94, 152.91], [67.94, 0.0, 109.47], [152.91, 109.47, 0.0]]))
