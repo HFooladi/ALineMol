@@ -39,9 +39,20 @@ def main():
     assert 'smiles' in df.columns, 'Input file must contain a column named "smiles"'
     smiles = df['smiles'].tolist()
     graphs = create_pyg_graphs(smiles, "GCN")
-    kwds = {'w': args.w, 'L': args.L}
-    distances = pairwise_graph_distances(graphs, n_jobs=args.n_jobs, **kwds)
-    np.save(args.output_path, distances)
+
+    n = len(graphs)
+    ## break the graphs to n chunks and run pairwise_graph_distances on each chunks and save the results
+    n_per_idx = 5000
+    idxs = n // n_per_idx
+    for idx in tqdm(range(idxs)):
+        start = n_per_idx * idx
+        end = min(n_per_idx * (idx + 1), n)
+
+        graphs_chunk = graphs[start:end]
+        kwds = {'w': args.w, 'L': args.L}
+        distances = pairwise_graph_distances(graphs_chunk, graphs, n_jobs=args.n_jobs, **kwds)
+        np.save(args.output_path+f'_{idx}', distances)
+
 
 if __name__ == "__main__":
     main()
