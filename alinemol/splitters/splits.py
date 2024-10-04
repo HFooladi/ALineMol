@@ -18,7 +18,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
 
     def __init__(
         self,
-        generalize_to_larger: bool = False,
+        generalize_to_larger: bool = True,
         n_splits: int = 5,
         smiles: Optional[Sequence[str]] = None,
         test_size: Optional[Union[float, int]] = None,
