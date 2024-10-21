@@ -50,6 +50,7 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "perimeter": PerimeterSplitConfig,
     "max_dissimilarity": MaxDissimilaritySplitConfig,
     "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
+    "molecular_logp": MolecularLogPSplitConfig,
 }
 
 
