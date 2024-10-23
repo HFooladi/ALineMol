@@ -305,3 +305,53 @@ def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type
         ax[i // 5, i % 5].legend()
     plt.tight_layout()
     plt.show()
+
+
+def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", save: bool = False) -> None:
+    """
+    We want to have a heatmap with one axis datasets and one axis splits. The values in the heatmap are the difference between ID and OOD
+    for each dataset and split. We will use the results.csv file to get the values.
+
+    Args:
+        results (pd.DataFrame): DataFrame with the results
+        metric (str): name of metric
+        save (bool): whether to save plot
+    
+    Returns:
+        None
+    
+    Options:
+        metric: "accuracy", "roc_auc", "pr_auc"
+    """
+
+    if results is None:
+        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv")) # read the results
+
+    assert metric in ['accuracy', 'roc_auc', 'pr_auc'], "Invalid metric" # check if the metric is valid
+    assert "dataset" in results.columns, "dataset column not found in results" # check if the dataset column is in the results
+    assert "split" in results.columns, "split column not found in results" # check if the split column is in the results
+
+    dataset_names = results['dataset'].unique() # get the unique dataset names
+    split_types = results['split'].unique() # get the unique split types
+    # create a dataframe to store the difference between ID and OOD for each dataset and split
+    df = pd.DataFrame(index=dataset_names, columns=split_types)
+
+    # fill the dataframe with the difference between ID and OOD for each dataset and split
+    for dataset in dataset_names:
+        for split in split_types:
+            df.loc[dataset, split] = results[(results['dataset']==dataset) & (results['split']==split)][f'ID_test_{metric}'].mean() - results[(results['dataset']==dataset) & (results['split']==split)][f'OOD_test_{metric}'].mean()
+
+    df = df.astype(float)
+    # plot the heatmap
+    fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+    sns.heatmap(df, ax=ax, cmap='coolwarm', annot=True, fmt=".2f")
+    plt.xlabel("Split", fontsize=20)
+    plt.ylabel("Dataset", fontsize=20)
+    plt.title(f"Difference between ID and OOD {metric}", fontsize=20)
+    if save:
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_{metric}.pdf"),
+            bbox_inches="tight",
+            backend="pgf",
+        )
+    plt.show()
