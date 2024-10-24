@@ -33,7 +33,11 @@ with open (osp.join(DATASET_PATH, "config.yml"), "r") as f:
 
 SPLITTING_METHODS = CONFIG["splitting"]
 DATASET_NAMES = CONFIG["datasets"]["TDC"]
-MODELS = CONFIG["models"]
+ML_MODELS = CONFIG["models"]["ML"]
+GNN_MODELS = CONFIG["models"]["GNN"]["scratch"]
+PRETRAINED_GNN_MODELS =  CONFIG["models"]["GNN"]["pretrained"]
+ALL_MODELS = ML_MODELS + GNN_MODELS + PRETRAINED_GNN_MODELS
+
 
 def init_featurizer(args: Dict) -> Dict:
     """Initialize node/edge featurizer
@@ -488,7 +492,7 @@ def compute_ID_OOD(
     num_of_splits: int = 10,
 ) -> pd.DataFrame:
     """
-    compute ID and OOd metrics for the given external dataset and a trained model.
+    compute ID and OOD metrics for the given external dataset and a trained model.
     Args:
         dataset_category (str): Dataset category
         dataset_names (str): Dataset names
@@ -513,21 +517,7 @@ def compute_ID_OOD(
         repo_path, "classification_results", dataset_category, dataset_names, split_type
     )
 
-    model_names = [
-        "GCN",
-        "GAT",
-        "Weave",
-        "MPNN",
-        "AttentiveFP",
-        "NF",
-        "gin_supervised_contextpred",
-        "gin_supervised_edgepred",
-        "gin_supervised_masking",
-        "gin_supervised_infomax",
-        "randomForest",
-        "SVM",
-        "XGB",
-    ]
+    model_names = ALL_MODELS
     ID_test_accuracy = []
     OOD_test_accuracy = []
 

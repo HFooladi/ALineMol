@@ -355,3 +355,58 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", save: bo
             backend="pgf",
         )
     plt.show()
+
+
+def dataset_fixed_split_comparisson(dataset, split_type1, split_type2, results=None, metric="roc_auc", save=False):
+    """
+    Scatter plot the ID and OOD for a particular dataset and two different splits.
+    x-axis is the ID performance and y-axis is the OOD performance of two different split types.
+
+    Args:
+        results (pd.DataFrame): DataFrame with the results
+        dataset (str): name of dataset
+        split_type1 (str): name of split type 1
+        split_type2 (str): name of split type 2
+        metric (str): name of metric
+        save (bool): whether to save plot
+    
+    Returns:
+        None
+    
+    Options:
+        metric: "accuracy", "roc_auc", "pr_auc"
+    """
+    if results is None:
+        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))
+    
+    assert metric in ['accuracy', 'roc_auc', 'pr_auc'], "Invalid metric"
+    assert "dataset" in results.columns, "dataset column not found in results"
+    assert "split" in results.columns, "split column not found in results"
+
+    results = results[results['dataset'] == dataset]
+    results1 = results[results['split'] == split_type1]
+    results2 = results[results['split'] == split_type2]
+
+    ## concat results1 and results2 on axis 1 and change the duplicate columns name
+    results = pd.concat([results1, results2], axis=1)
+    results.columns = [f"{col}_{split_type1}" if col != "model" else col for col in results1.columns] + [f"{col}_{split_type2}" if col != "model" else col for col in results2.columns]
+    # keep only one of the model column
+    results = results.loc[:,~results.columns.duplicated()]
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    sns.scatterplot(data=results, x=f"ID_test_{metric}_{split_type1}", y=f"OOD_test_{metric}_{split_type1}", label=split_type1)
+    sns.scatterplot(data=results, x=f"ID_test_{metric}_{split_type2}", y=f"OOD_test_{metric}_{split_type2}", label=split_type2)
+
+    ax.set_xlabel(f"ID {metric}")
+    ax.set_ylabel(f"OOD {metric}")
+    ax.set_title(f"{metric} comparison between ID and OOD for models on dataset {dataset}", fontsize=20)
+    ax.grid(axis='both', linestyle='--', alpha=0.6)
+    # put legend outside the plot
+    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    if save:
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"{dataset}_{split_type1}_{split_type2}_{metric}.pdf"),
+            bbox_inches="tight",
+            backend="pgf",
+        )
+    plt.show()
