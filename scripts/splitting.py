@@ -1,14 +1,13 @@
+import json
 import os
 import sys
-from pathlib import Path
-import pandas as pd
-import json
-from tqdm import tqdm
-
-
 from argparse import ArgumentParser
+from pathlib import Path
 from typing import Any, Dict
-from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, PerimeterSplit, MaxDissimilaritySplit
+
+import pandas as pd
+from splito import KMeansSplit, MaxDissimilaritySplit, MolecularWeightSplit, PerimeterSplit, ScaffoldSplit
+from tqdm import tqdm
 
 # Setting up local details:
 # This should be the location of the checkout of the ALineMol repository:
@@ -19,49 +18,47 @@ os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
 from alinemol.splitters.splits import MolecularLogPSplit
-
-from alinemol.utils.utils import increment_path
 from alinemol.splitters.splitting_configures import (
-    MolecularWeightSplitConfig,
-    ScaffoldSplitConfig,
     KMeansSplitConfig,
-    PerimeterSplitConfig,
     MaxDissimilaritySplitConfig,
-    MolecularWeightReverseSplitConfig,
     MolecularLogPSplitConfig,
+    MolecularWeightReverseSplitConfig,
+    MolecularWeightSplitConfig,
+    PerimeterSplitConfig,
+    ScaffoldSplitConfig,
+    ScaffoldSplitGenericConfig,
 )
 from alinemol.utils.logger_utils import logger
+from alinemol.utils.utils import increment_path
 
 NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "scaffold": ScaffoldSplit,
+    "scaffold_generic": ScaffoldSplit,
     "kmeans": KMeansSplit,
     "molecular_weight": MolecularWeightSplit,
+    "molecular_weight_reverse": MolecularWeightSplit,
     "perimeter": PerimeterSplit,
     "max_dissimilarity": MaxDissimilaritySplit,
-    "molecular_weight_reverse": MolecularWeightSplit,
     "molecular_logp": MolecularLogPSplit,
 }
 
 
 NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "scaffold": ScaffoldSplitConfig,
+    "scaffold_generic": ScaffoldSplitGenericConfig,
     "kmeans": KMeansSplitConfig,
     "molecular_weight": MolecularWeightSplitConfig,
+    "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
     "perimeter": PerimeterSplitConfig,
     "max_dissimilarity": MaxDissimilaritySplitConfig,
-    "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
     "molecular_logp": MolecularLogPSplitConfig,
 }
 
 
 def parse_args():
     parser = ArgumentParser("Splitting molecules into train and test sets")
-    parser.add_argument(
-        "-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
-    )
-    parser.add_argument(
-        "-sp", "--splitter", type=str, default="scaffold", help="The name of the splitter to use"
-    )
+    parser.add_argument("-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings")
+    parser.add_argument("-sp", "--splitter", type=str, default="scaffold", help="The name of the splitter to use")
     parser.add_argument("-te", "--test_size", type=float, default=0.2, help="The size of the test set")
     parser.add_argument("-nj", "--n_jobs", type=int, default=-1, help="Number of jobs to run in parallel")
     parser.add_argument(
@@ -71,9 +68,7 @@ def parse_args():
         default=10,
         help="Number of splits to make (Reapeating the splitting process)",
     )
-    parser.add_argument(
-        "-to", "--tolerance", type=float, default=0.1, help="Tolerance for the splitting process"
-    )
+    parser.add_argument("-to", "--tolerance", type=float, default=0.1, help="Tolerance for the splitting process")
     parser.add_argument(
         "-sv",
         "--save",
@@ -81,7 +76,6 @@ def parse_args():
         help="Save the final results of the splitting process",
     )
 
-    
     args = vars(parser.parse_args())
     return args
 
@@ -117,10 +111,8 @@ if __name__ == "__main__":
     hopts = NAME_TO_MODEL_CONFIG[splitter]
     if method in [KMeansSplit, MaxDissimilaritySplit, PerimeterSplit]:
         splitter = method(n_splits=internal_n_splits, test_size=test_size, random_state=42, n_jobs=n_jobs, **hopts)
-    elif method in  [MolecularWeightSplit, MolecularLogPSplit]:
-        splitter = method(
-            smiles=smiles, n_splits=internal_n_splits, test_size=test_size, random_state=42, **hopts
-        )
+    elif method in [MolecularWeightSplit, MolecularLogPSplit]:
+        splitter = method(smiles=smiles, n_splits=internal_n_splits, test_size=test_size, random_state=42, **hopts)
     else:
         splitter = method(
             smiles=smiles,
@@ -175,17 +167,14 @@ if __name__ == "__main__":
 
         if (
             config["train_actives_percentage_" + str(i)] - config["test_actives_percentage_" + str(i)] < tol
-            and config["train_actives_percentage_" + str(i)] - config["test_actives_percentage_" + str(i)]
-            > -tol
+            and config["train_actives_percentage_" + str(i)] - config["test_actives_percentage_" + str(i)] > -tol
         ):
             if save:
                 train.to_csv(increment_path(split_path / f"train_{i}.csv"), index=False)
                 test.to_csv(increment_path(split_path / f"test_{i}.csv"), index=False)
 
             logger.info(
-                "percentage of actives in the train set: {}".format(
-                    train["label"].sum() / train["label"].shape[0]
-                )
+                "percentage of actives in the train set: {}".format(train["label"].sum() / train["label"].shape[0])
             )
             logger.info(
                 "percentage of actives in the external test set: {}".format(
