@@ -7,6 +7,8 @@ RandomSplitConfig = {}
 
 ScaffoldSplitConfig = {"make_generic": False}
 
+ScaffoldSplitGenericConfig = {"make_generic": True}
+
 MolecularWeightSplitConfig = {"generalize_to_larger": True}
 
 MolecularWeightReverseSplitConfig = {"generalize_to_larger": False}
