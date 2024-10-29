@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s",
         "--split",
-        choices=["scaffold_decompose", "scaffold_smiles", "random"],
+        choices=["scaffold_decompose", "scaffold_smiles", "random", "stratified_random"],
         default="scaffold_smiles",
         help="Dataset splitting method (default: scaffold_smiles). For scaffold "
         "split based on rdkit.Chem.AllChem.MurckoDecompose, "

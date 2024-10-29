@@ -24,7 +24,7 @@ os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
 from alinemol.utils import get_configure, init_trial_path
-from alinemol.utils.split_utils import sklearn_random_split
+from alinemol.utils.split_utils import sklearn_random_split, sklearn_stratified_random_split
 from alinemol.utils.logger_utils import logger
 from alinemol.utils.metric_utils import compute_binary_task_metrics
 
@@ -51,7 +51,10 @@ def main(args: Dict, exp_config: Dict):
     train_ratio, val_ratio, test_ratio = map(float, args["split_ratio"].split(","))
     assert train_ratio + val_ratio + test_ratio == 1
     split_ratio = (train_ratio, val_ratio, test_ratio)
-    X_train, X_val, X_test, y_train, y_val, y_test = sklearn_random_split(fps, labels, split_ratio)
+    if args["split"] == "stratified_random":
+        X_train, X_val, X_test, y_train, y_val, y_test = sklearn_stratified_random_split(fps, labels, split_ratio)
+    elif args["split"] == "random":
+        X_train, X_val, X_test, y_train, y_val, y_test = sklearn_random_split(fps, labels, split_ratio)
 
     # Set up directory for saving results
     args = init_trial_path(args)
@@ -131,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s",
         "--split",
-        choices=["scaffold_decompose", "scaffold_smiles", "random"],
+        choices=["scaffold_decompose", "scaffold_smiles", "random", "stratified_random"],
         default="scaffold_smiles",
         help="Dataset splitting method (default: scaffold_smiles). For scaffold "
         "split based on rdkit.Chem.AllChem.MurckoDecompose, "
