@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import rdkit
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from rdkit import Chem
@@ -62,9 +63,7 @@ def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopt
         except LoadingError as le:
             raise RuntimeError(
                 "Unable to featurize molecules using '{:s}' with this configuration: fprint_hopts={:s}"
-                "\nCheck terminal output for messages from the RDkit logger. ".format(
-                    fingerprint, repr(fprints_hopts)
-                )
+                "\nCheck terminal output for messages from the RDkit logger. ".format(fingerprint, repr(fprints_hopts))
             ) from le
         mol.descriptor.make_fingerprint(
             mol.mol_graph,
@@ -231,16 +230,45 @@ def split_molecules_train_val_test(
     return train, val, test
 
 
-def sklearn_random_split(X, y, split_ratio, random_state=42):
+def sklearn_random_split(X, y, split_ratio, random_state=1234):
     """create random train/val/test split in sklearn
     Args:
         X (np.array): features
         y (np.array): labels
         split_ratio (tuple): train, val, test split ratio
+        random_state (int): random seed
+
+    Returns:
+        tuple: X_train, X_val, X_test, y_train, y_val, y_test
     """
     assert sum(split_ratio) == 1, "split ratio must sum to 1"
     train_ratio, val_ratio, test_ratio = split_ratio
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=random_state)
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=val_ratio, random_state=random_state)
     return X_train, X_val, X_test, y_train, y_val, y_test
-    
+
+
+def sklearn_stratified_random_split(X, y, split_ratio, random_state=1234):
+    """create stratified random train/val/test split in sklearn
+    Args:
+        X (np.array): features
+        y (np.array): labels
+        split_ratio (tuple): train, val, test split ratio
+        random_state (int): random seed
+
+    Returns:
+        tuple: X_train, X_val, X_test, y_train, y_val, y_test
+    """
+    assert sum(split_ratio) == 1, "split ratio must sum to 1"
+    train_ratio, val_ratio, test_ratio = split_ratio
+    split = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=random_state)
+    for train_indices, test_indices in split.split(X, y):
+        train_indices = train_indices
+        test_indices = test_indices
+
+    split = StratifiedShuffleSplit(n_splits=1, test_size=val_ratio, random_state=random_state)
+    for train_indices, val_indices in split.split(X[train_indices], y[train_indices]):
+        train_indices = train_indices
+        val_indices = val_indices
+
+    return X[train_indices], X[val_indices], X[test_indices], y[train_indices], y[val_indices], y[test_indices]

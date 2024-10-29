@@ -23,19 +23,21 @@ from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
 from sklearn.metrics import brier_score_loss
 
 from alinemol.utils.metric_utils import eval_roc_auc, eval_pr_auc, eval_acc
+from alinemol.splitters.splits import StratifiedRandomSplitter
 
 filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(repo_path, "datasets")
 
-with open (osp.join(DATASET_PATH, "config.yml"), "r") as f:
+
+with open(osp.join(DATASET_PATH, "config.yml"), "r") as f:
     CONFIG = yaml.safe_load(f)
 
 SPLITTING_METHODS = CONFIG["splitting"]
 DATASET_NAMES = CONFIG["datasets"]["TDC"]
 ML_MODELS = CONFIG["models"]["ML"]
 GNN_MODELS = CONFIG["models"]["GNN"]["scratch"]
-PRETRAINED_GNN_MODELS =  CONFIG["models"]["GNN"]["pretrained"]
+PRETRAINED_GNN_MODELS = CONFIG["models"]["GNN"]["pretrained"]
 ALL_MODELS = ML_MODELS + GNN_MODELS + PRETRAINED_GNN_MODELS
 
 
@@ -47,7 +49,7 @@ def init_featurizer(args: Dict) -> Dict:
 
     Returns:
         dict: Settings with featurizers updated
-    
+
     Raises:
         ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
 
@@ -114,10 +116,10 @@ def load_dataset(args: Dict, df):
     Args:
         args (dict): Settings
         df: Dataframe
-    
+
     Returns:
         MoleculeCSVDataset
-    
+
     Example:
     ```
     from alinemol.utils.utils import load_dataset
@@ -275,7 +277,11 @@ def split_dataset(args, dataset) -> Tuple:
         )
     elif args["split"] == "random":
         train_set, val_set, test_set = RandomSplitter.train_val_test_split(
-            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio
+            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
+        )
+    elif args["split"] == "stratified_random":
+        train_set, val_set, test_set = StratifiedRandomSplitter.train_val_test_split(
+            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
         )
     else:
         return ValueError("Expect the splitting method to be 'scaffold', got {}".format(args["split"]))
@@ -501,7 +507,7 @@ def compute_ID_OOD(
 
     Returns:
         pd.DataFrame
-    
+
     Example:
     ```
     from alinemol.utils.utils import compute_ID_OOD
@@ -513,9 +519,7 @@ def compute_ID_OOD(
     """
     filenames = [f"test_{i}.csv" for i in range(0, num_of_splits)]
     SPLIT_PATH = os.path.join(DATASET_PATH, dataset_category, dataset_names, "split")
-    RESULTS_PATH = os.path.join(
-        repo_path, "classification_results", dataset_category, dataset_names, split_type
-    )
+    RESULTS_PATH = os.path.join(repo_path, "classification_results", dataset_category, dataset_names, split_type)
 
     model_names = ALL_MODELS
     ID_test_accuracy = []
@@ -531,9 +535,7 @@ def compute_ID_OOD(
 
     for i in range(0, num_of_splits):
         for model_name in model_names:
-            df = pd.read_csv(
-                os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None
-            )
+            df = pd.read_csv(os.path.join(RESULTS_PATH, model_name, str(i + 1), "eval.txt"), sep=":", header=None)
             ID_test_accuracy.append(df.iloc[1, 1])
             ID_test_roc_auc.append(df.iloc[2, 1])
             ID_test_pr_auc.append(df.iloc[3, 1])
@@ -577,7 +579,7 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
 
     Returns:
         pd.DataFrame
-    
+
     Example:
     ```
     import pandas as pd
@@ -605,13 +607,13 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
     return diff
 
 
-def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
+def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFrame:
     """
     Downsample the majority class in the given dataframe
     Args:
         df (pd.DataFrame): Dataframe
         ratio (float): Ratio of majority to minority class
-    
+
     Example:
     ```
     import pandas as pd
@@ -625,13 +627,15 @@ def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
         pd.DataFrame
     """
     # Separate majority and minority classes (assuming class 1 is the minority class)
-    df_majority = df[df.label==0]
-    df_minority = df[df.label==1]
+    df_majority = df[df.label == 0]
+    df_minority = df[df.label == 1]
 
-    assert len(df_majority) > int(len(df_minority)*ratio) , "Majority class should be greater than minority class * ratio"
-     
+    assert len(df_majority) > int(
+        len(df_minority) * ratio
+    ), "Majority class should be greater than minority class * ratio"
+
     # Downsample majority class
-    df_majority_downsampled = df_majority.sample(n=int(len(df_minority)*ratio), random_state=42)
+    df_majority_downsampled = df_majority.sample(n=int(len(df_minority) * ratio), random_state=42)
 
     # Combine minority class with downsampled majority class
     df_downsampled = pd.concat([df_majority_downsampled, df_minority])
@@ -642,7 +646,9 @@ def downsample_majority_class(df:pd.DataFrame, ratio:float=1.5) -> pd.DataFrame:
     return df_downsampled
 
 
-def concatanate_results(dataset_names: str, dataset_category: str= "TDC", split_types: List[str]=SPLITTING_METHODS) -> pd.DataFrame:
+def concatanate_results(
+    dataset_names: str, dataset_category: str = "TDC", split_types: List[str] = SPLITTING_METHODS
+) -> pd.DataFrame:
     """
     Concatanate the results of the model evaluation
 
@@ -651,10 +657,15 @@ def concatanate_results(dataset_names: str, dataset_category: str= "TDC", split_
     """
     results = []
     for split_type in split_types:
-        results.append(pd.read_csv(os.path.join("classification_results", dataset_category, dataset_names, split_type, "results.csv")))
+        results.append(
+            pd.read_csv(
+                os.path.join("classification_results", dataset_category, dataset_names, split_type, "results.csv")
+            )
+        )
     results = pd.concat(results)
     results.to_csv(os.path.join("classification_results", dataset_category, dataset_names, "results.csv"), index=False)
     return results
+
 
 def brier_score(y_true, y_pred_prob):
     """
@@ -662,7 +673,7 @@ def brier_score(y_true, y_pred_prob):
     Args:
         y_true (np.array): True labels
         y_pred_prob (np.array): Predicted probabilities
-    
+
     Example:
     ```
     import numpy as np
@@ -676,6 +687,7 @@ def brier_score(y_true, y_pred_prob):
     brier_score = brier_score_loss(y_true, y_pred_prob)
     return brier_score
 
+
 def expected_calibration_error(y_true, y_pred_prob, n_bins=10):
     """
     Compute the expected calibration error for the given true labels and predicted probabilities
@@ -683,7 +695,7 @@ def expected_calibration_error(y_true, y_pred_prob, n_bins=10):
         y_true (np.array): True labels
         y_pred_prob (np.array): Predicted probabilities
         n_bins (int): Number of bins
-    
+
     Example:
     ```
     import numpy as np
