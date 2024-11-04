@@ -19,7 +19,7 @@ def test_MolecularWeight(molecules, manual_smiles):
     mw._after_sample()
 """
 
-
+# Test 1: Test the split_molecules_train_test function
 def test_random_splitting(test_dataset_dili):
     assert "smiles" in test_dataset_dili.columns
     assert "label" in test_dataset_dili.columns
