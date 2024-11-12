@@ -72,3 +72,7 @@ can be one of `'sum'`, `'mean'`, `'max'`, and `'attention'`.
 - `kernel`: (str) Specifies the kernel type to be used in the algorithm
 - `gamma`: (str) Kernel coefficient for ‘rbf’, ‘poly’ and ‘sigmoid’
 - `probability`: (bool) Whether to enable probability estimates
+
+## XGBoost
+
+- `n_estimators`: (int) Number of boosting rounds

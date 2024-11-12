@@ -34,8 +34,9 @@ CFG = yaml.safe_load(open(os.path.join(DATASET_PATH, "config.yml"), "r"))
 
 ML_MODELS = CFG["models"]["ML"]
 GNN_MODELS = CFG["models"]["GNN"]["scratch"]
-PRETRAINED_GNN_MODELS =  CFG["models"]["GNN"]["pretrained"]
-ALL_MODELS = [ML_MODELS,  GNN_MODELS, PRETRAINED_GNN_MODELS]
+PRETRAINED_GNN_MODELS = CFG["models"]["GNN"]["pretrained"]
+ALL_MODELS = [ML_MODELS, GNN_MODELS, PRETRAINED_GNN_MODELS]
+
 
 def plot_ID_OOD(
     ID_test_score: List,
@@ -166,9 +167,7 @@ def plot_ID_OOD_sns(data: pd.DataFrame, dataset_category="TDC", dataset_name="CY
     plt.show()
 
 
-def plot_ID_OOD_bar(
-    data: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"], save: bool = False
-) -> None:
+def plot_ID_OOD_bar(data: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"], save: bool = False) -> None:
     """
     Plot ID vs OOD scores bar plot
 
@@ -205,9 +204,7 @@ def plot_ID_OOD_bar(
         plt.show()
 
 
-def visualize_chemspace(
-    data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None, size=10
-):
+def visualize_chemspace(data: pd.DataFrame, split_names: List[str], mol_col: str = "smiles", size_col=None, size=10):
     """
     Visualize chemical space using UMAP
 
@@ -227,44 +224,45 @@ def visualize_chemspace(
     data["UMAP_0"], data["UMAP_1"] = embedding[:, 0], embedding[:, 1]
     for split_name in split_names:
         plt.figure(figsize=(12, 8))
-        fig = sns.scatterplot(
-            data=data, x="UMAP_0", y="UMAP_1", s=size, style=size_col, hue=split_name, alpha=0.7
-        )
+        fig = sns.scatterplot(data=data, x="UMAP_0", y="UMAP_1", s=size, style=size_col, hue=split_name, alpha=0.7)
         fig.set_title(f"UMAP Embedding of compounds for {split_name} split")
         fig.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         plt.show()
     return figs
 
 
-def plot_ml_gnn_comparisson(dataset:str="CYP2C19", split_type:str="scaffold") -> None:
+def plot_ml_gnn_comparisson(dataset: str = "CYP2C19", split_type: str = "scaffold") -> None:
     """
     Plot difference between ML models, GNN models and pretrained GNN models
 
     Args:
         dataset (str): name of dataset
         split_type (str): type of split
-    
+
     Returns:
         None
     """
-    
+
     diff = []
     for models in ALL_MODELS:
         results = pd.read_csv(os.path.join("classification_results", "TDC", dataset, split_type, "results.csv"))
-        results = results[results['model'].isin(models)]
-        metrics = ['accuracy', 'roc_auc', 'pr_auc']
+        results = results[results["model"].isin(models)]
+        metrics = ["accuracy", "roc_auc", "pr_auc"]
         diff_models = []
         for metric in metrics:
-            results[f'diff_{metric}'] = results[f'ID_test_{metric}'] - results[f'OOD_test_{metric}']
-            diff_models.append(results.groupby('model')[f'diff_{metric}'].mean())
+            results[f"diff_{metric}"] = results[f"ID_test_{metric}"] - results[f"OOD_test_{metric}"]
+            diff_models.append(results.groupby("model")[f"diff_{metric}"].mean())
         diff_models = pd.concat(diff_models, axis=1)
         diff.append(diff_models)
-    mean_df = pd.DataFrame([diff[0].mean(axis=0), diff[1].mean(axis=0), diff[2].mean(axis=0)], index=["ML_MODELS", "GNN_MODELS", "PRETRAINED_GNN_MODELS"])
+    mean_df = pd.DataFrame(
+        [diff[0].mean(axis=0), diff[1].mean(axis=0), diff[2].mean(axis=0)],
+        index=["ML_MODELS", "GNN_MODELS", "PRETRAINED_GNN_MODELS"],
+    )
     fig, ax = plt.subplots(figsize=(10, 6), nrows=1, ncols=1)
-    mean_df.plot(kind='bar', ax=ax)
+    mean_df.plot(kind="bar", ax=ax)
     ax.set_xlabel("Model", fontsize=20)
     ax.set_ylabel("Difference", fontsize=20)
-    ax.grid(True, axis='y', linestyle='--')
+    ax.grid(True, axis="y", linestyle="--")
     plt.show()
 
 
@@ -278,7 +276,7 @@ def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type
         dataset_names (str): name of dataset
         split_type (str): type of split
         model_name (str): name of model
-    
+
     Returns:
         None
     """
@@ -288,7 +286,17 @@ def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type
     indices = 10
     fig, ax = plt.subplots(2, 5, figsize=(20, 10))
     for i in range(indices):
-        df = pd.read_csv(os.path.join("classification_results", dataset_category, dataset_names, split_type, model_name, str(i + 1), "prediction.csv"))
+        df = pd.read_csv(
+            os.path.join(
+                "classification_results",
+                dataset_category,
+                dataset_names,
+                split_type,
+                model_name,
+                str(i + 1),
+                "prediction.csv",
+            )
+        )
         y_pred_prob = df["label"].values
         df1 = pd.read_csv(os.path.join(SPLIT_PATH, split_type, f"test_{i}.csv"))
         y_true = df1["label"].values
@@ -297,8 +305,8 @@ def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type
         prob_true, prob_pred = calibration_curve(y_true, y_pred_prob, n_bins=10)
 
         # Plot calibration curve
-        ax[i // 5, i % 5].plot(prob_pred, prob_true, marker='o', label=model_name)
-        ax[i // 5, i % 5].plot([0, 1], [0, 1], linestyle='--', color='black')
+        ax[i // 5, i % 5].plot(prob_pred, prob_true, marker="o", label=model_name)
+        ax[i // 5, i % 5].plot([0, 1], [0, 1], linestyle="--", color="black")
         ax[i // 5, i % 5].set_title(f"Calibration plot for split {i + 1}")
         ax[i // 5, i % 5].set_xlabel("Predicted probability")
         ax[i // 5, i % 5].set_ylabel("True probability")
@@ -307,44 +315,54 @@ def calibration_plot(dataset_category="TDC", dataset_names="CYP2C19", split_type
     plt.show()
 
 
-def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", save: bool = False) -> None:
+def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=False, save: bool = False) -> None:
     """
     We want to have a heatmap with one axis datasets and one axis splits. The values in the heatmap are the difference between ID and OOD
-    for each dataset and split. We will use the results.csv file to get the values.
+    for each dataset and split (averagd over all models and repeats). We will use the results.csv file to get the values.
 
     Args:
         results (pd.DataFrame): DataFrame with the results
         metric (str): name of metric
+        perc (bool): whether to plot the percentage difference or absolute difference
         save (bool): whether to save plot
-    
+
     Returns:
         None
-    
+
     Options:
         metric: "accuracy", "roc_auc", "pr_auc"
     """
 
     if results is None:
-        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv")) # read the results
+        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
 
-    assert metric in ['accuracy', 'roc_auc', 'pr_auc'], "Invalid metric" # check if the metric is valid
-    assert "dataset" in results.columns, "dataset column not found in results" # check if the dataset column is in the results
-    assert "split" in results.columns, "split column not found in results" # check if the split column is in the results
+    assert metric in ["accuracy", "roc_auc", "pr_auc"], "Invalid metric"  # check if the metric is valid
+    assert (
+        "dataset" in results.columns
+    ), "dataset column not found in results"  # check if the dataset column is in the results
+    assert (
+        "split" in results.columns
+    ), "split column not found in results"  # check if the split column is in the results
 
-    dataset_names = results['dataset'].unique() # get the unique dataset names
-    split_types = results['split'].unique() # get the unique split types
+    dataset_names = results["dataset"].unique()  # get the unique dataset names
+    split_types = results["split"].unique()  # get the unique split types
     # create a dataframe to store the difference between ID and OOD for each dataset and split
     df = pd.DataFrame(index=dataset_names, columns=split_types)
 
     # fill the dataframe with the difference between ID and OOD for each dataset and split
     for dataset in dataset_names:
         for split in split_types:
-            df.loc[dataset, split] = results[(results['dataset']==dataset) & (results['split']==split)][f'ID_test_{metric}'].mean() - results[(results['dataset']==dataset) & (results['split']==split)][f'OOD_test_{metric}'].mean()
+            num = results[(results["dataset"] == dataset) & (results["split"] == split)][f"ID_test_{metric}"].mean()
+            den = results[(results["dataset"] == dataset) & (results["split"] == split)][f"OOD_test_{metric}"].mean()
+            if perc:
+                df.loc[dataset, split] = (num - den) / num * 100
+            else:
+                df.loc[dataset, split] = num - den
 
     df = df.astype(float)
     # plot the heatmap
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    sns.heatmap(df, ax=ax, cmap='coolwarm', annot=True, fmt=".2f")
+    sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".2f")
     plt.xlabel("Split", fontsize=20)
     plt.ylabel("Dataset", fontsize=20)
     plt.title(f"Difference between ID and OOD {metric}", fontsize=20)
@@ -357,7 +375,71 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", save: bo
     plt.show()
 
 
-def dataset_fixed_split_comparisson(dataset, split_type1, split_type2, results=None, metric="roc_auc", save=False):
+def heatmap_plot_dataset_fixed(results: pd.DataFrame = None, dataset="CYP2C19", metric: str = "roc_auc", perc=False, save: bool = False) -> None:
+    """
+    We want to have a heatmap with one axis datasets and one axis splits. The values in the heatmap are the difference between ID and OOD
+    for each dataset and split (averagd over all models and repeats). We will use the results.csv file to get the values.
+
+    Args:
+        results (pd.DataFrame): DataFrame with the results
+        metric (str): name of metric
+        perc (bool): whether to plot the percentage difference or absolute difference
+        save (bool): whether to save plot
+
+    Returns:
+        None
+
+    Options:
+        metric: "accuracy", "roc_auc", "pr_auc"
+    """
+    if results is None:
+        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
+
+    assert metric in ["accuracy", "roc_auc", "pr_auc"], "Invalid metric"  # check if the metric is valid
+    assert (
+        "dataset" in results.columns
+    ), "dataset column not found in results"  # check if the dataset column is in the results
+    assert (
+        "split" in results.columns
+    ), "split column not found in results"  # check if the split column is in the results
+    assert "model" in results.columns, "model column not found in results"  # check if the model column is in the results
+
+    # Just extract the dataset of interest
+    results = results[results["dataset"] == dataset]
+
+    split_types = results["split"].unique()  # get the unique split types
+    models = results["model"].unique()  # get the unique models
+
+    # create a dataframe to store the difference between ID and OOD for each model and split
+    df = pd.DataFrame(index=models, columns=split_types)
+
+    for model in models:
+        for split in split_types:
+            num = results[(results["model"] == model) & (results["split"] == split)][f"ID_test_{metric}"].mean()
+            den = results[(results["model"] == model) & (results["split"] == split)][f"OOD_test_{metric}"].mean()
+            if perc:
+                df.loc[model, split] = (num - den) / num * 100
+            else:
+                df.loc[model, split] = num - den
+    
+    df = df.astype(float)
+    # plot the heatmap
+    fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+    sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".2f")
+    plt.xlabel("Split", fontsize=20)
+    plt.ylabel("Model", fontsize=20)
+    plt.title(f"Difference between ID and OOD {metric} for dataset {dataset}", fontsize=20)
+    if save:
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_{dataset}_{metric}.pdf"),
+            bbox_inches="tight",
+            backend="pgf",
+        )
+    plt.show()
+
+
+
+def dataset_fixed_split_comparisson( results=None, dataset="CYP2C19", split_type1="scaffold", split_type2="molecular_weight", metric="roc_auc", save=False):
     """
     Scatter plot the ID and OOD for a particular dataset and two different splits.
     x-axis is the ID performance and y-axis is the OOD performance of two different split types.
@@ -369,40 +451,46 @@ def dataset_fixed_split_comparisson(dataset, split_type1, split_type2, results=N
         split_type2 (str): name of split type 2
         metric (str): name of metric
         save (bool): whether to save plot
-    
+
     Returns:
         None
-    
+
     Options:
         metric: "accuracy", "roc_auc", "pr_auc"
     """
     if results is None:
         results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))
-    
-    assert metric in ['accuracy', 'roc_auc', 'pr_auc'], "Invalid metric"
+
+    assert metric in ["accuracy", "roc_auc", "pr_auc"], "Invalid metric"
     assert "dataset" in results.columns, "dataset column not found in results"
     assert "split" in results.columns, "split column not found in results"
 
-    results = results[results['dataset'] == dataset]
-    results1 = results[results['split'] == split_type1]
-    results2 = results[results['split'] == split_type2]
+    results = results[results["dataset"] == dataset]
+    results1 = results[results["split"] == split_type1]
+    results2 = results[results["split"] == split_type2]
 
     ## concat results1 and results2 on axis 1 and change the duplicate columns name
     results = pd.concat([results1, results2], axis=1)
-    results.columns = [f"{col}_{split_type1}" if col != "model" else col for col in results1.columns] + [f"{col}_{split_type2}" if col != "model" else col for col in results2.columns]
+    results.columns = [f"{col}_{split_type1}" if col != "model" else col for col in results1.columns] + [
+        f"{col}_{split_type2}" if col != "model" else col for col in results2.columns
+    ]
     # keep only one of the model column
-    results = results.loc[:,~results.columns.duplicated()]
+    results = results.loc[:, ~results.columns.duplicated()]
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    sns.scatterplot(data=results, x=f"ID_test_{metric}_{split_type1}", y=f"OOD_test_{metric}_{split_type1}", label=split_type1)
-    sns.scatterplot(data=results, x=f"ID_test_{metric}_{split_type2}", y=f"OOD_test_{metric}_{split_type2}", label=split_type2)
+    sns.scatterplot(
+        data=results, x=f"ID_test_{metric}_{split_type1}", y=f"OOD_test_{metric}_{split_type1}", label=split_type1
+    )
+    sns.scatterplot(
+        data=results, x=f"ID_test_{metric}_{split_type2}", y=f"OOD_test_{metric}_{split_type2}", label=split_type2
+    )
 
     ax.set_xlabel(f"ID {metric}")
     ax.set_ylabel(f"OOD {metric}")
     ax.set_title(f"{metric} comparison between ID and OOD for models on dataset {dataset}", fontsize=20)
-    ax.grid(axis='both', linestyle='--', alpha=0.6)
+    ax.grid(axis="both", linestyle="--", alpha=0.6)
     # put legend outside the plot
-    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
     if save:
         fig.savefig(
             os.path.join(REPO_PATH, "assets", f"{dataset}_{split_type1}_{split_type2}_{metric}.pdf"),
