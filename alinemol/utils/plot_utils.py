@@ -345,7 +345,9 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     ), "split column not found in results"  # check if the split column is in the results
 
     dataset_names = results["dataset"].unique()  # get the unique dataset names
-    split_types = results["split"].unique()  # get the unique split types
+    # split_types = results["split"].unique()  # get the unique split types
+    # reorder the split types to this order
+    split_types = ["scaffold", "scaffold_generic", "molecular_weight", "molecular_weight_reverse", "molecular_logp", "kmeans", "max_dissimilarity"]
     # create a dataframe to store the difference between ID and OOD for each dataset and split
     df = pd.DataFrame(index=dataset_names, columns=split_types)
 
@@ -361,16 +363,96 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
 
     df = df.astype(float)
     # plot the heatmap
+    vmin, vmax = 0.0, 0.2
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".2f")
-    plt.xlabel("Split", fontsize=20)
-    plt.ylabel("Dataset", fontsize=20)
-    plt.title(f"Difference between ID and OOD {metric}", fontsize=20)
+    a = sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".2f", vmin=vmin, vmax=vmax)
+    plt.xlabel("Split", fontsize=24)
+    plt.ylabel("Dataset", fontsize=24)
+    plt.title(f"Difference between ID and OOD {metric}", fontsize=24)
+    a.set_xticklabels(a.get_xticklabels(), rotation=45, horizontalalignment="right", fontsize=18)
+    a.set_yticklabels(a.get_yticklabels(), rotation=0, horizontalalignment="right", fontsize=18)
     if save:
+        # save as pdf
         fig.savefig(
             os.path.join(REPO_PATH, "assets", f"heatmap_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
+        )
+        #save as png
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_{metric}.png"),
+            bbox_inches="tight",
+        )
+    plt.show()
+
+
+def heeatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", perc=False, save: bool = False) -> None:
+    """
+    We want to have a heatmap (one ID and one OOD) with one axis datasets and one axis splits. The values in the heatmap are the ID and OOD
+    for each dataset and split (averagd over all models and repeats). We will use the results.csv file to get the values.
+
+    Args:
+        results (pd.DataFrame): DataFrame with the results
+        metric (str): name of metric
+        perc (bool): whether to plot the percentage difference or absolute difference
+        save (bool): whether to save plot
+
+    Returns:
+        None
+
+    Options:
+        metric: "accuracy", "roc_auc", "pr_auc"
+    """
+    dataset_names = results["dataset"].unique()  # get the unique dataset names
+    metric = "accuracy"
+    save=False
+    # split_types = results["split"].unique()  # get the unique split types
+    # reorder the split types to this order
+    split_types = ["scaffold", "scaffold_generic", "molecular_weight", "molecular_weight_reverse", "molecular_logp", "kmeans", "max_dissimilarity"]
+    # create a dataframe to store the difference between ID and OOD for each dataset and split
+    id_df = pd.DataFrame(index=dataset_names, columns=split_types)
+    ood_df = pd.DataFrame(index=dataset_names, columns=split_types)
+
+
+    # fill the dataframe with the difference between ID and OOD for each dataset and split
+    for dataset in dataset_names:
+        for split in split_types:
+            id = results[(results["dataset"] == dataset) & (results["split"] == split)][f"ID_test_{metric}"].mean()
+            ood = results[(results["dataset"] == dataset) & (results["split"] == split)][f"OOD_test_{metric}"].mean()
+            id_df.loc[dataset, split] = id
+            ood_df.loc[dataset, split] = ood
+
+    id_df = id_df.astype(float)
+    ood_df = ood_df.astype(float)
+
+    # plot the heatmap
+    vmin, vmax = 0.5, 1.0
+    fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+    # one plot for id and one plot for ood
+    sns.heatmap(id_df, ax=ax[0], annot=True, fmt=".2f", cmap="coolwarm", cbar_kws={'label': f"{metric}"}, vmin=vmin, vmax=vmax)
+    ax[0].set_title(f"ID {metric}", fontsize=18)
+    ax[0].set_xlabel("Split", fontsize=18)
+    ax[0].set_ylabel("Dataset", fontsize=18)
+    ax[0].tick_params(axis='both', which='major', labelsize=14)
+
+    sns.heatmap(ood_df, ax=ax[1], annot=True, fmt=".2f", cmap="coolwarm", cbar_kws={'label': f"{metric}"}, vmin=vmin, vmax=vmax)
+    ax[1].set_title(f"OOD {metric}", fontsize=18)
+    ax[1].set_xlabel("Split", fontsize=18)
+    ax[1].set_ylabel("Dataset", fontsize=18)
+    ax[1].tick_params(axis='both', which='major', labelsize=14)
+
+    plt.tight_layout()
+    if save:
+        # save as pdf
+        fig.savefig(
+            os.path.join("assets", f"heatmap_id_ood_{metric}.pdf"),
+            bbox_inches="tight",
+            backend="pgf",
+        )
+        #save as png
+        fig.savefig(
+            os.path.join("assets", f"heatmap_id_ood_{metric}.png"),
+            bbox_inches="tight",
         )
     plt.show()
 
@@ -430,13 +512,106 @@ def heatmap_plot_dataset_fixed(results: pd.DataFrame = None, dataset="CYP2C19", 
     plt.ylabel("Model", fontsize=20)
     plt.title(f"Difference between ID and OOD {metric} for dataset {dataset}", fontsize=20)
     if save:
+        #save as pdf
         fig.savefig(
             os.path.join(REPO_PATH, "assets", f"heatmap_{dataset}_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
+        #save as png
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_{dataset}_{metric}.png"),
+            bbox_inches="tight",
+        )
     plt.show()
 
+
+
+def heatmap_plot_all_dataset(results: pd.DataFrame = None, metric: str = "roc_auc", perc=False, save: bool = False) -> None:
+    """
+    We want to have a heatmap with one axis datasets and one axis splits for all the datassets. The values in the heatmap are the difference between ID and OOD
+    for each dataset and split (averagd over all models and repeats). We will use the results.csv file to get the values.
+
+    Args:
+        results (pd.DataFrame): DataFrame with the results
+        metric (str): name of metric
+        perc (bool): whether to plot the percentage difference or absolute difference
+        save (bool): whether to save plot
+
+    Returns:
+        None
+
+    Options:
+        metric: "accuracy", "roc_auc", "pr_auc"
+    """
+    if results is None:
+        results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
+    dataset_names = results["dataset"].unique()  # get the unique dataset names
+    #split_types = results["split"].unique()  # get the unique split types
+    split_types = ["scaffold", "scaffold_generic", "molecular_weight", "molecular_weight_reverse", "molecular_logp", "kmeans", "max_dissimilarity"]
+    models = results["model"].unique()  # get the unique models
+    vmin, vnmax = 0.0, 0.2
+    # We want subplots for fixing each time one dataset, then plot the heatmap od difference between ID and OOd for all the modles and split types with 
+    # the same dataset
+    fig, ax = plt.subplots(4, 2, figsize=(20, 20))
+    for i, dataset in enumerate(dataset_names):
+        result_subset = results[results["dataset"]==dataset]
+        df = pd.DataFrame(index=models, columns=split_types)
+
+        for model in models:
+            for split in split_types:
+                num = result_subset[(result_subset["model"] == model) & (result_subset["split"] == split)][f"ID_test_{metric}"].mean()
+                den = result_subset[(result_subset["model"] == model) & (result_subset["split"] == split)][f"OOD_test_{metric}"].mean()
+                if perc:
+                    df.loc[model, split] = (num - den) / num * 100
+                else:
+                    df.loc[model, split] = num - den
+        
+        df = df.astype(float)
+        sns.heatmap(df, ax=ax[i // 2, i % 2], annot=True, fmt=".2f", cmap="coolwarm", cbar_kws={'label': f"{metric} difference"}, vmin=vmin, vmax=vnmax)
+        ax[i // 2, i % 2].set_title(f"{dataset}", fontsize=18)
+        ax[i // 2, i % 2].set_xlabel("Split", fontsize=18)
+        ax[i // 2, i % 2].set_ylabel("Model", fontsize=18)
+        #ax[i // 2, i % 2].tick_params(axis='both', which='major', labelsize=14)
+
+        ax[i // 2, i % 2].set_xlabel("")
+        ax[i // 2, i % 2].set_ylabel("")
+
+        # just keep the xticks (ax.set_xticks) for left plots and yticks (ax.set_yticks) for bottom plots
+        if i % 2 == 0:
+            ax[i // 2, i % 2].set_yticks(np.arange(len(models)) + 0.5)
+            ax[i // 2, i % 2].set_yticklabels(models, fontsize=18)
+            ax[i // 2, i % 2].set_xticks([])
+        else:
+            ax[i // 2, i % 2].set_xticks([])
+            ax[i // 2, i % 2].set_yticks([])
+        #if i // 2 == 3:
+        #    ax[i // 2, i % 2].set_yticks(np.arange(len(models)) + 0.5)
+        #    ax[i // 2, i % 2].set_yticklabels(models)
+        #else:
+        #    ax[i // 2, i % 2].set_yticks([])
+        
+        
+        ax[3, 0].set_xticks(np.arange(len(split_types)) + 0.5)
+        ax[3, 0].set_xticklabels(split_types, rotation=90, fontsize=18)
+        ax[3, 1].set_xticks(np.arange(len(split_types)) + 0.5)
+        ax[3, 1].set_xticklabels(split_types, rotation=90, fontsize=18)
+
+    plt.tight_layout()
+    # save the plot to pdf
+    if save:
+        # save as pdf
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_all_datasets_{metric}.pdf"),
+            bbox_inches="tight",
+            backend="pgf",
+        )
+        # save as png
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", f"heatmap_all_datasets_{metric}.png"),
+            bbox_inches="tight",
+        )
+    plt.show()
 
 
 def dataset_fixed_split_comparisson( results=None, dataset="CYP2C19", split_type1="scaffold", split_type2="molecular_weight", metric="roc_auc", save=False):
