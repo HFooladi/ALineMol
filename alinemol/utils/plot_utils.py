@@ -614,7 +614,7 @@ def heatmap_plot_all_dataset(results: pd.DataFrame = None, metric: str = "roc_au
     plt.show()
 
 
-def dataset_fixed_split_comparisson( results=None, dataset="CYP2C19", split_type1="scaffold", split_type2="molecular_weight", metric="roc_auc", save=False):
+def dataset_fixed_split_comparisson(results=None, dataset="CYP2C19", split_type1="scaffold", split_type2="molecular_weight", metric="roc_auc", save=False):
     """
     Scatter plot the ID and OOD for a particular dataset and two different splits.
     x-axis is the ID performance and y-axis is the OOD performance of two different split types.
