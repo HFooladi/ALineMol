@@ -1,5 +1,6 @@
 import warnings
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional, Sequence
+
 
 import datamol as dm
 import numpy as np
@@ -11,6 +12,11 @@ from astartes.molecules import train_test_split_molecules, train_val_test_split_
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from rdkit import Chem
 from scipy.spatial import distance
+
+
+# In case users provide a list of SMILES instead of features, we rely on ECFP4 and the tanimoto distance by default
+MOLECULE_DEFAULT_FEATURIZER = dict(name="ecfp", kwargs=dict(radius=2, fpSize=2048))
+MOLECULE_DEFAULT_DISTANCE_METRIC = "jaccard"
 
 try:
     """
@@ -272,3 +278,58 @@ def sklearn_stratified_random_split(X, y, split_ratio, random_state=1234):
         val_indices = val_indices
 
     return X[train_indices], X[val_indices], X[test_indices], y[train_indices], y[val_indices], y[test_indices]
+
+
+class EmpiricalKernelMapTransformer:
+    """
+    Transforms a dataset using the Empirical Kernel Map method.
+    In this, a point is defined by its distance to a set of reference points.
+    After this transformation, one can use the euclidean metric even if the original space was not euclidean compatible.
+
+    Reference:
+        https://github.com/datamol-io/splito/blob/main/splito/utils.py
+    """
+
+    def __init__(self, n_samples: int, metric: str, random_state: Optional[int] = None):
+        self._n_samples = n_samples
+        self._random_state = random_state
+        self._samples = None
+        self._metric = metric
+
+    def __call__(self, X):
+        """Transforms a list of datapoints"""
+        return self.transform(X)
+
+    def transform(self, X):
+        """Transforms a single datapoint"""
+        if self._samples is None:
+            # Select the reference set
+            rng = np.random.default_rng(self._random_state)
+            self._samples = X[rng.choice(np.arange(len(X)), self._n_samples)]
+        # Compute the distance to the reference set
+        X = distance.cdist(X, self._samples, metric=self._metric)
+        return X
+
+
+def convert_to_default_feats_if_smiles(
+    X: Union[Sequence[str], np.ndarray], metric: str, n_jobs: Optional[int] = None
+):
+    """
+    If the input is a sequence of strings, assumes this is a list of SMILES and converts it
+    to a default set of ECFP4 features with the default Tanimoto distance metric.
+
+    Reference:
+        https://github.com/datamol-io/splito/blob/main/splito/_distance_split_base.py
+    """
+
+    def _to_feats(smi: str):
+        mol = dm.to_mol(smi)
+        feats = dm.to_fp(
+            mol=mol, fp_type=MOLECULE_DEFAULT_FEATURIZER["name"], **MOLECULE_DEFAULT_FEATURIZER["kwargs"]
+        )
+        return feats
+
+    if all(isinstance(x, str) for x in X):
+        X = dm.utils.parallelized(_to_feats, X, n_jobs=n_jobs)
+        metric = MOLECULE_DEFAULT_DISTANCE_METRIC
+    return X, metric
