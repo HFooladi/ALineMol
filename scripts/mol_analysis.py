@@ -17,18 +17,12 @@ if __name__ == "__main__":
     from alinemol.utils import mkdir_p
 
     parser = ArgumentParser("Dataset analysis")
-    parser.add_argument(
-        "-c", "--csv_path", type=str, required=True, help="Path to a csv file for loading a dataset"
-    )
+    parser.add_argument("-c", "--csv_path", type=str, required=True, help="Path to a csv file for loading a dataset")
     parser.add_argument(
         "-sc", "--smiles_column", type=str, required=True, help="Header for the SMILES column in the CSV file"
     )
-    parser.add_argument(
-        "-np", "--num_processes", type=int, default=1, help="Number of processes to use for analysis"
-    )
-    parser.add_argument(
-        "-p", "--path", type=str, default="analysis_results", help="Path to export analysis results"
-    )
+    parser.add_argument("-np", "--num_processes", type=int, default=1, help="Number of processes to use for analysis")
+    parser.add_argument("-p", "--path", type=str, default="analysis_results", help="Path to export analysis results")
     args = vars(parser.parse_args())
 
     mkdir_p(args["path"])

@@ -12,6 +12,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 
 
 from typing import Any, Dict
@@ -35,6 +36,7 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "SVM": SVC,
     "MLP": MLPClassifier,
     "XGB": XGBClassifier,
+    "LightGBM": LGBMClassifier,
 }
 
 
@@ -116,7 +118,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default="randomForest",
-        choices=["randomForest", "kNN", "SVM", "XGB"],
+        choices=["randomForest", "kNN", "SVM", "XGB", "LightGBM", "MLP"],
         help="The model to use.",
     )
     parser.add_argument(
@@ -125,9 +127,7 @@ if __name__ == "__main__":
         default={},
         help="JSON dictionary containing model hyperparameters.",
     )
-    parser.add_argument(
-        "-c", "--csv_path", type=str, required=True, help="Path to a csv file for loading a dataset"
-    )
+    parser.add_argument("-c", "--csv_path", type=str, required=True, help="Path to a csv file for loading a dataset")
     parser.add_argument(
         "-sc", "--smiles_column", type=str, required=True, help="Header for the SMILES column in the CSV file"
     )

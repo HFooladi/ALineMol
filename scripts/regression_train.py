@@ -60,11 +60,7 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
                 )
             )
     train_score = np.mean(train_meter.compute_metric(args["metric"]))
-    print(
-        "epoch {:d}/{:d}, training {} {:.4f}".format(
-            epoch + 1, args["num_epochs"], args["metric"], train_score
-        )
-    )
+    print("epoch {:d}/{:d}, training {} {:.4f}".format(epoch + 1, args["num_epochs"], args["metric"], train_score))
 
 
 def run_an_eval_epoch(args, model, data_loader):
@@ -185,9 +181,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser("(Multitask) Regression")
-    parser.add_argument(
-        "-c", "--csv-path", type=str, required=True, help="Path to a csv file for loading a dataset"
-    )
+    parser.add_argument("-c", "--csv-path", type=str, required=True, help="Path to a csv file for loading a dataset")
     parser.add_argument(
         "-sc", "--smiles-column", type=str, required=True, help="Header for the SMILES column in the CSV file"
     )
@@ -319,11 +313,7 @@ if __name__ == "__main__":
                 args["num_evals"]
             )
         )
-        print(
-            "Start hyperparameter search with Bayesian " "optimization for {:d} trials".format(
-                args["num_evals"]
-            )
-        )
+        print("Start hyperparameter search with Bayesian " "optimization for {:d} trials".format(args["num_evals"]))
         trial_path = bayesian_optimization(args, train_set, val_set, test_set)
     else:
         print("Use the manually specified hyperparameters")

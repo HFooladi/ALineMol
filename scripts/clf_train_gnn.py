@@ -166,9 +166,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser("Multi-label Binary Classification")
-    parser.add_argument(
-        "-c", "--csv-path", type=str, required=True, help="Path to a csv file for loading a dataset"
-    )
+    parser.add_argument("-c", "--csv-path", type=str, required=True, help="Path to a csv file for loading a dataset")
     parser.add_argument(
         "-sc", "--smiles-column", type=str, required=True, help="Header for the SMILES column in the CSV file"
     )
@@ -297,11 +295,7 @@ if __name__ == "__main__":
                 args["num_evals"]
             )
         )
-        print(
-            "Start hyperparameter search with Bayesian " "optimization for {:d} trials".format(
-                args["num_evals"]
-            )
-        )
+        print("Start hyperparameter search with Bayesian " "optimization for {:d} trials".format(args["num_evals"]))
         trial_path = bayesian_optimization(args, train_set, val_set, test_set)
     else:
         print("Use the manually specified hyperparameters")

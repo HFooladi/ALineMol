@@ -63,7 +63,7 @@ def main():
 
     kwds = {"w": args.w, "L": args.L}
     if symmetric and idxs == 0:
-        distances = pairwise_graph_distances(src_pyg_graphs = source_graphs, n_jobs=args.n_jobs, **kwds)
+        distances = pairwise_graph_distances(src_pyg_graphs=source_graphs, n_jobs=args.n_jobs, **kwds)
         np.save(args.output_path, distances)
     else:
         for idx in tqdm(range(idxs + 1)):
@@ -71,7 +71,9 @@ def main():
             end = min(n_per_idx * (idx + 1), n)
 
             source_chunk = source_graphs[start:end]
-            distances = pairwise_graph_distances(src_pyg_graphs = source_chunk, tgt_pyg_graphs=target_graphs, n_jobs=args.n_jobs, **kwds)
+            distances = pairwise_graph_distances(
+                src_pyg_graphs=source_chunk, tgt_pyg_graphs=target_graphs, n_jobs=args.n_jobs, **kwds
+            )
             np.save(args.output_path + f"_{idx}", distances)
 
 

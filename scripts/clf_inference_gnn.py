@@ -77,9 +77,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser("Inference for Multi-label Binary Classification")
-    parser.add_argument(
-        "-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings"
-    )
+    parser.add_argument("-f", "--file_path", type=str, required=True, help="Path to a .csv/.txt file of SMILES strings")
     parser.add_argument(
         "-sc",
         "--smiles_column",
@@ -150,9 +148,7 @@ if __name__ == "__main__":
 
         smiles = load_smiles_from_txt(args["file_path"])
     else:
-        raise ValueError(
-            "Expect the input data file to be a .csv or a .txt file, " "got {}".format(args["file_path"])
-        )
+        raise ValueError("Expect the input data file to be a .csv or a .txt file, " "got {}".format(args["file_path"]))
     args["smiles"] = smiles
     args = init_featurizer(args)
 
