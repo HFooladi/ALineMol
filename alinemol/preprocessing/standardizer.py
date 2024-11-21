@@ -137,9 +137,7 @@ class Standardizer(BaseLogger):
     def normalizer(self):
         """Return the Normalizer object."""
         if self._normalizer is None:
-            self._normalizer = rdMolStandardize.Normalizer(
-                self.params.normalizationsFile, self.params.maxRestarts
-            )
+            self._normalizer = rdMolStandardize.Normalizer(self.params.normalizationsFile, self.params.maxRestarts)
         return self._normalizer
 
     @property

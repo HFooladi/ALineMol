@@ -311,9 +311,7 @@ class EmpiricalKernelMapTransformer:
         return X
 
 
-def convert_to_default_feats_if_smiles(
-    X: Union[Sequence[str], np.ndarray], metric: str, n_jobs: Optional[int] = None
-):
+def convert_to_default_feats_if_smiles(X: Union[Sequence[str], np.ndarray], metric: str, n_jobs: Optional[int] = None):
     """
     If the input is a sequence of strings, assumes this is a list of SMILES and converts it
     to a default set of ECFP4 features with the default Tanimoto distance metric.
@@ -324,9 +322,7 @@ def convert_to_default_feats_if_smiles(
 
     def _to_feats(smi: str):
         mol = dm.to_mol(smi)
-        feats = dm.to_fp(
-            mol=mol, fp_type=MOLECULE_DEFAULT_FEATURIZER["name"], **MOLECULE_DEFAULT_FEATURIZER["kwargs"]
-        )
+        feats = dm.to_fp(mol=mol, fp_type=MOLECULE_DEFAULT_FEATURIZER["name"], **MOLECULE_DEFAULT_FEATURIZER["kwargs"])
         return feats
 
     if all(isinstance(x, str) for x in X):

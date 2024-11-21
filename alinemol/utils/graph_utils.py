@@ -15,7 +15,6 @@ from joblib import Parallel, delayed, effective_n_jobs
 from joblib_progress import joblib_progress
 
 
-
 def choose_featurizer(
     model: str, atom_featurizer_type: str = "canonical", bond_featurizer_type: str = "canonical"
 ) -> Tuple:
@@ -314,12 +313,15 @@ def TMD(g1: Data, g2: Data = None, w=1.0, L: int = 4) -> float:
     wass = ot.emd2(dist_1, dist_2, M)
     return round(wass, 2)
 
+
 PAIRWISE_DISTANCE_FUNCTIONS = {
     "TMD": TMD,
 }
 
 
-def pairwise_graph_distances(src_pyg_graphs: list[Data], tgt_pyg_graphs=None, metric="TMD", n_jobs=1, **kwds) -> np.ndarray:
+def pairwise_graph_distances(
+    src_pyg_graphs: list[Data], tgt_pyg_graphs=None, metric="TMD", n_jobs=1, **kwds
+) -> np.ndarray:
     """
     Calculate pairwise Tree Mover's Distance (TMD) between graphs
 
@@ -340,7 +342,7 @@ def pairwise_graph_distances(src_pyg_graphs: list[Data], tgt_pyg_graphs=None, me
     if tgt_pyg_graphs is None:
         tgt_pyg_graphs = src_pyg_graphs
         symmetric = True
-    
+
     func = PAIRWISE_DISTANCE_FUNCTIONS[metric]
     func = partial(func, **kwds)
     n_jobs = effective_n_jobs(n_jobs)
@@ -348,28 +350,32 @@ def pairwise_graph_distances(src_pyg_graphs: list[Data], tgt_pyg_graphs=None, me
 
     if symmetric:
         number_of_comparisons = len(src_pyg_graphs) * (len(src_pyg_graphs) + 1) // 2
-        with joblib_progress("computing the distance matrix ...", total= number_of_comparisons) as progress:
+        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
             distances = Parallel(n_jobs=n_jobs)(
-                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(i, len(tgt_pyg_graphs))
+                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j])
+                for i in range(len(src_pyg_graphs))
+                for j in range(i, len(tgt_pyg_graphs))
             )
-        k = 0    
+        k = 0
         for i in tqdm(range(len(src_pyg_graphs))):
             for j in range(i, len(tgt_pyg_graphs)):
                 if k < len(distances):
                     distance_array[i, j] = distances[k]
                     distance_array[j, i] = distance_array[i, j]
-                    k += 1        
+                    k += 1
 
     else:
         number_of_comparisons = len(src_pyg_graphs) * len(tgt_pyg_graphs)
         with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
             distances = Parallel(n_jobs=n_jobs)(
-                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j]) for i in range(len(src_pyg_graphs)) for j in range(len(tgt_pyg_graphs))
+                delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j])
+                for i in range(len(src_pyg_graphs))
+                for j in range(len(tgt_pyg_graphs))
             )
         k = 0
         for i in tqdm(range(len(src_pyg_graphs))):
             for j in range(len(tgt_pyg_graphs)):
                 distance_array[i, j] = distances[k]
                 k += 1
-    
+
     return distance_array

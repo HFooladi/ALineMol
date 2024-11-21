@@ -39,11 +39,7 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
                 )
             )
     train_score = np.mean(train_meter.compute_metric(args["metric"]))
-    print(
-        "epoch {:d}/{:d}, training {} {:.4f}".format(
-            epoch + 1, args["num_epochs"], args["metric"], train_score
-        )
-    )
+    print("epoch {:d}/{:d}, training {} {:.4f}".format(epoch + 1, args["num_epochs"], args["metric"], train_score))
 
 
 def run_an_eval_epoch(args, model, data_loader, test=False):

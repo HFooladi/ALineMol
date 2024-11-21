@@ -490,9 +490,7 @@ class Meter(object):
                 )
                 return None
             else:
-                precision, recall, _ = precision_recall_curve(
-                    y_true.long().numpy(), torch.sigmoid(y_pred).numpy()
-                )
+                precision, recall, _ = precision_recall_curve(y_true.long().numpy(), torch.sigmoid(y_pred).numpy())
                 return auc(recall, precision)
 
         return self.multilabel_score(score, reduction)
