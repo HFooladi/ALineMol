@@ -32,6 +32,7 @@ matplotlib.rcParams.update(
     }
 )
 sns.set_palette("Set2")
+sns.set_context("paper", font_scale=1.5)
 CFG = yaml.safe_load(open(os.path.join(DATASET_PATH, "config.yml"), "r"))
 
 ML_MODELS = CFG["models"]["ML"]
@@ -45,12 +46,12 @@ def reduce_dimensionality(data, method="pca"):
     Reduce the dimensionality of the data using PCA, t-SNE, or UMAP
 
     Args:
-        data (np.ndarray): data to reduce
+        data (np.ndarray): data to reduce (N * D)
         method (str): method to use for dimensionality reduction
             options: 'pca', 'tsne', 'umap'
 
     Returns:
-        np.ndarray: reduced data
+        np.ndarray: reduced data (N * 2)
 
     Raises:
         ValueError: if method is not 'pca', 'tsne', or 'umap'

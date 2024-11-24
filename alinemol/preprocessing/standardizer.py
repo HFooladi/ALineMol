@@ -249,10 +249,10 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
     """
     Standardization of a SMILES string.
 
-    Uses the 'Standardizer' to perform sequence of cleaning operations on a SMILES string.
+    Uses the `Standardizer` to perform sequence of cleaning operations on a SMILES string.
 
     Args:
-        x: pd.DataFrame with 'smiles' column
+        x: pd.DataFrame with `smiles` column
         taut_canonicalization: whether or not to use tautomer canonicalization
 
     Returns:
@@ -307,7 +307,6 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: A DataFrame with conflicting duplicates removed, ensuring unique rows.
     """
     df = pd.DataFrame(x)
-    assert "smiles" in df.columns, "Dataframe must have a 'smiles' column."
     assert "canonical_smiles" in df.columns, "Dataframe must have a 'canonical_smiles' column."
     assert "label" in df.columns, "Dataframe must have a 'label' column."
     # remove the rows with "NaN" values
@@ -321,4 +320,31 @@ def drop_duplicates(x: pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates(subset=["canonical_smiles"], keep="first")
     logger.info(f"Number of rows after removing duplicates: {df.shape[0]}")
     df.reset_index(drop=True, inplace=True)
+    return df
+
+
+def standardization_pipline(x: pd.DataFrame, taut_canonicalization: bool = True) -> pd.DataFrame:
+    """
+    Standardization pipeline for a DataFrame.
+
+    This function performs the following operations on the input DataFrame:
+        - Standardize the 'smiles' column using the `standardize_smiles` function.
+        - Drop conflicting duplicates using the `drop_duplicates` function.
+        - Return a DataFrame with 'smiles' and 'label' columns.
+
+    Args:
+        x (pd.DataFrame): The input DataFrame containing a 'smiles' column.
+        taut_canonicalization (bool): Whether or not to use tautomer canonicalization.
+
+    Returns:
+        pd.DataFrame: A DataFrame with standardized 'canonical_smiles' values and conflicting duplicates removed.
+
+    Note:
+        The input DataFrame must contain a 'smiles' and `label` column.
+        Output DataFrame will contain 'smiles' and `label` columns.
+    """
+    df = standardize_smiles(x, taut_canonicalization)
+    df = drop_duplicates(df)
+    df = df[["canonical_smiles", "label"]]
+    df.columns = ["smiles", "label"]
     return df

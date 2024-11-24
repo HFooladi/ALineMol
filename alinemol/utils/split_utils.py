@@ -329,3 +329,24 @@ def convert_to_default_feats_if_smiles(X: Union[Sequence[str], np.ndarray], metr
         X = dm.utils.parallelized(_to_feats, X, n_jobs=n_jobs)
         metric = MOLECULE_DEFAULT_DISTANCE_METRIC
     return X, metric
+
+def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray], metric: str, n_jobs: Optional[int] = None):
+    """
+    Calculate the Tanimoto distance between a list of SMILES strings or a list of RDKit molecules.
+
+    Args:
+        X (np.array or smiles): Features or smiles strings (N * D if array, N if list)
+        metric (str): Distance metric
+        n_jobs (int): Number of jobs to run in parallel
+    
+    Returns:
+        np.array: Distance matrix (N * N)
+
+    Note:
+        If the input is a sequence of strings, assumes this is a list of SMILES and converts it
+        to a default set of ECFP4 features with the default Tanimoto (Jaccard) distance metric.
+    """
+    X, metric = convert_to_default_feats_if_smiles(X, metric, n_jobs=n_jobs)
+    return distance.squareform(distance.pdist(X=np.array(X), metric=metric))
+
+
