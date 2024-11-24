@@ -32,7 +32,7 @@ def manual_smiles_for_scaffold():
 def manual_df_for_drop_duplicate():
     smiles = ["CC", "CC", "CC", "CCC", "CCC", "CCCC", "CCCCC", "CCCCC"]
     label = [1, 1, 0, 1, 1, 1, 1, 0]
-    df = pd.DataFrame({"smiles": smiles, "label": label})
+    df = pd.DataFrame({"canonical_smiles": smiles, "label": label})
     return df
 
 
@@ -44,6 +44,18 @@ def test_dataset_dili():
     # number of unique scaffolds (Bemis-Murcko): 311
     # number of unique scaffolds (Bemis-Murcko, generic=True): 263
     # number of molecules with empty scaffolds (Bemis-Murcko): 35
-    # number ofactive/inactive: 236/238
+    # number of active/inactive: 236/238
     dataset = pd.read_csv("tests/conftest/dili.csv")
+    return dataset
+
+@pytest.fixture(scope="module")
+def test_dataset_dili_standardize():
+    # Load the dataset
+    # The DILI standardized dataset contains SMILES strings, binary labels, canonical SMILES, weight and number of atoms
+    # size of the datsaet: 474
+    # number of unique scaffolds (Bemis-Murcko): 311
+    # number of unique scaffolds (Bemis-Murcko, generic=True): 263
+    # number of molecules with empty scaffolds (Bemis-Murcko): 35
+    # number of active/inactive: 236/238
+    dataset = pd.read_csv("tests/conftest/dili_standardized.csv")
     return dataset
