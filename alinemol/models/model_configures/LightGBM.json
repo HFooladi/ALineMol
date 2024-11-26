@@ -11,8 +11,8 @@
     "subsample": 1.0,
     "subsample_freq": 0,
     "colsample_bytree": 1.0,
-    "reg_alpha": 0.0,
-    "reg_lambda": 0.0,
+    "reg_alpha": 1.0,
+    "reg_lambda": 1.0,
     "random_state": null,
     "n_jobs": -1,
     "importance_type": "split"

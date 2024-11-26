@@ -330,7 +330,7 @@ def convert_to_default_feats_if_smiles(X: Union[Sequence[str], np.ndarray], metr
         metric = MOLECULE_DEFAULT_DISTANCE_METRIC
     return X, metric
 
-def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray], metric: str, n_jobs: Optional[int] = None):
+def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray, pd.DataFrame], metric: str, n_jobs: Optional[int] = None):
     """
     Calculate the Tanimoto distance between a list of SMILES strings or a list of RDKit molecules.
 
@@ -346,7 +346,69 @@ def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray], metric: str, 
         If the input is a sequence of strings, assumes this is a list of SMILES and converts it
         to a default set of ECFP4 features with the default Tanimoto (Jaccard) distance metric.
     """
+    if isinstance(X, pd.DataFrame):
+        assert "smiles" in X.columns, "Dataframe must have a 'smiles' column."
+        X = X["smiles"]
     X, metric = convert_to_default_feats_if_smiles(X, metric, n_jobs=n_jobs)
     return distance.squareform(distance.pdist(X=np.array(X), metric=metric))
 
 
+
+def retrive_index(original_df, splitted_df):
+    """
+    Retrieve the index of the splitted dataframe in the original dataframe.
+    Args:
+        original_df (pd.DataFrame): Original dataframe
+        splitted_df (pd.DataFrame): Splitted dataframe
+
+    Returns:
+        np.array: Index of the splitted dataframe in the original dataframe
+    """
+    assert "smiles" in original_df.columns, "Dataframe must have a 'smiles' column."
+    assert "smiles" in splitted_df.columns, "Dataframe must have a 'smiles' column."
+    original_df["smiles"] = original_df["smiles"].astype(str)
+    splitted_df["smiles"] = splitted_df["smiles"].astype(str)
+    return original_df[original_df["smiles"].isin(splitted_df["smiles"])].index
+
+def train_test_dataset_distance_retrieve(original_df:pd.DataFrame, train_df: pd.DataFrame, test_df:pd.DataFrame, pairwise_distance: Union[str, np.array]):
+    """
+    Compute the pairwise distance between the train and test set.
+
+    Args:
+        original_df (pd.DataFrame): Original dataframe
+        train_df (pd.DataFrame): Train dataframe
+        test_df (pd.DataFrame): Test dataframe
+        pairwise_distance (str or np.array): Pairwise distance matrix
+
+    Returns:
+        np.array: Pairwise distance between the train and test set
+
+    Note:
+        If the pairwise distance is a string, it will be loaded from the file
+    """
+
+    if isinstance(pairwise_distance, str):
+        pairwise_distance = np.load(pairwise_distance)
+    assert "smiles" in original_df.columns, "Dataframe must have a 'smiles' column."
+    assert "smiles" in train_df.columns, "Dataframe must have a 'smiles' column."
+
+    assert original_df.shape[0] == pairwise_distance.shape[0], "Pairwise distance matrix must have the same number of rows as the original dataframe."
+    assert pairwise_distance.shape[0] == pairwise_distance.shape[1], "Pairwise distance matrix must be a square matrix"
+
+    train_index = retrive_index(original_df, train_df)
+    test_index = retrive_index(original_df, test_df)
+    return pairwise_distance[np.ix_(train_index, test_index)]
+
+
+def retrieve_k_nearest_neighbors(distance_matrix, k=5):
+    """
+    Retrieve the k nearest neighbors from the distance matrix.
+
+    Args:
+        distance_matrix (np.array): Pairwise distance matrix
+        k (int): Number of neighbors to retrieve
+
+    Returns:
+        np.array: Index of the k nearest neighbors
+    """
+    return np.argsort(distance_matrix, axis=1)[:, :k]
