@@ -370,7 +370,7 @@ def retrive_index(original_df, splitted_df):
     splitted_df["smiles"] = splitted_df["smiles"].astype(str)
     return original_df[original_df["smiles"].isin(splitted_df["smiles"])].index
 
-def train_test_dataset_distance_retrieve(original_df:pd.DataFrame, train_df: pd.DataFrame, test_df:pd.DataFrame, pairwise_distance: Union[str, np.array]):
+def train_test_dataset_distance_retrieve(original_df:Union[str, pd.DataFrame], train_df: Union[str, pd.DataFrame], test_df:Union[str, pd.DataFrame], pairwise_distance: Union[str, np.array]):
     """
     Compute the pairwise distance between the train and test set.
 
@@ -385,10 +385,21 @@ def train_test_dataset_distance_retrieve(original_df:pd.DataFrame, train_df: pd.
 
     Note:
         If the pairwise distance is a string, it will be loaded from the file
+        If the original_df, train_df, test_df are strings, they will be loaded from the file
     """
 
     if isinstance(pairwise_distance, str):
         pairwise_distance = np.load(pairwise_distance)
+    
+    if isinstance(original_df, str):
+        original_df = pd.read_csv(original_df)
+    
+    if isinstance(train_df, str):
+        train_df = pd.read_csv(train_df)
+    
+    if isinstance(test_df, str):
+        test_df = pd.read_csv(test_df)
+    
     assert "smiles" in original_df.columns, "Dataframe must have a 'smiles' column."
     assert "smiles" in train_df.columns, "Dataframe must have a 'smiles' column."
 
@@ -397,18 +408,42 @@ def train_test_dataset_distance_retrieve(original_df:pd.DataFrame, train_df: pd.
 
     train_index = retrive_index(original_df, train_df)
     test_index = retrive_index(original_df, test_df)
-    return pairwise_distance[np.ix_(train_index, test_index)]
+    dist = pairwise_distance[np.ix_(train_index, test_index)]
+    assert dist.shape[0] == train_df.shape[0], "Train set must have the same number of rows as the distance matrix"
+    assert dist.shape[1] == test_df.shape[0], "Test set must have the same number of rows as the distance matrix"
+    return dist
 
 
 def retrieve_k_nearest_neighbors(distance_matrix, k=5):
     """
     Retrieve the k nearest neighbors from the distance matrix.
 
+    For each test sample, retrieve the k nearest neighbors from the train set.
+    determine similarty as 1 - distance. Then flatten the matrix to a vector.
+    id distance_matrix is N * M (N > M), the return shape will be (M * k,) 
+
     Args:
         distance_matrix (np.array): Pairwise distance matrix
         k (int): Number of neighbors to retrieve
 
     Returns:
-        np.array: Index of the k nearest neighbors
+        np.array: Tanimoto similarity of k nearest neighbors for each test set
+
+    Reference:
+        Similarity to Molecules in the Training Set Is a Good Discriminator for Prediction Accuracy in QSAR
+        URL: https://pubs.acs.org/doi/full/10.1021/ci049782w
     """
-    return np.argsort(distance_matrix, axis=1)[:, :k]
+    # First let'w assign the axis with smllaer size to test set
+    if distance_matrix.shape[0] < distance_matrix.shape[1]:
+        distance_matrix = distance_matrix.T
+
+    # Then doing argparse along the axis 1 and pick the last k elements
+    indices = np.argpartition(distance_matrix, k, axis=0)[:k, :]
+    # Just retrive the elemns in each column based on indices
+    best_n_distance = np.take_along_axis(distance_matrix, indices, axis=0)
+    # since we want similarity, we use 1- distance
+    best_n_similarity = 1 - best_n_distance
+    # We want to flatten this matrix and just have a vector for each distance matrix
+    best_n_similarity = best_n_similarity.flatten()
+
+    return best_n_similarity
