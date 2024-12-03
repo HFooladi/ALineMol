@@ -1,27 +1,33 @@
-# import visualization packages
-import os
-from typing import Dict, List, Optional, Tuple, Union
+"""
+Utility functions for visualization
+"""
 
-import datamol as dm
-import yaml
-import json
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import umap
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
-import umap.umap_ as umap
-from sklearn.calibration import calibration_curve
+# Import base packages
+import json # for JSON manipulation
+import os # for file manipulation
+from typing import Dict, List, Optional, Tuple, Union # for type hints
 
+import datamol as dm  # for moelcule processing
+import matplotlib  # for plotting
+import matplotlib.pyplot as plt  # for plotting
+import numpy as np  # for numerical operations
+import pandas as pd  # for data manipulation
+import seaborn as sns  # for plotting
+import umap  # for dimensionality reduction
+import umap.umap_ as umap  # for dimensionality reduction
+import yaml  # for configuration
+from sklearn.calibration import calibration_curve  # for calibration curve
+from sklearn.decomposition import PCA  # for PCA
+from sklearn.manifold import TSNE  # for t-SNE
+
+# Path to the repository and datasets
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(REPO_PATH, "datasets")
 
 light_color = plt.get_cmap("plasma").colors[170]
 dark_color = "black"
 
+# Set the plotting style
 matplotlib.rcParams.update(
     {
         "pgf.texsystem": "pdflatex",
@@ -34,17 +40,19 @@ matplotlib.rcParams.update(
 )
 sns.set_palette("Set2")
 sns.set_context("paper", font_scale=1.5)
+
+# Load the configuration file (wich contains datasets, models, and splitting)
 CFG = yaml.safe_load(open(os.path.join(DATASET_PATH, "config.yml"), "r"))
 
-ML_MODELS = CFG["models"]["ML"]
-GNN_MODELS = CFG["models"]["GNN"]["scratch"]
-PRETRAINED_GNN_MODELS = CFG["models"]["GNN"]["pretrained"]
-ALL_MODELS = [ML_MODELS, GNN_MODELS, PRETRAINED_GNN_MODELS]
-DATASET_NAMES = CFG["datasets"]["TDC"]
-SPLIT_TYPES = CFG["splitting"]
+ML_MODELS: List = CFG["models"]["ML"]
+GNN_MODELS: List = CFG["models"]["GNN"]["scratch"]
+PRETRAINED_GNN_MODELS: List = CFG["models"]["GNN"]["pretrained"]
+ALL_MODELS: List = [ML_MODELS, GNN_MODELS, PRETRAINED_GNN_MODELS]
+DATASET_NAMES: List = CFG["datasets"]["TDC"]
+SPLIT_TYPES: List = CFG["splitting"]
 
 
-def reduce_dimensionality(data, method="pca"):
+def reduce_dimensionality(data: np.ndarray, method="pca"):
     """
     Reduce the dimensionality of the data using PCA, t-SNE, or UMAP
 
@@ -699,7 +707,7 @@ def heatmap_plot_all_dataset(
 
 
 def dataset_fixed_split_comparisson(
-    results:Optional[pd.DataFrame]=None,
+    results: Optional[pd.DataFrame] = None,
     dataset="CYP2C19",
     split_type1="scaffold",
     split_type2="molecular_weight",
@@ -766,7 +774,7 @@ def dataset_fixed_split_comparisson(
     plt.show()
 
 
-def test_size_statistics(dataset_names:Optional[List] = None, split_types:Optional[List] = None, save=False):
+def test_size_statistics(dataset_names: Optional[List] = None, split_types: Optional[List] = None, save=False):
     """
     Plot the size ratio of test set to the size of the dataset for different split types
 
@@ -774,7 +782,7 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
         dataset_names (list): list of dataset names
         split_types (list): list of split types
         save (bool): whether to save plot
-    
+
     Returns:
         None
     """
@@ -782,14 +790,14 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
     dataset_category = "TDC"
     if dataset_names is None:
         dataset_names = DATASET_NAMES
-    
+
     if split_types is None:
         split_types = SPLIT_TYPES
-    dfs=[]
+    dfs = []
     for dataset_name in dataset_names:
         for split_type in split_types:
             dataset_folder = os.path.join(DATASET_PATH, dataset_category, dataset_name, "split", split_type)
-            train_size= []
+            train_size = []
             id_test_size = []
             ood_test_size = []
             df = pd.DataFrame()
@@ -799,7 +807,7 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
                 train_size.append(data_config[f"train_size_{i}"])
                 ood_test_size.append(data_config[f"test_size_{i}"])
                 id_test_size.append(data_config[f"train_size_{i}"] * 0.2)
-            train_frac =[train_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
+            train_frac = [train_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
             ood_test_frac = [ood_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
             id_test_frac = [id_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
 
@@ -810,7 +818,7 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
             dfs.append(df)
 
     df = pd.concat(dfs)
-        # boxplot of test size ratio for split types (aggregate over datasets)
+    # boxplot of test size ratio for split types (aggregate over datasets)
     fig, ax = plt.subplots(figsize=(12, 6))
     # melt the dataframe
     df_melt = df.melt(id_vars=["split_type", "dataset"], var_name="test_type", value_name="size_ratio")
@@ -820,15 +828,17 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
     ax.set_xlabel("Split type", fontsize=18)
 
     ax.set_title("Size ratio of test set to the size of the dataset", fontsize=20)
-    ax.grid(axis='y', linestyle='--', alpha=0.6)
+    ax.grid(axis="y", linestyle="--", alpha=0.6)
 
     ax.legend(title="Test set type", title_fontsize=14, fontsize=14)
-    ax.legend(loc='upper right')
-    #change legend name
+    ax.legend(loc="upper right")
+    # change legend name
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=["Test (OOD)", "Test (ID)"], title="Test set type", title_fontsize=14, fontsize=14)
+    ax.legend(
+        handles=handles, labels=["Test (OOD)", "Test (ID)"], title="Test set type", title_fontsize=14, fontsize=14
+    )
 
-    #change the x ticks angle
+    # change the x ticks angle
     plt.xticks(rotation=45, fontsize=16)
     # increase the font size of x and y ticks
 
@@ -837,4 +847,3 @@ def test_size_statistics(dataset_names:Optional[List] = None, split_types:Option
         fig.savefig("assets/test_size_ratio.pdf", bbox_inches="tight")
 
     plt.show()
-
