@@ -5,7 +5,7 @@ from typing import Optional, Union, Sequence
 import numpy as np
 from loguru import logger
 from numpy.random import RandomState
-from sklearn.model_selection import BaseShuffleSplit
+from sklearn.model_selection import BaseShuffleSplit, ShuffleSplit
 from sklearn.model_selection._split import _validate_shuffle_split  # noqa W0212
 from sklearn.utils.validation import _num_samples  # noqa W0212
 from dgl.data.utils import Subset
@@ -40,19 +40,21 @@ def stratified_split_dataset(dataset, frac_list=None, shuffle=True, random_state
     frac_list = np.asarray(frac_list)
     assert np.allclose(np.sum(frac_list), 1.0), "Expect frac_list sum to 1, got {:.4f}".format(np.sum(frac_list))
     num_data = len(dataset)
+
+    # Step 1: Split into train+val and test
     split = StratifiedShuffleSplit(n_splits=1, test_size=frac_list[2], random_state=random_state)
     for train_val_indices, test_indices in split.split(np.zeros(num_data), dataset.labels):
-        train_val_indices = train_val_indices
-        test_indices = test_indices
+        pass
 
-    split = StratifiedShuffleSplit(n_splits=1, test_size=frac_list[1], random_state=random_state)
-    num_data = len(train_val_indices)
+    # Step 2: Split train+val into train and val
+    val_ralative_ratio = frac_list[1] / (frac_list[0] + frac_list[1]) # Adjusted for train+val proportion
+    split = StratifiedShuffleSplit(n_splits=1, test_size=val_ralative_ratio, random_state=random_state)
+    
+    for train_indices, val_indices in split.split(np.zeros(len(train_val_indices)), dataset.labels[train_val_indices]):
+        pass
 
-    for train_indices, val_indices in split.split(np.zeros(num_data), dataset.labels[train_val_indices]):
-        train_indices = train_indices
-        val_indices = val_indices
 
-    return [Subset(dataset, train_indices), Subset(dataset, val_indices), Subset(dataset, test_indices)]
+    return [Subset(dataset, train_val_indices[train_indices]), Subset(dataset, train_val_indices[val_indices]), Subset(dataset, test_indices)]
 
 
 class MolecularLogPSplit(BaseShuffleSplit):
@@ -117,6 +119,41 @@ class MolecularLogPSplit(BaseShuffleSplit):
                 yield sorted_idx[:n_train], sorted_idx[n_train:]
             else:
                 yield sorted_idx[n_test:], sorted_idx[:n_test]
+
+
+class RandomSplit(ShuffleSplit):
+    """
+    Splits the dataset randomly.
+    """
+
+    def __init__(
+        self,
+        n_splits: int = 5,
+        test_size: Optional[Union[float, int]] = None,
+        train_size: Optional[Union[float, int]] = None,
+        random_state: Optional[Union[int, RandomState]] = None,
+        n_jobs: Optional[int] = None,
+    ):
+        super().__init__(
+            n_splits=n_splits,
+            test_size=test_size,
+            train_size=train_size,
+            random_state=random_state,
+        )
+
+    def _iter_indices(
+        self,
+        X: Optional[np.ndarray] = None,
+        y: Optional[np.ndarray] = None,
+        groups: Optional[np.ndarray] = None,
+    ):
+        """Generate (train, test) indices"""
+        if X is None:
+            raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
+        n_samples = _num_samples(X)
+        for train, test in super()._iter_indices(X, y, groups):
+            yield train, test
+
 
 
 class StratifiedRandomSplitter(object):

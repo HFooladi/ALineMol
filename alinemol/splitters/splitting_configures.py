@@ -22,3 +22,5 @@ MaxDissimilaritySplitConfig = {"n_clusters": 10, "metric": "euclidean"}
 MoodSplitConfig = {}
 
 MolecularLogPSplitConfig = {"generalize_to_larger": True}
+
+
