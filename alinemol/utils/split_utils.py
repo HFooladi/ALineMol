@@ -1,20 +1,25 @@
-import warnings
-from typing import Dict, List, Tuple, Union, Optional, Sequence
+"""
+Utility functions for splitting datasets and distance calculation.
+"""
+
+# importing required libraries
+import warnings # for ignoring warnings
+from typing import Dict, List, Tuple, Union, Optional, Sequence # for type hinting
 
 
-import datamol as dm
-import numpy as np
-import pandas as pd
-import rdkit
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedShuffleSplit
-from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
+import datamol as dm # for molecule processing
+import numpy as np # for numerical operations
+import pandas as pd # for data manipulation
+import rdkit # for molecule processing
+from rdkit import Chem # for molecule processing
+from sklearn.model_selection import train_test_split # for splitting the dataset
+from sklearn.model_selection import StratifiedShuffleSplit # for stratified splitting
+from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules 
 from astartes.utils.exceptions import MoleculesNotInstalledError
-from rdkit import Chem
 from scipy.spatial import distance
 
 
-# In case users provide a list of SMILES instead of features, we rely on ECFP4 and the tanimoto distance by default
+# In case users provide a list of SMILES instead of features, we rely on ECFP4 and the Tanimoto (Jaccard) distance by default
 MOLECULE_DEFAULT_FEATURIZER = dict(name="ecfp", kwargs=dict(radius=2, fpSize=2048))
 MOLECULE_DEFAULT_DISTANCE_METRIC = "jaccard"
 
@@ -255,29 +260,39 @@ def sklearn_random_split(X, y, split_ratio, random_state=1234):
 
 
 def sklearn_stratified_random_split(X, y, split_ratio, random_state=1234):
-    """create stratified random train/val/test split in sklearn
+    """
+    Create stratified random train/val/test splits using scikit-learn.
+    
     Args:
-        X (np.array): features
-        y (np.array): labels
-        split_ratio (tuple): train, val, test split ratio
-        random_state (int): random seed
-
+        X (np.ndarray): Features.
+        y (np.ndarray): Labels.
+        split_ratio (tuple of float): Ratios for train, val, and test splits (must sum to 1).
+        random_state (int): Random seed.
+    
     Returns:
         tuple: X_train, X_val, X_test, y_train, y_val, y_test
     """
-    assert sum(split_ratio) == 1, "split ratio must sum to 1"
+    assert len(split_ratio) == 3, "split_ratio must have exactly three elements (train, val, test)."
+    assert sum(split_ratio) == 1, "split_ratio must sum to 1."
+    assert all(r > 0 for r in split_ratio), "split_ratio elements must be positive."
+    
     train_ratio, val_ratio, test_ratio = split_ratio
+    
+    # First split: separate test set
     split = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=random_state)
-    for train_indices, test_indices in split.split(X, y):
-        train_indices = train_indices
-        test_indices = test_indices
+    for train_index, test_index in split.split(X, y):
+        X_train_val, X_test = X[train_index], X[test_index]
+        y_train_val, y_test = y[train_index], y[test_index]
+    
+    # Second split: separate train and validation sets
+    val_relative_ratio = val_ratio / (train_ratio + val_ratio)
+    split = StratifiedShuffleSplit(n_splits=1, test_size=val_relative_ratio, random_state=random_state)
+    for train_index, val_index in split.split(X_train_val, y_train_val):
+        X_train, X_val = X_train_val[train_index], X_train_val[val_index]
+        y_train, y_val = y_train_val[train_index], y_train_val[val_index]
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
 
-    split = StratifiedShuffleSplit(n_splits=1, test_size=val_ratio, random_state=random_state)
-    for train_indices, val_indices in split.split(X[train_indices], y[train_indices]):
-        train_indices = train_indices
-        val_indices = val_indices
-
-    return X[train_indices], X[val_indices], X[test_indices], y[train_indices], y[val_indices], y[test_indices]
 
 
 class EmpiricalKernelMapTransformer:
@@ -330,7 +345,10 @@ def convert_to_default_feats_if_smiles(X: Union[Sequence[str], np.ndarray], metr
         metric = MOLECULE_DEFAULT_DISTANCE_METRIC
     return X, metric
 
-def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray, pd.DataFrame], metric: str, n_jobs: Optional[int] = None):
+
+def pairwise_dataset_distance(
+    X: Union[Sequence[str], np.ndarray, pd.DataFrame], metric: str, n_jobs: Optional[int] = None
+):
     """
     Calculate the Tanimoto distance between a list of SMILES strings or a list of RDKit molecules.
 
@@ -338,7 +356,7 @@ def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray, pd.DataFrame],
         X (np.array or smiles): Features or smiles strings (N * D if array, N if list)
         metric (str): Distance metric
         n_jobs (int): Number of jobs to run in parallel
-    
+
     Returns:
         np.array: Distance matrix (N * N)
 
@@ -351,7 +369,6 @@ def pairwise_dataset_distance(X: Union[Sequence[str], np.ndarray, pd.DataFrame],
         X = X["smiles"]
     X, metric = convert_to_default_feats_if_smiles(X, metric, n_jobs=n_jobs)
     return distance.squareform(distance.pdist(X=np.array(X), metric=metric))
-
 
 
 def retrive_index(original_df, splitted_df):
@@ -370,7 +387,13 @@ def retrive_index(original_df, splitted_df):
     splitted_df["smiles"] = splitted_df["smiles"].astype(str)
     return original_df[original_df["smiles"].isin(splitted_df["smiles"])].index
 
-def train_test_dataset_distance_retrieve(original_df:Union[str, pd.DataFrame], train_df: Union[str, pd.DataFrame], test_df:Union[str, pd.DataFrame], pairwise_distance: Union[str, np.array]):
+
+def train_test_dataset_distance_retrieve(
+    original_df: Union[str, pd.DataFrame],
+    train_df: Union[str, pd.DataFrame],
+    test_df: Union[str, pd.DataFrame],
+    pairwise_distance: Union[str, np.array],
+):
     """
     Compute the pairwise distance between the train and test set.
 
@@ -390,40 +413,51 @@ def train_test_dataset_distance_retrieve(original_df:Union[str, pd.DataFrame], t
 
     if isinstance(pairwise_distance, str):
         pairwise_distance = np.load(pairwise_distance)
-    
+
     if isinstance(original_df, str):
         original_df = pd.read_csv(original_df)
-    
+
     if isinstance(train_df, str):
         train_df = pd.read_csv(train_df)
-    
+
     if isinstance(test_df, str):
         test_df = pd.read_csv(test_df)
-    
+
     assert "smiles" in original_df.columns, "Dataframe must have a 'smiles' column."
     assert "smiles" in train_df.columns, "Dataframe must have a 'smiles' column."
 
-    assert original_df.shape[0] == pairwise_distance.shape[0], "Pairwise distance matrix must have the same number of rows as the original dataframe."
+    assert (
+        original_df.shape[0] == pairwise_distance.shape[0]
+    ), "Pairwise distance matrix must have the same number of rows as the original dataframe."
     assert pairwise_distance.shape[0] == pairwise_distance.shape[1], "Pairwise distance matrix must be a square matrix"
 
     train_index = retrive_index(original_df, train_df)
     test_index = retrive_index(original_df, test_df)
     dist = pairwise_distance[np.ix_(train_index, test_index)]
-    assert dist.shape[0] == train_df.shape[0], "Train set must have the same number of rows as the distance matrix"
-    assert dist.shape[1] == test_df.shape[0], "Test set must have the same number of rows as the distance matrix"
     return dist
 
 
-def retrieve_k_nearest_neighbors(distance_matrix, k=5):
+def retrieve_k_nearest_neighbors(
+    pairwise_distance: Union[str, np.array],
+    original_df: Union[str, pd.DataFrame],
+    train_df: Union[str, pd.DataFrame],
+    test_df: Union[str, pd.DataFrame],
+    k=5,
+):
     """
-    Retrieve the k nearest neighbors from the distance matrix.
+    Retrieve the k nearest neighbors from the distance matrix (full N*N square distance matrix).
+    Firt, we retrieve the distance matrix between the train and test set (M * L matrix).
 
     For each test sample, retrieve the k nearest neighbors from the train set.
     determine similarty as 1 - distance. Then flatten the matrix to a vector.
-    id distance_matrix is N * M (N > M), the return shape will be (M * k,) 
+    (N, N) -> (M, L) -> (L * k, )
+
 
     Args:
-        distance_matrix (np.array): Pairwise distance matrix
+        pairwise_distance (np.array): Pairwise distance matrix
+        original_df (pd.DataFrame): Original dataframe
+        train_df (pd.DataFrame): Train dataframe
+        test_df (pd.DataFrame): Test dataframe
         k (int): Number of neighbors to retrieve
 
     Returns:
@@ -433,9 +467,20 @@ def retrieve_k_nearest_neighbors(distance_matrix, k=5):
         Similarity to Molecules in the Training Set Is a Good Discriminator for Prediction Accuracy in QSAR
         URL: https://pubs.acs.org/doi/full/10.1021/ci049782w
     """
-    # First let'w assign the axis with smllaer size to test set
-    if distance_matrix.shape[0] < distance_matrix.shape[1]:
-        distance_matrix = distance_matrix.T
+
+    if isinstance(pairwise_distance, str):
+        pairwise_distance = np.load(pairwise_distance)
+
+    if isinstance(original_df, str):
+        original_df = pd.read_csv(original_df)
+
+    if isinstance(train_df, str):
+        train_df = pd.read_csv(train_df)
+
+    if isinstance(test_df, str):
+        test_df = pd.read_csv(test_df)
+
+    distance_matrix = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
 
     # Then doing argparse along the axis 1 and pick the last k elements
     indices = np.argpartition(distance_matrix, k, axis=0)[:k, :]

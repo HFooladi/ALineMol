@@ -59,7 +59,7 @@ def reduce_dimensionality(data: np.ndarray, method="pca"):
     Args:
         data (np.ndarray): data to reduce (N * D)
         method (str): method to use for dimensionality reduction
-            options: 'pca', 'tsne', 'umap'
+            options: `pca`, `tsne`, `umap`
 
     Returns:
         np.ndarray: reduced data (N * 2)
@@ -776,7 +776,7 @@ def dataset_fixed_split_comparisson(
 
 def test_size_statistics(dataset_names: Optional[List] = None, split_types: Optional[List] = None, save=False):
     """
-    Plot the size ratio of test set to the size of the dataset for different split types
+    Plot the size ratio of test set (OOD and ID) to the size of the dataset for different split types.
 
     Args:
         dataset_names (list): list of dataset names
@@ -786,13 +786,16 @@ def test_size_statistics(dataset_names: Optional[List] = None, split_types: Opti
     Returns:
         None
     """
-    # Fixes split type. Tehn, find out ratio of test set size to the size of the dataset
+    # Fixes split type. Then, find out ratio of test set size to the size of the dataset.
     dataset_category = "TDC"
+    # if dataset_names is None, use all the dataset names
     if dataset_names is None:
         dataset_names = DATASET_NAMES
-
+    # if split_types is None, use all the split types
     if split_types is None:
         split_types = SPLIT_TYPES
+    
+    num_of_splits = 10
     dfs = []
     for dataset_name in dataset_names:
         for split_type in split_types:
@@ -803,18 +806,19 @@ def test_size_statistics(dataset_names: Optional[List] = None, split_types: Opti
             df = pd.DataFrame()
             with open(os.path.join(dataset_folder, "config.json"), "r") as f:
                 data_config = json.load(f)
-            for i in range(10):
+            for i in range(num_of_splits):
                 train_size.append(data_config[f"train_size_{i}"])
                 ood_test_size.append(data_config[f"test_size_{i}"])
                 id_test_size.append(data_config[f"train_size_{i}"] * 0.2)
-            train_frac = [train_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
-            ood_test_frac = [ood_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
-            id_test_frac = [id_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(10)]
+
+            train_frac = [train_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(num_of_splits)]
+            ood_test_frac = [ood_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(num_of_splits)]
+            id_test_frac = [id_test_size[i] / (train_size[i] + ood_test_size[i]) * 100 for i in range(num_of_splits)]
 
             df["ood_test_size"] = ood_test_frac
             df["id_test_size"] = id_test_frac
-            df["split_type"] = [split_type] * 10
-            df["dataset"] = [dataset_name] * 10
+            df["split_type"] = [split_type] * num_of_splits
+            df["dataset"] = [dataset_name] * num_of_splits
             dfs.append(df)
 
     df = pd.concat(dfs)
