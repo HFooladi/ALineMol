@@ -193,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sr",
         "--split-ratio",
-        default="0.7,0.1,0.2",
+        default="0.72,0.08,0.2",
         type=str,
         help="Proportion of the dataset to use for training, validation and test, " "(default: 0.7,0.1,0.2)",
     )

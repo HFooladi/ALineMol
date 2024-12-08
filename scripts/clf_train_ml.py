@@ -1,35 +1,43 @@
-import os
-import sys
-import json
-import numpy as np
-import pandas as pd
-import sklearn
-import datamol as dm
-import joblib
+"""
+Script for training binary classification models using scikit-learn and saving the results.
+"""
 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
+# import required libraries
+import os # for file operations
+import sys # for system operations
+import json # for json operations
+import numpy as np # for numerical operations
+import pandas as pd # for data operations
+import datamol as dm # for molecular operations
+import joblib # for saving models
+from typing import Any, Dict # for type hinting
+
+from sklearn import metrics # for metrics
+from sklearn.ensemble import RandomForestClassifier # for random forest classifier
+from sklearn.neural_network import MLPClassifier # for multi-layer perceptron classifier
+from sklearn.neighbors import KNeighborsClassifier # for k-nearest neighbors classifier
+from sklearn.svm import SVC # for support vector classifier
+from xgboost import XGBClassifier # for xgboost classifier
+from lightgbm import LGBMClassifier # for lightgbm classifier
 
 
-from typing import Any, Dict
-
+# set the path to the repository
 repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKOUT_PATH = repo_path
 DATASET_PATH = os.path.join(repo_path, "datasets")
 
+# change the directory to the repository path
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
+# import required functions from the repository
 from alinemol.utils import get_configure, init_trial_path
 from alinemol.utils.split_utils import sklearn_random_split, sklearn_stratified_random_split
 from alinemol.utils.logger_utils import logger
 from alinemol.utils.metric_utils import compute_binary_task_metrics
 
 
+# dictionary to map model names to model classes
 NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "randomForest": RandomForestClassifier,
     "kNN": KNeighborsClassifier,
@@ -39,17 +47,24 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "LightGBM": LGBMClassifier,
 }
 
-
+# main function to train the model
 def main(args: Dict, exp_config: Dict):
     # get data in to form for sklearn
     assert args["split_ratio"] is not None
     assert args["model"] is not None
+    # read the csv file
     df = pd.read_csv(args["csv_path"])
     assert args["smiles_column"] in df.columns
     assert "label" in df.columns
+
+    # get the SMILES and labels
     smiles = df[args["smiles_column"]]
-    labels = df["label"]
+    labels = np.array(df["label"])
+
+    # convert SMILES to fingerprints
     fps = np.array([dm.to_fp(dm.to_mol(smi)) for smi in smiles])
+
+    # split the data into train, validation and test sets
     train_ratio, val_ratio, test_ratio = map(float, args["split_ratio"].split(","))
     assert train_ratio + val_ratio + test_ratio == 1
     split_ratio = (train_ratio, val_ratio, test_ratio)
@@ -61,7 +76,7 @@ def main(args: Dict, exp_config: Dict):
     # Set up directory for saving results
     args = init_trial_path(args)
 
-    # train model
+    # Initialize the model with the hyperparameters
     model_cls = NAME_TO_MODEL_CLS[args["model"]]
     if bool(args["model_params"]):
         logger.info("model_params: ", args["model_params"])
@@ -72,7 +87,12 @@ def main(args: Dict, exp_config: Dict):
 
     logger.info("Model architecture: {}".format(args["model"]))
     logger.info(model)
+    # Train the model
     model.fit(X_train, y_train)
+
+    print("Model trained")
+    print('Training Accuracy : ',  metrics.accuracy_score(y_train, model.predict(X_train))*100)
+    print('Validation Accuracy : ',  metrics.accuracy_score(y_val, model.predict(X_val))*100)
 
     # Compute test results:
     y_predicted_true_probs_val = model.predict_proba(X_val)[:, 1]
@@ -80,13 +100,14 @@ def main(args: Dict, exp_config: Dict):
     val_metrics = compute_binary_task_metrics(y_predicted_true_probs_val, y_val)
     test_metrics = compute_binary_task_metrics(y_predicted_true_probs_test, y_test)
 
+    # save the results as a text file
     with open(args["trial_path"] + "/eval.txt", "w") as f:
         f.write("Best val {}: {}\n".format(args["metric"], val_metrics.roc_auc))
         f.write("Test {}: {}\n".format("accuracy_score", test_metrics.acc))
         f.write("Test {}: {}\n".format("roc_auc_score", test_metrics.roc_auc))
         f.write("Test {}: {}\n".format("pr_auc_score", test_metrics.avg_precision))
 
-    # save the metrics
+    # save the metrics as a csv file
     reports = {
         f"{args['metric']}_val": val_metrics.roc_auc,
         "acc": test_metrics.acc,
@@ -100,6 +121,7 @@ def main(args: Dict, exp_config: Dict):
     df = pd.DataFrame(reports, index=[0])
     df.to_csv(args["trial_path"] + "/metrics.csv")
 
+    # adding filepaths to the experiment config file and saving it
     exp_config.update({"filepath": args["csv_path"]})
     logger.info("experimetns_config: {}".format(exp_config))
     with open(args["trial_path"] + "/configure.json", "w") as f:
@@ -110,9 +132,9 @@ def main(args: Dict, exp_config: Dict):
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
+    from argparse import ArgumentParser # for argument parsing
 
-    parser = ArgumentParser("Multi-label Binary Classification")
+    parser = ArgumentParser("Mchine Learning Binary Classification with scikit-learn")
     parser.add_argument(
         "-mo",
         "--model",
@@ -135,8 +157,8 @@ if __name__ == "__main__":
         "-s",
         "--split",
         choices=["scaffold_decompose", "scaffold_smiles", "random", "stratified_random"],
-        default="scaffold_smiles",
-        help="Dataset splitting method (default: scaffold_smiles). For scaffold "
+        default="stratified_random",
+        help="Dataset splitting method (default: stratified_random). For scaffold "
         "split based on rdkit.Chem.AllChem.MurckoDecompose, "
         "use scaffold_decompose. For scaffold split based on "
         "rdkit.Chem.Scaffolds.MurckoScaffold.MurckoScaffoldSmiles, "
@@ -145,7 +167,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sr",
         "--split_ratio",
-        default="0.7,0.1,0.2",
+        default="0.72,0.08,0.2",
         type=str,
         help="Proportion of the dataset to use for training, validation and test, " "(default: 0.7,0.1,0.2)",
     )
@@ -153,8 +175,8 @@ if __name__ == "__main__":
         "-me",
         "--metric",
         choices=["acc", "roc_auc", "pr_auc"],
-        default="roc_auc_score",
-        help="Metric for evaluation (default: roc_auc_score)",
+        default="roc_auc",
+        help="Metric for evaluation (default: roc_auc)",
     )
     parser.add_argument(
         "-p",
@@ -163,6 +185,6 @@ if __name__ == "__main__":
         default="classification_results",
         help="Path to save training results (default: classification_results)",
     )
-    args = vars(parser.parse_args())
-    exp_config = get_configure(args["model"])
-    main(args, exp_config)
+    args: Dict = vars(parser.parse_args())
+    exp_config: Dict = get_configure(args["model"]) # get the configuration (hyperparameters) for the model
+    main(args, exp_config) # train the model

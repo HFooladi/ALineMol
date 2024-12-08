@@ -17,7 +17,7 @@ CHECKOUT_PATH = repo_path
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
-from alinemol.splitters.splits import MolecularLogPSplit
+from alinemol.splitters.splits import MolecularLogPSplit, RandomSplit
 from alinemol.splitters.splitting_configures import (
     KMeansSplitConfig,
     MaxDissimilaritySplitConfig,
@@ -27,6 +27,7 @@ from alinemol.splitters.splitting_configures import (
     PerimeterSplitConfig,
     ScaffoldSplitConfig,
     ScaffoldSplitGenericConfig,
+    RandomSplitConfig,
 )
 from alinemol.utils.logger_utils import logger
 from alinemol.utils.utils import increment_path
@@ -40,6 +41,7 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "perimeter": PerimeterSplit,
     "max_dissimilarity": MaxDissimilaritySplit,
     "molecular_logp": MolecularLogPSplit,
+    "random": RandomSplit,
 }
 
 
@@ -52,6 +54,7 @@ NAME_TO_MODEL_CONFIG: Dict[str, Any] = {
     "perimeter": PerimeterSplitConfig,
     "max_dissimilarity": MaxDissimilaritySplitConfig,
     "molecular_logp": MolecularLogPSplitConfig,
+    "random": RandomSplitConfig,
 }
 
 
@@ -109,7 +112,7 @@ if __name__ == "__main__":
     method = NAME_TO_MODEL_CLS[splitter]
     smiles = df["smiles"].values
     hopts = NAME_TO_MODEL_CONFIG[splitter]
-    if method in [KMeansSplit, MaxDissimilaritySplit, PerimeterSplit]:
+    if method in [RandomSplit, KMeansSplit, MaxDissimilaritySplit, PerimeterSplit]:
         splitter = method(n_splits=internal_n_splits, test_size=test_size, random_state=42, n_jobs=n_jobs, **hopts)
     elif method in [MolecularWeightSplit, MolecularLogPSplit]:
         splitter = method(smiles=smiles, n_splits=internal_n_splits, test_size=test_size, random_state=42, **hopts)
