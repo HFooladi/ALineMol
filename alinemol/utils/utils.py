@@ -54,16 +54,14 @@ def init_featurizer(args: Dict) -> Dict:
         ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
 
     Example:
-    ```
-    from alinemol.utils.utils import init_featurizer
-    args = {
-        "model": "GCN",
-        "atom_featurizer_type": "canonical",
-        "bond_featurizer_type": "canonical",
-    }
-    args = init_featurizer(args)
-    print(args)
-    ```
+        >>> from alinemol.utils.utils import init_featurizer
+        >>> args = {
+        ...    "model": "GCN",
+        ...    "atom_featurizer_type": "canonical",
+        ...    "bond_featurizer_type": "canonical",
+        ... }
+        >>> args = init_featurizer(args)
+        >>> print(args)
 
     """
     if args["model"] in [
@@ -89,7 +87,7 @@ def init_featurizer(args: Dict) -> Dict:
 
         args["node_featurizer"] = AttentiveFPAtomFeaturizer()
     else:
-        return ValueError(
+        raise ValueError(
             "Expect node_featurizer to be in ['canonical', 'attentivefp'], " "got {}".format(
                 args["atom_featurizer_type"]
             )

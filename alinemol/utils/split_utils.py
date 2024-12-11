@@ -492,3 +492,56 @@ def retrieve_k_nearest_neighbors(
     best_n_similarity = best_n_similarity.flatten()
 
     return best_n_similarity
+
+
+def retrieve_k_nearest_neighbors_TMD(
+    pairwise_distance: Union[str, np.array],
+    original_df: Union[str, pd.DataFrame],
+    train_df: Union[str, pd.DataFrame],
+    test_df: Union[str, pd.DataFrame],
+    k=5,
+):
+    """
+    Retrieve the k nearest neighbors from the distance matrix (full N*N square distance matrix).
+    Firt, we retrieve the distance matrix between the train and test set (M * L matrix).
+
+    For each test sample, retrieve the k nearest neighbors from the train set.
+    determine similarty as 1 - distance. Then flatten the matrix to a vector.
+    (N, N) -> (M, L) -> (L * k, )
+
+
+    Args:
+        pairwise_distance (np.array): Pairwise distance matrix
+        original_df (pd.DataFrame): Original dataframe
+        train_df (pd.DataFrame): Train dataframe
+        test_df (pd.DataFrame): Test dataframe
+        k (int): Number of neighbors to retrieve
+
+    Returns:
+        np.array: TMD distance of k nearest neighbors for each test set
+
+    """
+
+    if isinstance(pairwise_distance, str):
+        pairwise_distance = np.load(pairwise_distance)
+
+    if isinstance(original_df, str):
+        original_df = pd.read_csv(original_df)
+
+    if isinstance(train_df, str):
+        train_df = pd.read_csv(train_df)
+
+    if isinstance(test_df, str):
+        test_df = pd.read_csv(test_df)
+
+    distance_matrix = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
+
+    # Then doing argparse along the axis 1 and pick the last k elements
+    indices = np.argpartition(distance_matrix, k, axis=0)[:k, :]
+    # Just retrive the elemns in each column based on indices
+    best_n_distance = np.take_along_axis(distance_matrix, indices, axis=0)
+
+    # We want to flatten this matrix and just have a vector for each distance matrix
+    best_n_distance = best_n_distance.flatten()
+
+    return best_n_distance
