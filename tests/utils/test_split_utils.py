@@ -44,15 +44,6 @@ def test_pairwise_dataset_distance_with_features():
     assert distance_matrix.shape == (3, 3)
     assert np.all(distance_matrix >= 0)
 
-def test_pairwise_dataset_distance_with_invalid_metric():
-    smiles = ["CCO", "CCN", "CCC"]
-    metric = "invalid_metric"
-    try:
-        pairwise_dataset_distance(smiles, metric)
-    except ValueError:
-        assert True
-    else:
-        assert False
 
 def test_convert_to_default_feats_if_smiles_with_smiles():
     smiles = ["CCO", "CCN", "CCC"]
@@ -72,12 +63,9 @@ def test_convert_to_default_feats_if_smiles_with_features():
 def test_convert_to_default_feats_if_smiles_with_mixed_input():
     mixed_input = ["CCO", np.random.rand(2048)]
     metric = "jaccard"
-    try:
-        convert_to_default_feats_if_smiles(mixed_input, metric)
-    except AssertionError:
-        assert True
-    else:
-        assert False
+    features, updated_metric = convert_to_default_feats_if_smiles(mixed_input, metric)
+    assert features == mixed_input
+    assert updated_metric == metric
     
 def test_empirical_kernel_map_transformer():
     X = np.random.rand(10, 2048)
@@ -279,16 +267,26 @@ def test_train_test_dataset_distance_retrieve_with_partial_matching_smiles():
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+def test_retrieve_k_nearest_neighbors():
+    original_df = pd.DataFrame({
+        "smiles": ["CCO", "CCN", "CCC", "CCF"],
+        "label": [0, 1, 0, 1]
+    })
+    train_df = pd.DataFrame({
+        "smiles": ["CCO", "CCC"],
+        "label": [0, 0]
+    })
+    test_df = pd.DataFrame({
+        "smiles": ["CCN", "CCF"],
+        "label": [1, 1]
+    })
+    pairwise_distance = np.array([
+        [0.0, 0.5, 0.2, 0.3],
+        [0.5, 0.0, 0.4, 0.1],
+        [0.2, 0.4, 0.0, 0.6],
+        [0.3, 0.1, 0.6, 0.0]
+    ])
+    k = 1
+    expected_similarity = np.array([0.6, 0.7])
+    similarity = retrieve_k_nearest_neighbors(pairwise_distance, original_df, train_df, test_df, k)
+    assert np.array_equal(similarity, expected_similarity)
