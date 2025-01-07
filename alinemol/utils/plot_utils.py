@@ -452,8 +452,6 @@ def heeatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", 
         metric: "accuracy", "roc_auc", "pr_auc"
     """
     dataset_names = results["dataset"].unique()  # get the unique dataset names
-    metric = "accuracy"
-    save = False
     # split_types = results["split"].unique()  # get the unique split types
     # reorder the split types to this order
     split_types = [
