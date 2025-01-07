@@ -1,29 +1,24 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
-
 import errno
+import glob
 import json
 import os
 import os.path as osp
-from pathlib import Path
-import glob
 import re
-import yaml
+from pathlib import Path
 from typing import Dict, List, Tuple
 
+import dgl
 import numpy as np
 import pandas as pd
-import dgl
 import torch
 import torch.nn.functional as F
+import yaml
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
 from sklearn.metrics import brier_score_loss
 
-from alinemol.utils.metric_utils import eval_roc_auc, eval_pr_auc, eval_acc
 from alinemol.splitters.splits import StratifiedRandomSplitter
+from alinemol.utils.metric_utils import eval_acc, eval_pr_auc, eval_roc_auc
 
 filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -38,6 +33,7 @@ DATASET_NAMES = CONFIG["datasets"]["TDC"]
 ML_MODELS = CONFIG["models"]["ML"]
 GNN_MODELS = CONFIG["models"]["GNN"]["scratch"]
 PRETRAINED_GNN_MODELS = CONFIG["models"]["GNN"]["pretrained"]
+GNNs= GNN_MODELS + PRETRAINED_GNN_MODELS
 ALL_MODELS = ML_MODELS + GNN_MODELS + PRETRAINED_GNN_MODELS
 
 
@@ -52,6 +48,7 @@ def init_featurizer(args: Dict) -> Dict:
 
     Raises:
         ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
+        ValueError: If args does not contain the key 'model', 'atom_featurizer_type', 'bond_featurizer_type'
 
     Example:
         >>> from alinemol.utils.utils import init_featurizer
@@ -70,7 +67,8 @@ def init_featurizer(args: Dict) -> Dict:
         "gin_supervised_edgepred",
         "gin_supervised_masking",
     ]:
-        from dgllife.utils import PretrainAtomFeaturizer, PretrainBondFeaturizer
+        from dgllife.utils import (PretrainAtomFeaturizer,
+                                   PretrainBondFeaturizer)
 
         args["atom_featurizer_type"] = "pre_train"
         args["bond_featurizer_type"] = "pre_train"
@@ -108,29 +106,32 @@ def init_featurizer(args: Dict) -> Dict:
     return args
 
 
-def load_dataset(args: Dict, df):
+def load_dataset(args: Dict, df: pd.DataFrame) -> MoleculeCSVDataset:
     """Load the dataset
 
     Args:
         args (dict): Settings
-        df: Dataframe
+        df (pd.DataFrame): Dataframe
 
     Returns:
         MoleculeCSVDataset
+    
+    Raises:
+        ValueError: If args does not contain the key 'smiles_column', 'task_names', 'result_path', 'num_workers'
 
     Example:
-    ```
-    from alinemol.utils.utils import load_dataset
-    args = {
-        "smiles_column": "smiles",
-        "task_names": "task_1,task_2",
-        "result_path": "results",
-        "num_workers": 4,
-    }
-    df = pd.read_csv("data.csv")
-    dataset = load_dataset(args, df)
-    print(dataset)
-    ```
+
+        >>> from alinemol.utils.utils import load_dataset
+        >>> args = {
+        ...    "smiles_column": "smiles",
+        ...    "task_names": "task_1,task_2",
+        ...    "result_path": "results",
+        ...    "num_workers": 4,
+        ... }
+        >>> df = pd.read_csv("data.csv")
+        >>> dataset = load_dataset(args, df)
+        >>> print(dataset)
+
     """
     smiles_to_g = SMILESToBigraph(
         add_self_loop=True,
@@ -244,7 +245,7 @@ def init_inference_trial_path(args: Dict) -> Dict:
     return args
 
 
-def split_dataset(args, dataset) -> Tuple:
+def split_dataset(args: Dict, dataset) -> Tuple:
     """Split the dataset
 
     Args:
@@ -579,13 +580,11 @@ def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "p
         pd.DataFrame
 
     Example:
-    ```
-    import pandas as pd
-    from alinemol.utils.utils import compute_difference
-    results = pd.read_csv("results.csv")
-    diff = compute_difference(results.copy(), metrics=["accuracy", "roc_auc", "pr_auc"])
-    print(diff)
-    ```
+        >>> import pandas as pd
+        >>> from alinemol.utils.utils import compute_difference
+        >>> results = pd.read_csv("results.csv")
+        >>> diff = compute_difference(results.copy(), metrics=["accuracy", "roc_auc", "pr_auc"])
+        >>> print(diff)
     """
     assert "model" in results.columns, "model column is missing in the results dataframe"
     diff = []
@@ -695,14 +694,12 @@ def expected_calibration_error(y_true, y_pred_prob, n_bins=10):
         n_bins (int): Number of bins
 
     Example:
-    ```
-    import numpy as np
-    from alinemol.utils.utils import expected_calibration_error
-    y_true = np.array([0, 1, 0, 1])
-    y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
-    ece = expected_calibration_error(y_true, y_pred_prob)
-    print(ece)
-    ```
+        >>> import numpy as np
+        >>> from alinemol.utils.utils import expected_calibration_error
+        >>> y_true = np.array([0, 1, 0, 1])
+        >>> y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
+        >>> ece = expected_calibration_error(y_true, y_pred_prob)
+        >>> print(ece)
     """
     bin_edges = np.linspace(0, 1, n_bins + 1)
     bin_lowers = bin_edges[:-1]
