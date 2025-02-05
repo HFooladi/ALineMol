@@ -173,3 +173,8 @@ datasets/
 *.pth 
 *.ckpt
 
+# ignore all the logs
+logs/
+
+# ignore .vscodesettings
+.vscode/
