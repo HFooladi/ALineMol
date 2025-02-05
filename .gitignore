@@ -178,3 +178,6 @@ logs/
 
 # ignore .vscodesettings
 .vscode/
+
+# ignore TMP folder
+TMP/
