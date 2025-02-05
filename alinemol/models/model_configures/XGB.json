@@ -1,12 +1,14 @@
 {
-    "n_estimators": 500,
-    "max_depth": 6,
-    "learning_rate": 0.01,
+    "n_estimators": 200,
+    "max_depth": 9,
+    "learning_rate": 0.1,
     "objective": "binary:logistic",
-    "reg_alpha": 1,
-    "reg_lambda": 1,
+    "gamma": 0,
+    "reg_alpha": 1.0,
+    "reg_lambda": 1.0,
     "min_child_weight": 1,
-    "colsample_bytree": 0.8,
-    "subsample": 0.9,
-    "device": "cpu"
+    "colsample_bytree": 0.5,
+    "subsample": 1.0,
+    "device": "cpu",
+    "n_jobs": 8
 }

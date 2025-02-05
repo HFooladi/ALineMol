@@ -1,6 +1,17 @@
 {
     "kernel": "rbf",
-    "gamma": "auto",
+    "gamma": "scale",
     "probability": true,
-    "C": 1.0
+    "C": 10.0,
+    "degree": 3,
+    "coef0": 0.0,
+    "shrinking": true,
+    "tol": 0.001,
+    "cache_size": 200,
+    "class_weight": null,
+    "verbose": false,
+    "max_iter": -1,
+    "decision_function_shape": "ovr",
+    "random_state": null
+
 }
