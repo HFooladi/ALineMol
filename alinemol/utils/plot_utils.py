@@ -3,9 +3,9 @@ Utility functions for visualization
 """
 
 # Import base packages
-import json # for JSON manipulation
-import os # for file manipulation
-from typing import Dict, List, Optional, Tuple, Union # for type hints
+import json  # for JSON manipulation
+import os  # for file manipulation
+from typing import Dict, List, Optional, Tuple, Union  # for type hints
 
 import datamol as dm  # for moelcule processing
 import matplotlib  # for plotting
@@ -24,20 +24,45 @@ from sklearn.manifold import TSNE  # for t-SNE
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(REPO_PATH, "datasets")
 
-light_color = plt.get_cmap("plasma").colors[170]
-dark_color = "black"
 
 # Set the plotting style
-matplotlib.rcParams.update(
-    {
-        "pgf.texsystem": "pdflatex",
-        "font.family": "serif",
-        "font.serif": "Computer Modern Roman",
-        "font.size": 16,
-        "text.usetex": True,
-        "pgf.rcfonts": False,
-    }
-)
+# Set matplotlib parameters
+rcparams = {
+    # LaTeX setup
+    "pgf.texsystem": "pdflatex",
+    "text.usetex": True,
+    "pgf.rcfonts": False,
+    
+    # Font settings
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+    "font.size": 14,
+    
+    # Figure settings
+    "figure.dpi": 300,  # Higher DPI for better quality
+    "figure.figsize": [6.4, 4.8],  # Default figure size
+    "figure.constrained_layout.use": True,  # Better layout handling
+    
+    # Axes settings
+    "axes.linewidth": 1.0,
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    
+    # Legend settings
+    "legend.fontsize": 12,
+    "legend.frameon": True,
+    "legend.loc": "upper right",
+    
+    # Tick settings
+    "xtick.major.width": 1.0,
+    "ytick.major.width": 1.0,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+}
+matplotlib.rcParams.update(rcparams)
+
+# Seaborn settings
+sns.set_style("whitegrid", rc=rcparams)
 sns.set_palette("Set2")
 sns.set_context("paper", font_scale=1.5)
 
@@ -107,10 +132,10 @@ def plot_ID_OOD(
     OOD_test_score = np.array(OOD_test_score)[chosen_index]
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    ax.scatter(ID_test_score, OOD_test_score, color=light_color, s=40, edgecolor=dark_color, linewidth=1)
+    ax.scatter(ID_test_score, OOD_test_score, s=40, linewidth=1)
     ax.axline((0.6, 0.6), slope=1, linestyle="--")
-    ax.axline((0.5, 0.6), (1, 1.1), color=dark_color, linestyle="--")
-    ax.axline((0.5, 0.4), (1, 0.9), color=dark_color, linestyle="--")
+    ax.axline((0.5, 0.6), (1, 1.1), linestyle="--")
+    ax.axline((0.5, 0.4), (1, 0.9), linestyle="--")
 
     ax.set_title(f"{dataset_name} Dataset ({dataset_category})")
     ax.set_xlabel(f"ID Test {metric}")
@@ -237,7 +262,7 @@ def plot_ID_OOD_bar(data: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"
         ax.set_title(f"{metric} comparison between ID and OOD", fontsize=20)
         if save:
             fig.savefig(
-                os.path.join(REPO_PATH, "assets" "dummy.pdf"),
+                os.path.join(REPO_PATH, "assets", "dummy.pdf"),
                 bbox_inches="tight",
                 backend="pgf",
             )
@@ -387,15 +412,7 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
     # reorder the split types to this order
-    split_types = [
-        "scaffold",
-        "scaffold_generic",
-        "molecular_weight",
-        "molecular_weight_reverse",
-        "molecular_logp",
-        "kmeans",
-        "max_dissimilarity",
-    ]
+    split_types = SPLIT_TYPES
     # create a dataframe to store the difference between ID and OOD for each dataset and split
     df = pd.DataFrame(index=dataset_names, columns=split_types)
 
@@ -434,7 +451,7 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     plt.show()
 
 
-def heeatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", perc=False, save: bool = False) -> None:
+def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", perc=False, save: bool = False) -> None:
     """
     We want to have a heatmap (one ID and one OOD) with one axis datasets and one axis splits. The values in the heatmap are the ID and OOD
     for each dataset and split (averagd over all models and repeats). We will use the results.csv file to get the values.
@@ -454,15 +471,7 @@ def heeatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", 
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
     # reorder the split types to this order
-    split_types = [
-        "scaffold",
-        "scaffold_generic",
-        "molecular_weight",
-        "molecular_weight_reverse",
-        "molecular_logp",
-        "kmeans",
-        "max_dissimilarity",
-    ]
+    split_types = SPLIT_TYPES
     # create a dataframe to store the difference between ID and OOD for each dataset and split
     id_df = pd.DataFrame(index=dataset_names, columns=split_types)
     ood_df = pd.DataFrame(index=dataset_names, columns=split_types)
@@ -612,20 +621,12 @@ def heatmap_plot_all_dataset(
         results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
-    split_types = [
-        "scaffold",
-        "scaffold_generic",
-        "molecular_weight",
-        "molecular_weight_reverse",
-        "molecular_logp",
-        "kmeans",
-        "max_dissimilarity",
-    ]
+    split_types = SPLIT_TYPES
     models = results["model"].unique()  # get the unique models
     vmin, vmax = 0.5, 1.0
     # We want subplots for fixing each time one dataset, then plot the heatmap od difference between ID and OOd for all the modles and split types with
     # the same dataset
-    fig, ax = plt.subplots(4, 2, figsize=(20, 20))
+    fig, ax = plt.subplots(4, 2, figsize=(16, 16))
     for i, dataset in enumerate(dataset_names):
         result_subset = results[results["dataset"] == dataset]
         df = pd.DataFrame(index=models, columns=split_types)
@@ -654,7 +655,7 @@ def heatmap_plot_all_dataset(
             df,
             ax=ax[i // 2, i % 2],
             annot=True,
-            fmt=".2f",
+            fmt=".3f",
             cmap="coolwarm",
             cbar_kws={"label": f"{metric} difference"},
             vmin=vmin,
@@ -700,6 +701,7 @@ def heatmap_plot_all_dataset(
         fig.savefig(
             os.path.join(REPO_PATH, "assets", f"heatmap_all_datasets_{metric}_{report}.png"),
             bbox_inches="tight",
+            dpi=300,
         )
     plt.show()
 

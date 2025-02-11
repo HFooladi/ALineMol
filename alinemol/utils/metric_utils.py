@@ -6,6 +6,7 @@ import pandas as pd
 import statsmodels.api as sm
 import torch
 import torch.nn.functional as F
+from scipy import stats
 from scipy.stats import norm, pearsonr
 from sklearn.metrics import (
     accuracy_score,
@@ -533,3 +534,61 @@ class Meter(object):
                 'Expect metric_name to be "r2" or "mae" or "rmse" '
                 'or "accuracy_score" or "roc_auc_score" or "pr_auc", got {}'.format(metric_name)
             )
+
+
+
+def compare_rankings(condition1_values, condition2_values, category_names=None):
+    """
+    Compare rankings between two conditions using multiple metrics.
+    
+    Args:
+        condition1_values: list or array of values from condition 1
+        condition2_values: list or array of values from condition 2
+        category_names: list of category names (optional)
+    
+    Returns:
+        dict: Dictionary containing various ranking comparison metrics
+    """
+    # Convert to numpy arrays
+    c1 = np.array(condition1_values)
+    c2 = np.array(condition2_values)
+    
+    # Get rankings for each condition
+    rank1 = stats.rankdata(-c1)  # Negative to rank in descending order
+    rank2 = stats.rankdata(-c2)
+    
+    # Calculate Spearman correlation
+    spearman_corr, spearman_p = stats.spearmanr(c1, c2)
+    
+    # Calculate Kendall's Tau
+    kendall_tau, kendall_p = stats.kendalltau(c1, c2)
+    
+    # Calculate Footrule distance (L1 distance between rankings)
+    footrule_dist = np.sum(np.abs(rank1 - rank2))
+    
+    # Create comparison DataFrame
+    if category_names is None:
+        category_names = [f"Category_{i+1}" for i in range(len(c1))]
+        
+    comparison_df = pd.DataFrame({
+        'Category': category_names,
+        'Condition1_Value': c1,
+        'Condition2_Value': c2,
+        'Rank_Condition1': rank1,
+        'Rank_Condition2': rank2,
+        'Rank_Difference': np.abs(rank1 - rank2)
+    })
+    
+    # Sort by Condition1 rank for better visualization
+    comparison_df = comparison_df.sort_values('Rank_Condition1')
+    
+    results = {
+        'spearman_correlation': spearman_corr,
+        'spearman_p_value': spearman_p,
+        'kendall_tau': kendall_tau,
+        'kendall_p_value': kendall_p,
+        'footrule_distance': footrule_dist,
+        'comparison_table': comparison_df
+    }
+    
+    return results

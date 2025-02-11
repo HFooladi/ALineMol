@@ -5,6 +5,7 @@ from alinemol.utils.metric_utils import (
     eval_pr_auc,
     eval_roc_auc,
     rescale,
+    compare_rankings,
 )
 from alinemol.utils.plot_utils import plot_ID_OOD, plot_ID_OOD_sns, visualize_chemspace
 from alinemol.utils.split_utils import (
@@ -26,3 +27,4 @@ from alinemol.utils.utils import (
     predict,
     split_dataset,
 )
+

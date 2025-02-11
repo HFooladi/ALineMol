@@ -437,19 +437,19 @@ def train_test_dataset_distance_retrieve(
     return dist
 
 
-def retrieve_k_nearest_neighbors(
+def retrieve_k_nearest_neighbors_Tanimoto(
     pairwise_distance: Union[str, np.array],
     original_df: Union[str, pd.DataFrame],
     train_df: Union[str, pd.DataFrame],
     test_df: Union[str, pd.DataFrame],
-    k=5,
+    k: int = 5,
 ):
     """
     Retrieve the k nearest neighbors from the distance matrix (full N*N square distance matrix).
     Firt, we retrieve the distance matrix between the train and test set (M * L matrix).
 
     For each test sample, retrieve the k nearest neighbors from the train set.
-    determine similarty as 1 - distance. Then flatten the matrix to a vector.
+    determine distance. Then flatten the matrix to a vector.
     (N, N) -> (M, L) -> (L * k, )
 
 
@@ -486,12 +486,10 @@ def retrieve_k_nearest_neighbors(
     indices = np.argpartition(distance_matrix, k, axis=0)[:k, :]
     # Just retrive the elemns in each column based on indices
     best_n_distance = np.take_along_axis(distance_matrix, indices, axis=0)
-    # since we want similarity, we use 1- distance
-    best_n_similarity = 1 - best_n_distance
     # We want to flatten this matrix and just have a vector for each distance matrix
-    best_n_similarity = best_n_similarity.flatten()
+    best_n_distance = best_n_distance.flatten()
 
-    return best_n_similarity
+    return best_n_distance
 
 
 def retrieve_k_nearest_neighbors_TMD(
@@ -499,14 +497,14 @@ def retrieve_k_nearest_neighbors_TMD(
     original_df: Union[str, pd.DataFrame],
     train_df: Union[str, pd.DataFrame],
     test_df: Union[str, pd.DataFrame],
-    k=5,
+    k: int = 5,
 ):
     """
     Retrieve the k nearest neighbors from the distance matrix (full N*N square distance matrix).
     Firt, we retrieve the distance matrix between the train and test set (M * L matrix).
 
     For each test sample, retrieve the k nearest neighbors from the train set.
-    determine similarty as 1 - distance. Then flatten the matrix to a vector.
+    determine distance. Then flatten the matrix to a vector.
     (N, N) -> (M, L) -> (L * k, )
 
 
