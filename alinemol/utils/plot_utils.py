@@ -76,6 +76,9 @@ ALL_MODELS: List = [ML_MODELS, GNN_MODELS, PRETRAINED_GNN_MODELS]
 DATASET_NAMES: List = CFG["datasets"]["TDC"]
 SPLIT_TYPES: List = CFG["splitting"]
 
+metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
+
+
 
 def reduce_dimensionality(data: np.ndarray, method="pca"):
     """
@@ -430,10 +433,10 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     # plot the heatmap
     vmin, vmax = 0.0, 0.2
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    a = sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".2f", vmin=vmin, vmax=vmax)
-    plt.xlabel("Split", fontsize=24)
+    a = sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".3f", vmin=vmin, vmax=vmax, cbar_kws={"label": f"{metric}"})
+    plt.xlabel("", fontsize=24)
     plt.ylabel("Dataset", fontsize=24)
-    plt.title(f"Difference between ID and OOD {metric}", fontsize=24)
+    plt.title(f"Difference between ID and OOD {metric_mapping[metric]}", fontsize=24)
     a.set_xticklabels(a.get_xticklabels(), rotation=45, horizontalalignment="right", fontsize=18)
     a.set_yticklabels(a.get_yticklabels(), rotation=0, horizontalalignment="right", fontsize=18)
     if save:
@@ -468,6 +471,7 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     Options:
         metric: "accuracy", "roc_auc", "pr_auc"
     """
+    metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
     # reorder the split types to this order
@@ -489,25 +493,25 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
 
     # plot the heatmap
     vmin, vmax = 0.5, 1.0
-    fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+    fig, ax = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     # one plot for id and one plot for ood
     sns.heatmap(
-        id_df, ax=ax[0], annot=True, fmt=".2f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
+        id_df, ax=ax[0], annot=True, fmt=".3f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
     )
-    ax[0].set_title(f"ID {metric}", fontsize=18)
-    ax[0].set_xlabel("Split", fontsize=18)
+    ax[0].set_title(f"ID {metric_mapping[metric]}", fontsize=18)
+    ax[0].set_xlabel("", fontsize=18)
     ax[0].set_ylabel("Dataset", fontsize=18)
     ax[0].tick_params(axis="both", which="major", labelsize=14)
 
     sns.heatmap(
-        ood_df, ax=ax[1], annot=True, fmt=".2f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
+        ood_df, ax=ax[1], annot=True, fmt=".3f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
     )
-    ax[1].set_title(f"OOD {metric}", fontsize=18)
-    ax[1].set_xlabel("Split", fontsize=18)
+    ax[1].set_title(f"OOD {metric_mapping[metric]}", fontsize=18)
+    ax[1].set_xlabel("", fontsize=18)
     ax[1].set_ylabel("Dataset", fontsize=18)
     ax[1].tick_params(axis="both", which="major", labelsize=14)
 
-    plt.tight_layout()
+    #plt.tight_layout()
     if save:
         # save as pdf
         fig.savefig(
@@ -688,7 +692,7 @@ def heatmap_plot_all_dataset(
         ax[3, 1].set_xticks(np.arange(len(split_types)) + 0.5)
         ax[3, 1].set_xticklabels(split_types, rotation=90, fontsize=18)
 
-    plt.tight_layout()
+    #plt.tight_layout()
     # save the plot to pdf
     if save:
         # save as pdf
