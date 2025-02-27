@@ -77,6 +77,8 @@ DATASET_NAMES: List = CFG["datasets"]["TDC"]
 SPLIT_TYPES: List = CFG["splitting"]
 
 metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
+spitting_mapping = {'random': 'Random', 'scaffold': 'Scaffold', 'scaffold_generic': 'Scaffold generic', 'molecular_weight': 'Molecular weight', 'molecular_logp': 'Molecular logp', 'molecular_weight_reverse': 'Molecular weight reverse', 
+                    'kmeans': 'K-means', 'max_dissimilarity': 'Max dissimilarity'}
 
 
 
@@ -439,6 +441,8 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     plt.title(f"Difference between ID and OOD {metric_mapping[metric]}", fontsize=24)
     a.set_xticklabels(a.get_xticklabels(), rotation=45, horizontalalignment="right", fontsize=18)
     a.set_yticklabels(a.get_yticklabels(), rotation=0, horizontalalignment="right", fontsize=18)
+    ax.set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+
     if save:
         # save as pdf
         fig.savefig(
@@ -502,6 +506,7 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     ax[0].set_xlabel("", fontsize=18)
     ax[0].set_ylabel("Dataset", fontsize=18)
     ax[0].tick_params(axis="both", which="major", labelsize=14)
+    ax[0].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
 
     sns.heatmap(
         ood_df, ax=ax[1], annot=True, fmt=".3f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
@@ -510,6 +515,7 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     ax[1].set_xlabel("", fontsize=18)
     ax[1].set_ylabel("Dataset", fontsize=18)
     ax[1].tick_params(axis="both", which="major", labelsize=14)
+    ax[1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
 
     #plt.tight_layout()
     if save:
@@ -689,8 +695,11 @@ def heatmap_plot_all_dataset(
 
         ax[3, 0].set_xticks(np.arange(len(split_types)) + 0.5)
         ax[3, 0].set_xticklabels(split_types, rotation=90, fontsize=18)
+        ax[3, 0].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
         ax[3, 1].set_xticks(np.arange(len(split_types)) + 0.5)
         ax[3, 1].set_xticklabels(split_types, rotation=90, fontsize=18)
+        ax[3, 1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+
 
     #plt.tight_layout()
     # save the plot to pdf
