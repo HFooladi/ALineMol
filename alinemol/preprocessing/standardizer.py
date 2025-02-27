@@ -259,6 +259,8 @@ def standardize_smiles(x: pd.DataFrame, taut_canonicalization: bool = True) -> p
         pd.DataFrame with 'canonical_smiles', 'molecular_weight', and 'num_atoms' additional columns
     """
     # reads in a SMILES, and returns it in canonicalized form.
+    if 'smiles' not in x.columns:
+        raise KeyError("DataFrame must contain 'smiles' column")
     # can select whether or not to use tautomer canonicalization
     sm = Standardizer(canon_taut=taut_canonicalization)
     df = pd.DataFrame(x)
@@ -343,6 +345,11 @@ def standardization_pipline(x: pd.DataFrame, taut_canonicalization: bool = True)
         The input DataFrame must contain a 'smiles' and `label` column.
         Output DataFrame will contain 'smiles' and `label` columns.
     """
+    required_cols = {'smiles', 'label'}
+    missing_cols = required_cols - set(x.columns)
+    if missing_cols:
+        raise KeyError(f"Missing required columns: {missing_cols}")
+    
     df = standardize_smiles(x, taut_canonicalization)
     df = drop_duplicates(df)
     df = df[["canonical_smiles", "label"]]
