@@ -17,6 +17,7 @@ from sklearn.model_selection import StratifiedShuffleSplit # for stratified spli
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules 
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from scipy.spatial import distance
+from tqdm import tqdm
 
 
 # In case users provide a list of SMILES instead of features, we rely on ECFP4 and the Tanimoto (Jaccard) distance by default
@@ -65,7 +66,7 @@ def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopt
         np.ndarray: X array (featurized molecules)
     """
     X = []
-    for molecule in molecules:
+    for molecule in tqdm(molecules, desc="Featurizing molecules"):
         try:
             if type(molecule) in (np.str_, str):
                 mol = Molecule(mol_smiles=molecule)
@@ -105,8 +106,11 @@ def compute_similarities(
     Returns:
         np.ndarray: Matrix of similarities between the two lists of molecules
     """
-    fps1 = featurize(source_molecules, fingerprint, fprints_hopts)  # assumed train set
-    fps2 = featurize(target_molecules, fingerprint, fprints_hopts)  # assumed test set
+    fps1 = featurize(source_molecules, fingerprint, fprints_hopts)
+    fps2 = featurize(target_molecules, fingerprint, fprints_hopts)
+    
+    assert fps1.shape[1] == fps2.shape[1], "Fingerprint dimensions don't match"
+    
     sims = 1 - distance.cdist(fps1, fps2, metric="jaccard")
     return sims.astype(np.float32)
 
@@ -467,6 +471,9 @@ def retrieve_k_nearest_neighbors_Tanimoto(
         Similarity to Molecules in the Training Set Is a Good Discriminator for Prediction Accuracy in QSAR
         URL: https://pubs.acs.org/doi/full/10.1021/ci049782w
     """
+
+    if k <= 0:
+        raise ValueError(f"k must be positive, got {k}")
 
     if isinstance(pairwise_distance, str):
         pairwise_distance = np.load(pairwise_distance)
