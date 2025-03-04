@@ -4,9 +4,9 @@ authors:
   - family-names: Fooladi
     given-names: Hosein
     orcid: https://orcid.org/0000-0002-3124-2761
-title: "My Research Software"
-version: 2.0.4
+title: "Evaluating Machine Learning Models for Molecular Property Prediction: Performance and Robustness on Out-of-Distribution Data"
+version: 0.1.0
 identifiers:
   - type: doi
     value: 
-date-released: 2024-02-11
+date-released: 2025-03-01
