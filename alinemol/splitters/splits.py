@@ -47,14 +47,17 @@ def stratified_split_dataset(dataset, frac_list=None, shuffle=True, random_state
         pass
 
     # Step 2: Split train+val into train and val
-    val_ralative_ratio = frac_list[1] / (frac_list[0] + frac_list[1]) # Adjusted for train+val proportion
+    val_ralative_ratio = frac_list[1] / (frac_list[0] + frac_list[1])  # Adjusted for train+val proportion
     split = StratifiedShuffleSplit(n_splits=1, test_size=val_ralative_ratio, random_state=random_state)
-    
+
     for train_indices, val_indices in split.split(np.zeros(len(train_val_indices)), dataset.labels[train_val_indices]):
         pass
 
-
-    return [Subset(dataset, train_val_indices[train_indices]), Subset(dataset, train_val_indices[val_indices]), Subset(dataset, test_indices)]
+    return [
+        Subset(dataset, train_val_indices[train_indices]),
+        Subset(dataset, train_val_indices[val_indices]),
+        Subset(dataset, test_indices),
+    ]
 
 
 class MolecularLogPSplit(BaseShuffleSplit):
@@ -153,7 +156,6 @@ class RandomSplit(ShuffleSplit):
         n_samples = _num_samples(X)
         for train, test in super()._iter_indices(X, y, groups):
             yield train, test
-
 
 
 class StratifiedRandomSplitter(object):
