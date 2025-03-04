@@ -42,3 +42,11 @@ mkdocs serve
 
 ## Citation <a name="citation"></a>
 If you find the models useful in your research, we ask that you cite the following paper:
+
+```bibtex
+@article{fooladi2025evaluating,
+  title={Evaluating Machine Learning Models for Molecular Property Prediction: Performance and Robustness on Out-of-Distribution Data},
+  author={Fooladi, Hosein and Vu, Thi Ngoc Lan and Kirchmair, Johannes},
+  year={2025}
+}
+```
