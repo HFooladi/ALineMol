@@ -47,6 +47,7 @@ If you find the models useful in your research, we ask that you cite the followi
 @article{fooladi2025evaluating,
   title={Evaluating Machine Learning Models for Molecular Property Prediction: Performance and Robustness on Out-of-Distribution Data},
   author={Fooladi, Hosein and Vu, Thi Ngoc Lan and Kirchmair, Johannes},
-  year={2025}
+  year={2025},
+  doi = {https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2}
 }
 ```
