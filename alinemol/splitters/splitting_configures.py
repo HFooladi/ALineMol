@@ -3,24 +3,27 @@
 # The configuration is set in the dictionary variables.
 # The splitting.py script uses these configurations to split the molecules.
 
-RandomSplitConfig = {}
+from typing import Union
+from alinemol.utils.typing import ConfigDict
 
-ScaffoldSplitConfig = {"make_generic": False}
+RandomSplitConfig: ConfigDict = {}
 
-ScaffoldSplitGenericConfig = {"make_generic": True}
+ScaffoldSplitConfig: ConfigDict = {"make_generic": False}
 
-MolecularWeightSplitConfig = {"generalize_to_larger": True}
+ScaffoldSplitGenericConfig: ConfigDict = {"make_generic": True}
 
-MolecularWeightReverseSplitConfig = {"generalize_to_larger": False}
+MolecularWeightSplitConfig: ConfigDict = {"generalize_to_larger": True}
 
-KMeansSplitConfig = {"n_clusters": 10, "metric": "euclidean"}
+MolecularWeightReverseSplitConfig: ConfigDict = {"generalize_to_larger": False}
 
-PerimeterSplitConfig = {"n_clusters": 10, "metric": "euclidean"}
+KMeansSplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidean"}
 
-MaxDissimilaritySplitConfig = {"n_clusters": 10, "metric": "euclidean"}
+PerimeterSplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidean"}
 
-MoodSplitConfig = {}
+MaxDissimilaritySplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidean"}
 
-MolecularLogPSplitConfig = {"generalize_to_larger": True}
+MoodSplitConfig: ConfigDict = {}
+
+MolecularLogPSplitConfig: ConfigDict = {"generalize_to_larger": True}
 
 
