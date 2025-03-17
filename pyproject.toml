@@ -1,9 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.18.0", "hatch-vcs>=0.3.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "ALineMol"
+dynamic = ["version"]
 authors = [
     {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
 ]
@@ -22,9 +23,7 @@ dependencies = [
     "seaborn",
     "scikit-learn",
 ]
-
-dynamic = ["version"]
-
+readme = "README.md"
 
 [project.optional-dependencies]
 test = [
@@ -42,16 +41,18 @@ dev = [
 homepage = "https://github.com/HFooladi/ALineMol"
 bug_tracker = "https://github.com/HFooladi/ALineMol/issues"
 
-[project.readme]
-file = "README.md"
-content-type = "text/markdown"
+[tool.hatch.version]
+source = "vcs"
 
-[tool.setuptools]
+[tool.hatch.metadata.hooks.vcs]
+version-file = "alinemol/_version.py"
+tag-pattern = "v[0-9]*"
+
+[tool.hatch.build.targets.wheel]
 packages = ["alinemol"]
 
-
-[tool.setuptools_scm]
-write_to = "alinemol/_version.py"
+[tool.hatch.build]
+only-packages = true
 
 [tool.black]
 line-length = 120
