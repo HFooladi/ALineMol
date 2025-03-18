@@ -5,13 +5,14 @@ import os
 import os.path as osp
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, Optional, Any, Literal, TypeVar, Generic
 
 import dgl
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 import yaml
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
@@ -20,10 +21,18 @@ from sklearn.metrics import brier_score_loss
 from alinemol.splitters.splits import StratifiedRandomSplitter
 from alinemol.utils.metric_utils import eval_acc, eval_pr_auc, eval_roc_auc
 
+# Type aliases for common types
+ModelType = Union[nn.Module, Any]  # For model parameters
+DataLoaderType = Any  # For DataLoader objects
+TensorType = Union[torch.Tensor, np.ndarray]
+PathType = Union[str, Path]
+DatasetType = TypeVar('DatasetType', bound=MoleculeCSVDataset)
+ConfigDict = Dict[str, Any]
+
+# Constants
 filepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET_PATH = os.path.join(repo_path, "datasets")
-
 
 with open(osp.join(DATASET_PATH, "config.yml"), "r") as f:
     CONFIG = yaml.safe_load(f)
@@ -33,11 +42,10 @@ DATASET_NAMES = CONFIG["datasets"]["TDC"]
 ML_MODELS = CONFIG["models"]["ML"]
 GNN_MODELS = CONFIG["models"]["GNN"]["scratch"]
 PRETRAINED_GNN_MODELS = CONFIG["models"]["GNN"]["pretrained"]
-GNNs= GNN_MODELS + PRETRAINED_GNN_MODELS
+GNNs = GNN_MODELS + PRETRAINED_GNN_MODELS
 ALL_MODELS = ML_MODELS + GNN_MODELS + PRETRAINED_GNN_MODELS
 
-
-def init_featurizer(args: Dict) -> Dict:
+def init_featurizer(args: ConfigDict) -> ConfigDict:
     """Initialize node/edge featurizer
 
     Args:
@@ -106,7 +114,7 @@ def init_featurizer(args: Dict) -> Dict:
     return args
 
 
-def load_dataset(args: Dict, df: pd.DataFrame) -> MoleculeCSVDataset:
+def load_dataset(args: ConfigDict, df: pd.DataFrame) -> MoleculeCSVDataset:
     """Load the dataset
 
     Args:
@@ -150,7 +158,7 @@ def load_dataset(args: Dict, df: pd.DataFrame) -> MoleculeCSVDataset:
     return dataset
 
 
-def get_configure(model: str) -> Dict:
+def get_configure(model: str) -> ConfigDict:
     """Query for the manually specified configuration
 
     Args:
@@ -164,7 +172,7 @@ def get_configure(model: str) -> Dict:
     return config
 
 
-def increment_path(path, exist_ok=True, sep="_"):
+def increment_path(path: PathType, exist_ok: bool = True, sep: str = "_") -> Path:
     """
     Increment path, i.e. runs/exp --> runs/exp{sep}0, runs/exp{sep}1 etc.
 
@@ -187,7 +195,7 @@ def increment_path(path, exist_ok=True, sep="_"):
         return f"{path}{sep}{n}"  # update path
 
 
-def mkdir_p(path: str):
+def mkdir_p(path: PathType) -> None:
     """Create a folder for the given path.
 
     Args:
@@ -203,7 +211,7 @@ def mkdir_p(path: str):
             raise
 
 
-def init_trial_path(args: Dict) -> Dict:
+def init_trial_path(args: ConfigDict) -> ConfigDict:
     """Initialize the path for a hyperparameter setting
 
     Args:
@@ -224,7 +232,7 @@ def init_trial_path(args: Dict) -> Dict:
     return args
 
 
-def init_inference_trial_path(args: Dict) -> Dict:
+def init_inference_trial_path(args: ConfigDict) -> ConfigDict:
     """Initialize the path for a hyperparameter setting
 
     Args:
@@ -245,7 +253,7 @@ def init_inference_trial_path(args: Dict) -> Dict:
     return args
 
 
-def split_dataset(args: Dict, dataset) -> Tuple:
+def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, DatasetType, DatasetType]:
     """Split the dataset
 
     Args:
@@ -288,7 +296,7 @@ def split_dataset(args: Dict, dataset) -> Tuple:
     return train_set, val_set, test_set
 
 
-def collate_molgraphs(data: List) -> Tuple:
+def collate_molgraphs(data: List[Tuple[str, dgl.DGLGraph, torch.Tensor, torch.Tensor]]) -> Tuple[List[str], dgl.DGLGraph, torch.Tensor, torch.Tensor]:
     """Batching a list of datapoints for dataloader.
 
     Args:
@@ -321,7 +329,7 @@ def collate_molgraphs(data: List) -> Tuple:
     return smiles, bg, labels, masks
 
 
-def collate_molgraphs_unlabeled(data: List) -> Tuple:
+def collate_molgraphs_unlabeled(data: List[Tuple[str, dgl.DGLGraph]]) -> Tuple[List[str], dgl.DGLGraph]:
     """Batching a list of datapoints without labels
 
     Args:
@@ -340,7 +348,7 @@ def collate_molgraphs_unlabeled(data: List) -> Tuple:
     return smiles, bg
 
 
-def load_model(exp_configure: Dict):
+def load_model(exp_configure: ConfigDict) -> ModelType:
     """
     Args:
         exp_configure (dict)
@@ -458,7 +466,7 @@ def load_model(exp_configure: Dict):
     return model
 
 
-def predict(args: Dict, model, bg):
+def predict(args: ConfigDict, model: ModelType, bg: dgl.DGLGraph) -> torch.Tensor:
     """
     Predict the output of the models for the input batch graphs.
 
@@ -569,7 +577,7 @@ def compute_ID_OOD(
     return result_df
 
 
-def compute_difference(results: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"]) -> pd.DataFrame:
+def compute_difference(results: pd.DataFrame, metrics: List[str] = ["accuracy", "roc_auc", "pr_auc"]) -> pd.DataFrame:
     """
     Compute the difference between ID and OOD metrics for the given external dataset and a trained model.
     Args:
@@ -644,7 +652,9 @@ def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFr
 
 
 def concatanate_results(
-    dataset_names: str, dataset_category: str = "TDC", split_types: List[str] = SPLITTING_METHODS
+    dataset_names: str,
+    dataset_category: str = "TDC",
+    split_types: List[str] = SPLITTING_METHODS
 ) -> pd.DataFrame:
     """
     Concatanate the results of the model evaluation
@@ -664,7 +674,7 @@ def concatanate_results(
     return results
 
 
-def brier_score(y_true, y_pred_prob):
+def brier_score(y_true: TensorType, y_pred_prob: TensorType) -> float:
     """
     Compute the Brier score for the given true labels and predicted probabilities
     Args:
@@ -685,7 +695,7 @@ def brier_score(y_true, y_pred_prob):
     return brier_score
 
 
-def expected_calibration_error(y_true, y_pred_prob, n_bins=10):
+def expected_calibration_error(y_true: TensorType, y_pred_prob: TensorType, n_bins: int = 10) -> float:
     """
     Compute the expected calibration error for the given true labels and predicted probabilities
     Args:

@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, Optional, Any, Literal, Callable
 from typing_extensions import Literal
 from dataclasses import dataclass
 import numpy as np
@@ -23,6 +23,7 @@ from sklearn.metrics import (
     cohen_kappa_score,
 )
 
+ReductionType = Literal["none", "mean", "sum"]
 
 @dataclass(frozen=True)
 class BinaryEvalMetrics:
@@ -36,9 +37,7 @@ class BinaryEvalMetrics:
     avg_precision: float
     kappa: float
 
-
 BinaryMetricType = Literal["acc", "balanced_acc", "f1", "prec", "recall", "roc_auc", "avg_precision", "kappa"]
-
 
 def compute_binary_task_metrics(predictions: List[float], labels: List[float]) -> BinaryEvalMetrics:
     """
@@ -132,7 +131,7 @@ def eval_acc(df1: pd.DataFrame, df2: pd.DataFrame, threshold: float = 0.5) -> fl
     return accuracy_score(y_true, y_pred)
 
 
-def rescale(data, scaling=None) -> np.ndarray:
+def rescale(data: Union[List[float], np.ndarray], scaling: Optional[str] = None) -> np.ndarray:
     """Rescale the data.
 
     Args:
@@ -153,7 +152,7 @@ def rescale(data, scaling=None) -> np.ndarray:
 
 
 ##TODO: Needs to check whether better method is available for this function or not.
-def compute_linear_fit(x, y) -> Tuple:
+def compute_linear_fit(x: Union[List[float], np.ndarray], y: Union[List[float], np.ndarray]) -> Tuple[np.ndarray, float]:
     """Returns bias and slope from regression y on x.
 
     Args:
@@ -173,7 +172,7 @@ def compute_linear_fit(x, y) -> Tuple:
 
 
 # pylint: disable=E1101
-class Meter(object):
+class Meter:
     """Track and summarize model performance on a dataset for (multi-label) prediction.
 
     When dealing with multitask learning, quite often we normalize the labels so they are
@@ -220,10 +219,10 @@ class Meter(object):
         3.2815767526626587
     """
 
-    def __init__(self, mean=None, std=None):
-        self.mask = []
-        self.y_pred = []
-        self.y_true = []
+    def __init__(self, mean: Optional[torch.Tensor] = None, std: Optional[torch.Tensor] = None) -> None:
+        self.mask: List[torch.Tensor] = []
+        self.y_pred: List[torch.Tensor] = []
+        self.y_true: List[torch.Tensor] = []
 
         if (mean is not None) and (std is not None):
             self.mean = mean.cpu()
@@ -232,7 +231,7 @@ class Meter(object):
             self.mean = None
             self.std = None
 
-    def update(self, y_pred, y_true, mask=None):
+    def update(self, y_pred: torch.Tensor, y_true: torch.Tensor, mask: Optional[torch.Tensor] = None) -> None:
         """Update for the result of an iteration
 
         Args:
@@ -253,7 +252,7 @@ class Meter(object):
         else:
             self.mask.append(mask.detach().cpu())
 
-    def _finalize(self):
+    def _finalize(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Prepare for evaluation.
 
         If normalization was performed on the ground truth labels during training,
@@ -281,7 +280,7 @@ class Meter(object):
 
         return mask, y_pred, y_true
 
-    def _reduce_scores(self, scores, reduction="none"):
+    def _reduce_scores(self, scores: List[float], reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Finalize the scores to return.
 
         Args:
@@ -305,7 +304,7 @@ class Meter(object):
         else:
             raise ValueError("Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction))
 
-    def multilabel_score(self, score_func, reduction="none"):
+    def multilabel_score(self, score_func: Callable[[torch.Tensor, torch.Tensor], float], reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Evaluate for multi-label prediction.
 
         Args:
@@ -333,7 +332,7 @@ class Meter(object):
                 scores.append(task_score)
         return self._reduce_scores(scores, reduction)
 
-    def pearson_r2(self, reduction="none"):
+    def pearson_r2(self, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute squared Pearson correlation coefficient.
 
         Args:
@@ -347,12 +346,12 @@ class Meter(object):
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
             return pearsonr(y_true.numpy(), y_pred.numpy())[0] ** 2
 
         return self.multilabel_score(score, reduction)
 
-    def mae(self, reduction="none"):
+    def mae(self, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute mean absolute error.
 
         Args:
@@ -366,12 +365,12 @@ class Meter(object):
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
             return F.l1_loss(y_true, y_pred).data.item()
 
         return self.multilabel_score(score, reduction)
 
-    def rmse(self, reduction="none"):
+    def rmse(self, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute root mean square error.
 
         Args:
@@ -385,12 +384,12 @@ class Meter(object):
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
             return torch.sqrt(F.mse_loss(y_pred, y_true).cpu()).item()
 
         return self.multilabel_score(score, reduction)
 
-    def accuracy_score(self, reduction="none", threshold=0.5):
+    def accuracy_score(self, reduction: ReductionType = "none", threshold: float = 0.5) -> Union[float, List[float]]:
         """Compute the accuracy score for binary classification.
         Accuracy scores are not well-defined in cases where labels for a task have one single
         class only (e.g. positive labels only or negative labels only). In this case we will
@@ -413,7 +412,7 @@ class Meter(object):
             self.std is None
         ), "Label normalization should not be performed for binary classification."
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
                 print(
                     "Warning: Only one class {} present in y_true for a task. "
@@ -425,7 +424,7 @@ class Meter(object):
 
         return self.multilabel_score(score, reduction)
 
-    def roc_auc_score(self, reduction="none"):
+    def roc_auc_score(self, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute the area under the receiver operating characteristic curve (roc-auc score)
         for binary classification.
 
@@ -449,7 +448,7 @@ class Meter(object):
             self.std is None
         ), "Label normalization should not be performed for binary classification."
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
                 print(
                     "Warning: Only one class {} present in y_true for a task. "
@@ -461,7 +460,7 @@ class Meter(object):
 
         return self.multilabel_score(score, reduction)
 
-    def pr_auc_score(self, reduction="none"):
+    def pr_auc_score(self, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute the area under the precision-recall curve (pr-auc score)
         for binary classification.
 
@@ -483,7 +482,7 @@ class Meter(object):
             self.std is None
         ), "Label normalization should not be performed for binary classification."
 
-        def score(y_true, y_pred):
+        def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
                 print(
                     "Warning: Only one class {} present in y_true for a task. "
@@ -496,7 +495,7 @@ class Meter(object):
 
         return self.multilabel_score(score, reduction)
 
-    def compute_metric(self, metric_name, reduction="none"):
+    def compute_metric(self, metric_name: str, reduction: ReductionType = "none") -> Union[float, List[float]]:
         """Compute metric based on metric name.
 
         Args:
@@ -537,7 +536,11 @@ class Meter(object):
 
 
 
-def compare_rankings(condition1_values, condition2_values, category_names=None):
+def compare_rankings(
+    condition1_values: Union[List[float], np.ndarray],
+    condition2_values: Union[List[float], np.ndarray],
+    category_names: Optional[List[str]] = None
+) -> Dict[str, Union[float, pd.DataFrame]]:
     """
     Compare rankings between two conditions using multiple metrics.
     
