@@ -18,7 +18,7 @@ from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
 from sklearn.metrics import brier_score_loss
 
-from alinemol.splitters.splits import StratifiedRandomSplitter
+from alinemol.splitters.splits import StratifiedRandomSplit
 from alinemol.utils.metric_utils import eval_acc, eval_pr_auc, eval_roc_auc
 
 # Type aliases for common types
@@ -287,7 +287,7 @@ def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, 
             dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
         )
     elif args["split"] == "stratified_random":
-        train_set, val_set, test_set = StratifiedRandomSplitter.train_val_test_split(
+        train_set, val_set, test_set = StratifiedRandomSplit.train_val_test_split(
             dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
         )
     else:

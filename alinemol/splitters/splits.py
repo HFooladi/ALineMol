@@ -1,6 +1,6 @@
 # The goal is implementing a custom splitter that splits the molecular datasets.
 import datamol as dm
-from typing import Optional, Union, Sequence, List, Tuple, Any, cast
+from typing import Optional, Union, Sequence, List, Tuple, Any, cast, Iterator
 
 import numpy as np
 from loguru import logger
@@ -85,8 +85,82 @@ def stratified_split_dataset(
 
 class MolecularLogPSplit(BaseShuffleSplit):
     """
-    Splits the dataset by sorting the molecules by their LogP values
-    and then finding an appropriate cutoff to split the molecules in two sets.
+    Split a molecular dataset by sorting molecules according to their LogP values.
+    
+    This splitter is designed for chemical domain shift experiments, where
+    you want to evaluate how well models generalize to molecules with different
+    physical properties than those they were trained on. LogP (octanol-water partition 
+    coefficient) is a measure of lipophilicity, which affects molecular solubility,
+    permeability, and binding properties.
+    
+    The splitter works by:
+    1. Calculating LogP values for all molecules
+    2. Sorting molecules by their LogP values
+    3. Splitting the sorted list according to train/test size parameters
+    
+    When generalize_to_larger=True (default), the training set contains molecules with
+    lower LogP values, and the test set contains those with higher LogP values. This
+    mimics the real-world scenario of testing on molecules with properties outside the
+    training distribution.
+    
+    Parameters
+    ----------
+    generalize_to_larger : bool, default=True
+        If True, train set will have smaller LogP values, test set will have larger values.
+        If False, train set will have larger LogP values, test set will have smaller values.
+    n_splits : int, default=5
+        Number of re-shuffling & splitting iterations. Note that for this deterministic
+        splitter, all iterations will produce the same split.
+    smiles : List[str], optional
+        List of SMILES strings if not provided directly as input in split() or _iter_indices().
+        Useful when the input X to those methods is not a list of SMILES strings but some
+        other feature representation.
+    test_size : float or int, optional
+        If float, represents the proportion of the dataset to include in the test split.
+        If int, represents the absolute number of test samples.
+        If None, the value is set to the complement of the train size.
+    train_size : float or int, optional
+        If float, represents the proportion of the dataset to include in the train split.
+        If int, represents the absolute number of train samples.
+        If None, the value is automatically set to the complement of the test size.
+    random_state : int or RandomState instance, optional
+        Controls the randomness of the training and testing indices produced.
+        Note that this splitter is deterministic, so random_state only affects
+        the implementation of _validate_shuffle_split.
+        
+    Returns
+    -------
+    MolecularLogPSplit
+        A splitter object that can be used to split datasets by LogP values.
+        
+    Examples
+    --------
+    >>> from alinemol.splitters import MolecularLogPSplit
+    >>> import numpy as np
+    >>> # Example with list of SMILES
+    >>> smiles = ["CCO", "CC(=O)O", "c1ccccc1", "CCN", "CCCCCCC"]
+    >>> splitter = MolecularLogPSplit(generalize_to_larger=True, test_size=0.4)
+    >>> for train_idx, test_idx in splitter.split(smiles):
+    ...     print(f"Training on: {[smiles[i] for i in train_idx]}")
+    ...     print(f"Testing on: {[smiles[i] for i in test_idx]}")
+    ...     break  # Just show the first split
+    
+    >>> # Example with separate features and target
+    >>> X = np.random.randn(5, 10)  # Some molecular features
+    >>> y = np.random.randint(0, 2, 5)  # Binary target
+    >>> splitter = MolecularLogPSplit(smiles=smiles, test_size=0.4)
+    >>> for train_idx, test_idx in splitter.split(X, y):
+    ...     X_train, X_test = X[train_idx], X[test_idx]
+    ...     y_train, y_test = y[train_idx], y[test_idx]
+    ...     break  # Just show the first split
+    
+    Notes
+    -----
+    - LogP values are calculated using the Crippen method implemented in datamol
+    - This splitter is deterministic - calling split() multiple times will 
+      produce the same split regardless of n_splits value
+    - Useful for testing model extrapolation to molecules with different 
+      physical-chemical properties than the training set
     """
 
     def __init__(
@@ -97,7 +171,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
         test_size: Optional[Union[float, int]] = None,
         train_size: Optional[Union[float, int]] = None,
         random_state: RandomStateType = None,
-    ):
+    ) -> None:
         super().__init__(
             n_splits=n_splits,
             test_size=test_size,
@@ -112,8 +186,34 @@ class MolecularLogPSplit(BaseShuffleSplit):
         X: Union[SMILESList, np.ndarray],
         y: Optional[np.ndarray] = None,
         groups: Optional[Union[int, np.ndarray]] = None,
-    ):
-        """Generate (train, test) indices"""
+    ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
+        """Generate indices to split data into training and test sets based on LogP values.
+        
+        Parameters
+        ----------
+        X : list of strings or numpy array
+            List of SMILES strings to split, or features array if smiles
+            was provided in the constructor.
+        y : numpy array, optional
+            Target variable for supervised learning problems.
+            Not used, present for API consistency.
+        groups : numpy array, optional
+            Group labels for the samples.
+            Not used, present for API consistency.
+            
+        Yields
+        ------
+        train_indices : numpy array
+            Indices of training samples, sorted by LogP values.
+        test_indices : numpy array
+            Indices of testing samples, sorted by LogP values.
+            
+        Raises
+        ------
+        ValueError
+            If X is not a list of SMILES strings and no SMILES list was 
+            provided during initialization.
+        """
 
         requires_smiles = X is None or not all(isinstance(x, str) for x in X)
         if self._smiles is None and requires_smiles:
@@ -181,7 +281,7 @@ class RandomSplit(ShuffleSplit):
             yield train, test
 
 
-class StratifiedRandomSplitter(object):
+class StratifiedRandomSplit(object):
     """Randomly reorder datasets and then split them. make sure that the label distribution
     among the training, validation and test sets are the same as the original dataset.
 
