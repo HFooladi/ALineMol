@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union, List, Optional
 
 import numpy as np
 import ot
@@ -18,27 +18,45 @@ from joblib_progress import joblib_progress
 def choose_featurizer(
     model: str, atom_featurizer_type: str = "canonical", bond_featurizer_type: str = "canonical"
 ) -> Tuple:
-    """Initialize node/edge featurizer
-
+    """Initialize node and edge featurizers based on model and featurizer types.
+    
+    This function selects appropriate atom (node) and bond (edge) featurizers
+    based on the requested model and featurizer types. For pre-trained GIN models,
+    it automatically uses the corresponding pre-trained featurizers.
+    
     Args:
-        model (str): Model name
-
+        model (str): Model name to determine appropriate featurizers.
+            Special handling for GIN models and models requiring edge features.
+        atom_featurizer_type (str, optional): Type of atom featurizer to use.
+            Options: 'canonical', 'attentivefp'. Defaults to "canonical".
+        bond_featurizer_type (str, optional): Type of bond featurizer to use.
+            Options: 'canonical', 'attentivefp'. Defaults to "canonical".
+            
     Returns:
-        dict: Settings with featurizers updated
-
+        Tuple[Featurizer, Featurizer or None]: A tuple containing:
+            - The node (atom) featurizer
+            - The edge (bond) featurizer, or None if not needed for the model
+            
     Raises:
-        ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
-
+        ValueError: If the atom_featurizer_type is not one of ['canonical', 'attentivefp']
+            
+    Notes:
+        - Pre-trained GIN models require specific featurizers
+        - Weave, MPNN, and AttentiveFP models require edge featurizers
+        - Other models typically only need node featurizers
+            
     Example:
-    ```
-    from alinemol.utils.graph_utils import choose_featurizer
-    model = "GCN"
-    atom_featurizer_type = "canonical"
-    bond_featurizer_type = "canonical"
-    result = choose_featurizer(model, atom_featurizer_type, bond_featurizer_type)
-    print(result)
-    ```
-
+        >>> from alinemol.utils.graph_utils import choose_featurizer
+        >>> # For a GCN model with canonical featurizers
+        >>> node_feat, edge_feat = choose_featurizer("GCN")
+        >>> # For an AttentiveFP model with specialized featurizers
+        >>> node_feat, edge_feat = choose_featurizer(
+        ...    "AttentiveFP", 
+        ...    atom_featurizer_type="attentivefp",
+        ...    bond_featurizer_type="attentivefp"
+        ... )
+        >>> print(node_feat)
+        >>> print(edge_feat)
     """
     if model in [
         "gin_supervised_contextpred",
@@ -174,24 +192,44 @@ def get_neighbors(g: Data) -> Dict:
 # Author: Ching-Yao Chuang <cychuang@mit.edu>
 # License: MIT License
 # URL: https://github.com/chingyaoc/TMD
-def TMD(g1: Data, g2: Data = None, w=1.0, L: int = 4) -> float:
-    """
-    return the Tree Mover’s Distance (TMD) between g1 and g2
-
+def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 4) -> float:
+    """Calculate the Tree Mover's Distance (TMD) between two molecular graphs.
+    
+    Tree Mover's Distance quantifies the structural similarity between graphs by measuring
+    the optimal transport cost between their computation trees. This is particularly
+    useful for comparing molecular structures in a way that aligns with how Graph Neural
+    Networks process the structures.
+    
     Args:
-        g1: First torch_geometric graph Data object
-        g2: Second torch_geometric graph Data object (default is None)
-        w: weighting constant for each depth
-            if it is a list, then w[l] is the weight for depth-(l+1) tree
-            if it is a constant, then every layer shares the same weight
-        L: Depth of computation trees for calculating TMD
-
+        g1 (Data): First PyTorch Geometric graph object
+        g2 (Data, optional): Second PyTorch Geometric graph object. If None,
+            calculates self-distance (should be 0). Defaults to None.
+        w (float or List[float]): Weighting constant(s) for each depth.
+            - If float: Same weight used for all depths
+            - If List[float]: w[l] is the weight for depth-(l+1) tree
+            Defaults to 1.0.
+        L (int): Maximum depth of computation trees. Defaults to 4.
+            
     Returns:
-        wass : The TMD between g1 and g2
-
+        float: The Tree Mover's Distance between g1 and g2, rounded to 2 decimal places.
+            
+    Notes:
+        - Computation runtime scales with the depth L
+        - Higher L values capture more global structural information
+        - For comparing many molecules, use the pairwise_graph_distances function
+            
     Reference:
-        Chuang et al., Tree Mover’s Distance: Bridging Graph Metrics and
+        Chuang et al., Tree Mover's Distance: Bridging Graph Metrics and
         Stability of Graph Neural Networks, NeurIPS 2022
+        
+    Example:
+        >>> from alinemol.utils.graph_utils import create_pyg_graphs, TMD
+        >>> # Create PyG graphs from SMILES strings 
+        >>> smiles = ["CCO", "c1ccccc1"]
+        >>> graphs = create_pyg_graphs(smiles, model="GCN")
+        >>> # Calculate distance between two molecules
+        >>> distance = TMD(graphs[0], graphs[1], L=3)
+        >>> print(f"Distance between ethanol and benzene: {distance}")
     """
     # check if g2 is None
     if g2 is None:
@@ -320,23 +358,57 @@ PAIRWISE_DISTANCE_FUNCTIONS = {
 
 
 def pairwise_graph_distances(
-    src_pyg_graphs: list[Data], tgt_pyg_graphs=None, metric="TMD", n_jobs=1, **kwds
+    src_pyg_graphs: List[Data], 
+    tgt_pyg_graphs: Optional[List[Data]] = None, 
+    metric: str = "TMD", 
+    n_jobs: int = 1, 
+    **kwds
 ) -> np.ndarray:
-    """
-    Calculate pairwise Tree Mover's Distance (TMD) between graphs
-
-    If tgt_pyg_graphs is given (default is None), then the returned matrix is the pairwise
-    distance between the arrays from both src_pyg_graphs and tgt_pyg_graphs.
-
+    """Calculate pairwise distances between collections of molecular graphs.
+    
+    This function computes all pairwise distances between two sets of graphs
+    (or within a single set if tgt_pyg_graphs=None). It supports parallel
+    computation and various distance metrics.
+    
     Args:
-        src_pyg_graphs (list[Data]): List of PyG Data objects
-        tgt_pyg_graphs (list[Data]): List of PyG Data objects (default is None)
-        metric (str): The metric to use when calculating distance
-        n_jobs (int): The number of jobs to run in parallel (default is 1)
-        **kwrds: Additional keyword arguments
-
+        src_pyg_graphs (List[Data]): Source collection of PyG graph objects.
+        tgt_pyg_graphs (List[Data], optional): Target collection of PyG graph objects.
+            If None, calculates distances within src_pyg_graphs. Defaults to None.
+        metric (str): The metric to use for distance calculation.
+            Options: "TMD" (Tree Mover's Distance). Defaults to "TMD".
+        n_jobs (int): Number of parallel jobs for computation.
+            Set to -1 to use all available cores. Defaults to 1.
+        **kwds: Additional keyword arguments passed to the distance function.
+            For TMD, these can include 'w' and 'L' parameters.
+            
     Returns:
-        np.ndarray: Pairwise TMD matrix
+        np.ndarray: Matrix of pairwise distances with shape:
+            - (len(src_pyg_graphs), len(tgt_pyg_graphs)) if tgt_pyg_graphs is provided
+            - (len(src_pyg_graphs), len(src_pyg_graphs)) if tgt_pyg_graphs is None
+            
+    Notes:
+        - For self-comparison (tgt_pyg_graphs=None), only computes the upper
+          triangular part of the matrix and mirrors it for efficiency
+        - Shows progress bars during computation
+        - For large datasets, increasing n_jobs can significantly speed up computation
+            
+    Example:
+        >>> from alinemol.utils.graph_utils import create_pyg_graphs, pairwise_graph_distances
+        >>> import numpy as np
+        
+        >>> # Create PyG graphs from SMILES
+        >>> smiles = ["CCO", "CC(=O)O", "c1ccccc1", "CCN", "CCCCCCC"]
+        >>> graphs = create_pyg_graphs(smiles, model="GCN")
+        
+        >>> # Calculate all pairwise distances
+        >>> dist_matrix = pairwise_graph_distances(graphs, metric="TMD", n_jobs=4, L=3)
+        
+        >>> # Find most similar pair
+        >>> i, j = np.unravel_index(
+        ...     np.argmin(dist_matrix + np.eye(len(graphs)) * 999), 
+        ...     dist_matrix.shape
+        ... )
+        >>> print(f"Most similar molecules: {smiles[i]} and {smiles[j]}")
     """
     symmetric = False
     if tgt_pyg_graphs is None:

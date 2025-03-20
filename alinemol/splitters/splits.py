@@ -29,7 +29,7 @@ def stratified_split_dataset(
     """Split dataset into training, validation and test set with stratified shffle splitting.
 
     Args:
-        dataset
+        dataset : LabeledDataset
             We assume ``len(dataset)`` gives the number of datapoints and ``dataset[i]``
             gives the ith datapoint.
         frac_list : list or None, optional
@@ -103,10 +103,9 @@ class MolecularLogPSplit(BaseShuffleSplit):
     mimics the real-world scenario of testing on molecules with properties outside the
     training distribution.
     
-    Parameters
-    ----------
-    generalize_to_larger : bool, default=True
-        If True, train set will have smaller LogP values, test set will have larger values.
+    Args:
+        generalize_to_larger : bool, default=True
+            If True, train set will have smaller LogP values, test set will have larger values.
         If False, train set will have larger LogP values, test set will have smaller values.
     n_splits : int, default=5
         Number of re-shuffling & splitting iterations. Note that for this deterministic
@@ -128,13 +127,11 @@ class MolecularLogPSplit(BaseShuffleSplit):
         Note that this splitter is deterministic, so random_state only affects
         the implementation of _validate_shuffle_split.
         
-    Returns
-    -------
-    MolecularLogPSplit
-        A splitter object that can be used to split datasets by LogP values.
+    Returns:
+        MolecularLogPSplit
+            A splitter object that can be used to split datasets by LogP values.
         
-    Examples
-    --------
+    Examples:
     >>> from alinemol.splitters import MolecularLogPSplit
     >>> import numpy as np
     >>> # Example with list of SMILES
@@ -154,8 +151,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
     ...     y_train, y_test = y[train_idx], y[test_idx]
     ...     break  # Just show the first split
     
-    Notes
-    -----
+    Notes:
     - LogP values are calculated using the Crippen method implemented in datamol
     - This splitter is deterministic - calling split() multiple times will 
       produce the same split regardless of n_splits value
@@ -189,10 +185,9 @@ class MolecularLogPSplit(BaseShuffleSplit):
     ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         """Generate indices to split data into training and test sets based on LogP values.
         
-        Parameters
-        ----------
-        X : list of strings or numpy array
-            List of SMILES strings to split, or features array if smiles
+        Args:
+            X : list of strings or numpy array
+                List of SMILES strings to split, or features array if smiles
             was provided in the constructor.
         y : numpy array, optional
             Target variable for supervised learning problems.
@@ -201,17 +196,15 @@ class MolecularLogPSplit(BaseShuffleSplit):
             Group labels for the samples.
             Not used, present for API consistency.
             
-        Yields
-        ------
-        train_indices : numpy array
-            Indices of training samples, sorted by LogP values.
+        Yields:
+            train_indices : numpy array
+                Indices of training samples, sorted by LogP values.
         test_indices : numpy array
             Indices of testing samples, sorted by LogP values.
             
-        Raises
-        ------
-        ValueError
-            If X is not a list of SMILES strings and no SMILES list was 
+        Raises:
+            ValueError:
+                If X is not a list of SMILES strings and no SMILES list was 
             provided during initialization.
         """
 
