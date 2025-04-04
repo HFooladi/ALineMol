@@ -45,8 +45,8 @@ theme:
     - toc.follow
     - content.code.copy
     - content.code.annotate
-  favicon: images/logo-black.svg
-  logo: images/logo-white.svg
+  favicon: assets/images/logo-color.svg
+  logo: assets/images/logo-white.svg
 
 extra_css:
   - assets/css/custom-splito.css
