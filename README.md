@@ -1,7 +1,7 @@
 # ALineMol
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/{username}/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/{username}/ALineMol/actions/workflows/ci.yml)
+[![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.26434%2Fchemrxiv--2025--g1vjf--v2-blue)](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
 
 
