@@ -16,7 +16,6 @@ The project aims to provide robust evaluation methods to understand how well mol
 - Systematic evaluation of machine learning models on OOD chemical data
 - Benchmarking tools for molecular property prediction
 - Customizable data splitting strategies for distribution shift analysis
-- Hyperparameter optimization for molecular models
 - Preprocessing utilities for chemical structure representations
 
 ## Installation
