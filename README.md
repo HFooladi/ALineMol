@@ -1,6 +1,9 @@
 # ALineMol
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/{username}/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/{username}/ALineMol/actions/workflows/ci.yml)
+[![DOI](https://img.shields.io/badge/DOI-10.26434%2Fchemrxiv--2025--g1vjf--v2-blue)](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
+
 
 ## Overview
 
@@ -13,6 +16,7 @@ The project aims to provide robust evaluation methods to understand how well mol
 - Systematic evaluation of machine learning models on OOD chemical data
 - Benchmarking tools for molecular property prediction
 - Customizable data splitting strategies for distribution shift analysis
+- Hyperparameter optimization for molecular models
 - Preprocessing utilities for chemical structure representations
 
 ## Installation
@@ -61,6 +65,19 @@ Build and serve the documentation locally:
 ```bash
 mkdocs serve
 ```
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Workflow**: Automatically runs tests and linting on all pull requests and pushes to the main branch
+- **Release Workflow**: Automatically builds and publishes the package to PyPI when a new release is created
+
+To create a new release:
+
+1. Update the version in `_version.py`
+2. Create a new tag and GitHub release
+3. The release workflow will automatically publish to PyPI
 
 ## Citation
 
