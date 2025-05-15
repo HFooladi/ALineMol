@@ -165,7 +165,7 @@ classification_inference_results/
 
 # put assets folder (figures and tables) in gitignore
 assets/figures/
-assets/tabels/
+assets/tables/
 
 # put datasets folder in gitignore
 datasets/
