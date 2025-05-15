@@ -163,8 +163,9 @@ cython_debug/
 classification_results/
 classification_inference_results/
 
-# put assets folder in gitignore
-assets/
+# put assets folder (figures and tables) in gitignore
+assets/figures/
+assets/tabels/
 
 # put datasets folder in gitignore
 datasets/
