@@ -1,4 +1,7 @@
 # ALineMol
+<p align="center">
+  <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
