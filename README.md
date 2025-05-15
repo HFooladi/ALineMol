@@ -1,12 +1,12 @@
 # ALineMol
-<p align="center">
-  <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
-</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.26434%2Fchemrxiv--2025--g1vjf--v2-blue)](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
 
+<p align="center">
+  <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
+</p>
 
 ## Overview
 
