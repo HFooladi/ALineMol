@@ -3,23 +3,28 @@ Script for training binary classification models using scikit-learn and saving t
 """
 
 # import required libraries
-import os # for file operations
-import sys # for system operations
-import json # for json operations
-import numpy as np # for numerical operations
-import pandas as pd # for data operations
-import datamol as dm # for molecular operations
-import joblib # for saving models
-from typing import Any, Dict # for type hinting
+import os  # for file operations
+import sys  # for system operations
+import json  # for json operations
+import numpy as np  # for numerical operations
+import pandas as pd  # for data operations
+import datamol as dm  # for molecular operations
+import joblib  # for saving models
+from typing import Any, Dict  # for type hinting
 
-from sklearn import metrics # for metrics
-from sklearn.ensemble import RandomForestClassifier # for random forest classifier
-from sklearn.neural_network import MLPClassifier # for multi-layer perceptron classifier
-from sklearn.neighbors import KNeighborsClassifier # for k-nearest neighbors classifier
-from sklearn.svm import SVC # for support vector classifier
-from xgboost import XGBClassifier # for xgboost classifier
-from lightgbm import LGBMClassifier # for lightgbm classifier
+from sklearn import metrics  # for metrics
+from sklearn.ensemble import RandomForestClassifier  # for random forest classifier
+from sklearn.neural_network import MLPClassifier  # for multi-layer perceptron classifier
+from sklearn.neighbors import KNeighborsClassifier  # for k-nearest neighbors classifier
+from sklearn.svm import SVC  # for support vector classifier
+from xgboost import XGBClassifier  # for xgboost classifier
+from lightgbm import LGBMClassifier  # for lightgbm classifier
 
+# import required functions from the repository
+from alinemol.utils import get_configure, init_trial_path
+from alinemol.utils.split_utils import sklearn_random_split, sklearn_stratified_random_split
+from alinemol.utils.logger_utils import logger
+from alinemol.utils.metric_utils import compute_binary_task_metrics
 
 # set the path to the repository
 repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,12 +34,6 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 # change the directory to the repository path
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
-
-# import required functions from the repository
-from alinemol.utils import get_configure, init_trial_path
-from alinemol.utils.split_utils import sklearn_random_split, sklearn_stratified_random_split
-from alinemol.utils.logger_utils import logger
-from alinemol.utils.metric_utils import compute_binary_task_metrics
 
 
 # dictionary to map model names to model classes
@@ -46,6 +45,7 @@ NAME_TO_MODEL_CLS: Dict[str, Any] = {
     "XGB": XGBClassifier,
     "LightGBM": LGBMClassifier,
 }
+
 
 # main function to train the model
 def main(args: Dict, exp_config: Dict):
@@ -91,8 +91,8 @@ def main(args: Dict, exp_config: Dict):
     model.fit(X_train, y_train)
 
     print("Model trained")
-    print('Training Accuracy : ',  metrics.accuracy_score(y_train, model.predict(X_train))*100)
-    print('Validation Accuracy : ',  metrics.accuracy_score(y_val, model.predict(X_val))*100)
+    print("Training Accuracy : ", metrics.accuracy_score(y_train, model.predict(X_train)) * 100)
+    print("Validation Accuracy : ", metrics.accuracy_score(y_val, model.predict(X_val)) * 100)
 
     # Compute test results:
     y_predicted_true_probs_val = model.predict_proba(X_val)[:, 1]
@@ -132,7 +132,7 @@ def main(args: Dict, exp_config: Dict):
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser # for argument parsing
+    from argparse import ArgumentParser  # for argument parsing
 
     parser = ArgumentParser("Mchine Learning Binary Classification with scikit-learn")
     parser.add_argument(
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         "--split_ratio",
         default="0.72,0.08,0.2",
         type=str,
-        help="Proportion of the dataset to use for training, validation and test, " "(default: 0.7,0.1,0.2)",
+        help="Proportion of the dataset to use for training, validation and test, (default: 0.7,0.1,0.2)",
     )
     parser.add_argument(
         "-me",
@@ -186,5 +186,5 @@ if __name__ == "__main__":
         help="Path to save training results (default: classification_results)",
     )
     args: Dict = vars(parser.parse_args())
-    exp_config: Dict = get_configure(args["model"]) # get the configuration (hyperparameters) for the model
-    main(args, exp_config) # train the model
+    exp_config: Dict = get_configure(args["model"])  # get the configuration (hyperparameters) for the model
+    main(args, exp_config)  # train the model

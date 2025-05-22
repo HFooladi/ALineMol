@@ -1,7 +1,6 @@
 import math
 
 import pytest
-from alinemol.splitters.splits import *
 from alinemol.utils import split_molecules_train_test
 
 
@@ -18,6 +17,7 @@ def test_MolecularWeight(molecules, manual_smiles):
     mw._sample()
     mw._after_sample()
 """
+
 
 # Test 1: Test the split_molecules_train_test function
 def test_random_splitting(test_dataset_dili):

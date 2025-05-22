@@ -5,7 +5,7 @@ Utility functions for visualization
 # Import base packages
 import json  # for JSON manipulation
 import os  # for file manipulation
-from typing import Dict, List, Optional, Tuple, Union  # for type hints
+from typing import List, Optional  # for type hints
 
 import datamol as dm  # for moelcule processing
 import matplotlib  # for plotting
@@ -14,7 +14,6 @@ import numpy as np  # for numerical operations
 import pandas as pd  # for data manipulation
 import seaborn as sns  # for plotting
 import umap  # for dimensionality reduction
-import umap.umap_ as umap  # for dimensionality reduction
 import yaml  # for configuration
 from sklearn.calibration import calibration_curve  # for calibration curve
 from sklearn.decomposition import PCA  # for PCA
@@ -32,27 +31,22 @@ rcparams = {
     "pgf.texsystem": "pdflatex",
     "text.usetex": True,
     "pgf.rcfonts": False,
-    
     # Font settings
     "font.family": "serif",
     "font.serif": ["Computer Modern Roman"],
     "font.size": 14,
-    
     # Figure settings
     "figure.dpi": 300,  # Higher DPI for better quality
     "figure.figsize": [6.4, 4.8],  # Default figure size
     "figure.constrained_layout.use": True,  # Better layout handling
-    
     # Axes settings
     "axes.linewidth": 1.0,
     "axes.labelsize": 14,
     "axes.titlesize": 14,
-    
     # Legend settings
     "legend.fontsize": 12,
     "legend.frameon": True,
     "legend.loc": "upper right",
-    
     # Tick settings
     "xtick.major.width": 1.0,
     "ytick.major.width": 1.0,
@@ -77,9 +71,16 @@ DATASET_NAMES: List = CFG["datasets"]["TDC"]
 SPLIT_TYPES: List = CFG["splitting"]
 
 metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
-spitting_mapping = {'random': 'Random', 'scaffold': 'Scaffold', 'scaffold_generic': 'Scaffold generic', 'molecular_weight': 'Molecular weight', 'molecular_logp': 'Molecular logp', 'molecular_weight_reverse': 'Molecular weight reverse', 
-                    'kmeans': 'K-means', 'max_dissimilarity': 'Max dissimilarity'}
-
+spitting_mapping = {
+    "random": "Random",
+    "scaffold": "Scaffold",
+    "scaffold_generic": "Scaffold generic",
+    "molecular_weight": "Molecular weight",
+    "molecular_logp": "Molecular logp",
+    "molecular_weight_reverse": "Molecular weight reverse",
+    "kmeans": "K-means",
+    "max_dissimilarity": "Max dissimilarity",
+}
 
 
 def reduce_dimensionality(data: np.ndarray, method="pca"):
@@ -407,12 +408,12 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
         results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
 
     assert metric in ["accuracy", "roc_auc", "pr_auc"], "Invalid metric"  # check if the metric is valid
-    assert (
-        "dataset" in results.columns
-    ), "dataset column not found in results"  # check if the dataset column is in the results
-    assert (
-        "split" in results.columns
-    ), "split column not found in results"  # check if the split column is in the results
+    assert "dataset" in results.columns, (
+        "dataset column not found in results"
+    )  # check if the dataset column is in the results
+    assert "split" in results.columns, (
+        "split column not found in results"
+    )  # check if the split column is in the results
 
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
@@ -435,7 +436,9 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     # plot the heatmap
     vmin, vmax = 0.0, 0.2
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    a = sns.heatmap(df, ax=ax, cmap="coolwarm", annot=True, fmt=".3f", vmin=vmin, vmax=vmax, cbar_kws={"label": f"{metric}"})
+    a = sns.heatmap(
+        df, ax=ax, cmap="coolwarm", annot=True, fmt=".3f", vmin=vmin, vmax=vmax, cbar_kws={"label": f"{metric}"}
+    )
     plt.xlabel("", fontsize=24)
     plt.ylabel("Dataset", fontsize=24)
     plt.title(f"Difference between ID and OOD {metric_mapping[metric]}", fontsize=24)
@@ -517,7 +520,7 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     ax[1].tick_params(axis="both", which="major", labelsize=14)
     ax[1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
 
-    #plt.tight_layout()
+    # plt.tight_layout()
     if save:
         # save as pdf
         fig.savefig(
@@ -556,15 +559,15 @@ def heatmap_plot_dataset_fixed(
         results = pd.read_csv(os.path.join("classification_results", "TDC", "results.csv"))  # read the results
 
     assert metric in ["accuracy", "roc_auc", "pr_auc"], "Invalid metric"  # check if the metric is valid
-    assert (
-        "dataset" in results.columns
-    ), "dataset column not found in results"  # check if the dataset column is in the results
-    assert (
-        "split" in results.columns
-    ), "split column not found in results"  # check if the split column is in the results
-    assert (
-        "model" in results.columns
-    ), "model column not found in results"  # check if the model column is in the results
+    assert "dataset" in results.columns, (
+        "dataset column not found in results"
+    )  # check if the dataset column is in the results
+    assert "split" in results.columns, (
+        "split column not found in results"
+    )  # check if the split column is in the results
+    assert "model" in results.columns, (
+        "model column not found in results"
+    )  # check if the model column is in the results
 
     # Just extract the dataset of interest
     results = results[results["dataset"] == dataset]
@@ -700,8 +703,7 @@ def heatmap_plot_all_dataset(
         ax[3, 1].set_xticklabels(split_types, rotation=90, fontsize=18)
         ax[3, 1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
 
-
-    #plt.tight_layout()
+    # plt.tight_layout()
     # save the plot to pdf
     if save:
         # save as pdf
@@ -809,72 +811,74 @@ def test_size_statistics(dataset_names: Optional[List] = None, split_types: Opti
         - If save=True, saves plot as PDF in assets folder
     """
     dataset_category = "TDC"
-    
+
     # Use defaults if not provided
     if dataset_names is None:
         dataset_names = DATASET_NAMES
     if split_types is None:
         split_types = SPLIT_TYPES
-    
+
     num_of_splits = 10
     dfs = []
-    
+
     for dataset_name in dataset_names:
         for split_type in split_types:
             dataset_folder = os.path.join(DATASET_PATH, dataset_category, dataset_name, "split", split_type)
-            
+
             # Load config
             with open(os.path.join(dataset_folder, "config.json"), "r") as f:
                 data_config = json.load(f)
-                
+
             # Extract sizes for each split
             train_sizes = [data_config[f"train_size_{i}"] for i in range(num_of_splits)]
             ood_test_sizes = [data_config[f"test_size_{i}"] for i in range(num_of_splits)]
             id_test_sizes = [train_size * 0.2 for train_size in train_sizes]  # 20% of train set
-            
+
             # Calculate percentages
             total_sizes = [train_sizes[i] + ood_test_sizes[i] for i in range(num_of_splits)]
             ood_test_fracs = [ood_test_sizes[i] / total_sizes[i] * 100 for i in range(num_of_splits)]
             id_test_fracs = [id_test_sizes[i] / total_sizes[i] * 100 for i in range(num_of_splits)]
-            
+
             # Create dataframe for this split type and dataset
-            df = pd.DataFrame({
-                "ood_test_size": ood_test_fracs,
-                "id_test_size": id_test_fracs,
-                "split_type": [split_type] * num_of_splits,
-                "dataset": [dataset_name] * num_of_splits
-            })
+            df = pd.DataFrame(
+                {
+                    "ood_test_size": ood_test_fracs,
+                    "id_test_size": id_test_fracs,
+                    "split_type": [split_type] * num_of_splits,
+                    "dataset": [dataset_name] * num_of_splits,
+                }
+            )
             dfs.append(df)
 
     # Combine all dataframes
     df = pd.concat(dfs, ignore_index=True)
-    
+
     # Create plot
     fig, ax = plt.subplots(figsize=(12, 6))
     df_melt = df.melt(id_vars=["split_type", "dataset"], var_name="test_type", value_name="size_ratio")
-    
+
     sns.boxplot(x="split_type", y="size_ratio", hue="test_type", data=df_melt, ax=ax)
-    
+
     # Customize plot
     ax.set_ylabel("Size ratio %", fontsize=18)
     ax.set_xlabel("Split type", fontsize=18)
     ax.set_title("Size ratio of test set to the size of the dataset", fontsize=20)
     ax.grid(axis="y", linestyle="--", alpha=0.6)
-    
+
     # Customize legend
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(
-        handles=handles, 
-        labels=["Test (OOD)", "Test (ID)"], 
-        title="Test set type", 
-        title_fontsize=14, 
+        handles=handles,
+        labels=["Test (OOD)", "Test (ID)"],
+        title="Test set type",
+        title_fontsize=14,
         fontsize=14,
-        loc="upper right"
+        loc="upper right",
     )
-    
+
     plt.xticks(rotation=45, fontsize=16)
-    
+
     if save:
         fig.savefig(os.path.join(REPO_PATH, "assets", "test_size_ratio.pdf"), bbox_inches="tight", backend="pgf")
-    
+
     plt.show()

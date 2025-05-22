@@ -1,6 +1,17 @@
-from alinemol.utils.split_utils import *
+from alinemol.utils.split_utils import (
+    EmpiricalKernelMapTransformer,
+    convert_to_default_feats_if_smiles,
+    get_scaffold,
+    pairwise_dataset_distance,
+    retrieve_k_nearest_neighbors,
+    retrive_index,
+    train_test_dataset_distance_retrieve,
+    MOLECULE_DEFAULT_DISTANCE_METRIC,
+)
+
 import numpy as np
-import pytest
+import pandas as pd
+
 
 def test_featurize():
     pass
@@ -21,6 +32,7 @@ def test_split_molecules_train_test():
 def test_split_molecules_train_val_test():
     pass
 
+
 def test_get_scaffold(manual_smiles_for_scaffold):
     scaffold = [get_scaffold(smiles) for smiles in manual_smiles_for_scaffold]
     for i in range(len(manual_smiles_for_scaffold)):
@@ -36,6 +48,7 @@ def test_pairwise_dataset_distance_with_smiles():
     assert distance_matrix.shape == (3, 3)
     assert np.all(distance_matrix >= 0)
     assert np.all(distance_matrix <= 1)
+
 
 def test_pairwise_dataset_distance_with_features():
     features = np.random.rand(3, 2048)
@@ -53,6 +66,7 @@ def test_convert_to_default_feats_if_smiles_with_smiles():
     assert len(features) == len(smiles)
     assert updated_metric == MOLECULE_DEFAULT_DISTANCE_METRIC
 
+
 def test_convert_to_default_feats_if_smiles_with_features():
     features = np.random.rand(3, 2048)
     metric = "euclidean"
@@ -60,13 +74,15 @@ def test_convert_to_default_feats_if_smiles_with_features():
     assert np.array_equal(features, updated_features)
     assert updated_metric == metric
 
+
 def test_convert_to_default_feats_if_smiles_with_mixed_input():
     mixed_input = ["CCO", np.random.rand(2048)]
     metric = "jaccard"
     features, updated_metric = convert_to_default_feats_if_smiles(mixed_input, metric)
     assert features == mixed_input
     assert updated_metric == metric
-    
+
+
 def test_empirical_kernel_map_transformer():
     X = np.random.rand(10, 2048)
     n_samples = 5
@@ -96,196 +112,104 @@ def test_empirical_kernel_map_transformer():
 
 
 def test_retrive_index():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    splitted_df = pd.DataFrame({
-        "smiles": ["CCO", "CCC"],
-        "label": [0, 0]
-    })
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    splitted_df = pd.DataFrame({"smiles": ["CCO", "CCC"], "label": [0, 0]})
     expected_indices = np.array([0, 2])
     indices = retrive_index(original_df, splitted_df)
     assert np.array_equal(indices, expected_indices)
 
+
 def test_retrive_index_with_empty_splitted_df():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    splitted_df = pd.DataFrame({
-        "smiles": [],
-        "label": []
-    })
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    splitted_df = pd.DataFrame({"smiles": [], "label": []})
     expected_indices = np.array([])
     indices = retrive_index(original_df, splitted_df)
     assert np.array_equal(indices, expected_indices)
+
 
 def test_retrive_index_with_non_matching_smiles():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    splitted_df = pd.DataFrame({
-        "smiles": ["CCB", "CCL"],
-        "label": [0, 0]
-    })
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    splitted_df = pd.DataFrame({"smiles": ["CCB", "CCL"], "label": [0, 0]})
     expected_indices = np.array([])
     indices = retrive_index(original_df, splitted_df)
     assert np.array_equal(indices, expected_indices)
 
+
 def test_retrive_index_with_partial_matching_smiles():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    splitted_df = pd.DataFrame({
-        "smiles": ["CCO", "CCL"],
-        "label": [0, 0]
-    })
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    splitted_df = pd.DataFrame({"smiles": ["CCO", "CCL"], "label": [0, 0]})
     expected_indices = np.array([0])
     indices = retrive_index(original_df, splitted_df)
     assert np.array_equal(indices, expected_indices)
 
+
 def test_train_test_dataset_distance_retrieve():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": ["CCO", "CCC"],
-        "label": [0, 0]
-    })
-    test_df = pd.DataFrame({
-        "smiles": ["CCN", "CCF"],
-        "label": [1, 1]
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
-    expected_distance = np.array([
-        [0.5, 0.3],
-        [0.4, 0.6]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": ["CCO", "CCC"], "label": [0, 0]})
+    test_df = pd.DataFrame({"smiles": ["CCN", "CCF"], "label": [1, 1]})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
+    expected_distance = np.array([[0.5, 0.3], [0.4, 0.6]])
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
+
 def test_train_test_dataset_distance_retrieve_with_empty_train_df():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": [],
-        "label": []
-    })
-    test_df = pd.DataFrame({
-        "smiles": ["CCN", "CCF"],
-        "label": [1, 1]
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": [], "label": []})
+    test_df = pd.DataFrame({"smiles": ["CCN", "CCF"], "label": [1, 1]})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
     expected_distance = np.array([]).reshape(0, 2)
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
+
 def test_train_test_dataset_distance_retrieve_with_empty_test_df():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": ["CCO", "CCC"],
-        "label": [0, 0]
-    })
-    test_df = pd.DataFrame({
-        "smiles": [],
-        "label": []
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": ["CCO", "CCC"], "label": [0, 0]})
+    test_df = pd.DataFrame({"smiles": [], "label": []})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
     expected_distance = np.array([]).reshape(2, 0)
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
+
 def test_train_test_dataset_distance_retrieve_with_non_matching_smiles():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": ["CCB", "CCL"],
-        "label": [0, 0]
-    })
-    test_df = pd.DataFrame({
-        "smiles": ["CCB", "CCL"],
-        "label": [0, 0]
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": ["CCB", "CCL"], "label": [0, 0]})
+    test_df = pd.DataFrame({"smiles": ["CCB", "CCL"], "label": [0, 0]})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
     expected_distance = np.array([]).reshape(0, 0)
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
+
 def test_train_test_dataset_distance_retrieve_with_partial_matching_smiles():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": ["CCO", "CCL"],
-        "label": [0, 0]
-    })
-    test_df = pd.DataFrame({
-        "smiles": ["CCN", "CCF"],
-        "label": [1, 1]
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
-    expected_distance = np.array([
-        [0.5, 0.3]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": ["CCO", "CCL"], "label": [0, 0]})
+    test_df = pd.DataFrame({"smiles": ["CCN", "CCF"], "label": [1, 1]})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
+    expected_distance = np.array([[0.5, 0.3]])
     distance = train_test_dataset_distance_retrieve(original_df, train_df, test_df, pairwise_distance)
     assert np.array_equal(distance, expected_distance)
 
+
 def test_retrieve_k_nearest_neighbors():
-    original_df = pd.DataFrame({
-        "smiles": ["CCO", "CCN", "CCC", "CCF"],
-        "label": [0, 1, 0, 1]
-    })
-    train_df = pd.DataFrame({
-        "smiles": ["CCO", "CCC"],
-        "label": [0, 0]
-    })
-    test_df = pd.DataFrame({
-        "smiles": ["CCN", "CCF"],
-        "label": [1, 1]
-    })
-    pairwise_distance = np.array([
-        [0.0, 0.5, 0.2, 0.3],
-        [0.5, 0.0, 0.4, 0.1],
-        [0.2, 0.4, 0.0, 0.6],
-        [0.3, 0.1, 0.6, 0.0]
-    ])
+    original_df = pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCF"], "label": [0, 1, 0, 1]})
+    train_df = pd.DataFrame({"smiles": ["CCO", "CCC"], "label": [0, 0]})
+    test_df = pd.DataFrame({"smiles": ["CCN", "CCF"], "label": [1, 1]})
+    pairwise_distance = np.array(
+        [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
+    )
     k = 1
     expected_similarity = np.array([0.6, 0.7])
     similarity = retrieve_k_nearest_neighbors(pairwise_distance, original_df, train_df, test_df, k)

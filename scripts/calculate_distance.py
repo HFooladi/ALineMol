@@ -1,26 +1,38 @@
-import json
-import os
-import sys
+"""
+Script for calculating pairwise graph distances between molecular graphs.
+
+This script processes molecular SMILES strings from source and target files,
+converts them to PyTorch Geometric graphs, and calculates pairwise distances
+between them. The distances can be calculated either between two different sets
+of molecules or within a single set (symmetric case).
+
+The script supports parallel processing and can handle large datasets by
+processing them in chunks.
+"""
+
 from argparse import ArgumentParser
-from pathlib import Path
-from typing import Any, Dict
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-# Setting up local details:
-# This should be the location of the checkout of the ALineMol repository:
-repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHECKOUT_PATH = repo_path
-
-os.chdir(CHECKOUT_PATH)
-sys.path.insert(0, CHECKOUT_PATH)
-
 from alinemol.utils.graph_utils import create_pyg_graphs, pairwise_graph_distances
 
 
-def parse_args():
+def parse_args() -> ArgumentParser:
+    """
+    Parse command line arguments for the distance calculation script.
+
+    Returns:
+        ArgumentParser: Parsed command line arguments containing:
+            - source_path: Path to source SMILES file
+            - target_path: Optional path to target SMILES file
+            - output_path: Path to save distance matrix
+            - w: Layer weighting term (default: 0.5)
+            - L: Depth of computational tree (default: 4)
+            - n_jobs: Number of parallel jobs (default: 1)
+    """
     parser = ArgumentParser("Calculate pairwise graph distances")
     parser.add_argument(
         "-sp",
@@ -30,51 +42,87 @@ def parse_args():
         help="Path to a .csv/.txt file of SMILES strings of source file",
     )
     parser.add_argument(
-        "-tp", "--target_path", type=str, default=None, help="Path to a .csv/.txt file of SMILES strings of targte file"
+        "-tp", "--target_path", type=str, default=None, help="Path to a .csv/.txt file of SMILES strings of target file"
     )
-    parser.add_argument("-op", "--output_path", type=str, required=True, help="Path to save the output file")
-    parser.add_argument("--w", default=0.5, type=float, help="Layer weighting term")
-    parser.add_argument("--L", default=4, type=int, help="Depth of computational tree")
-    parser.add_argument("-nj", "--n_jobs", type=int, default=1, help="Number of jobs to run in parallel")
+    parser.add_argument("-op", "--output_path", type=str, required=True, help="Path to save the output distance matrix")
+    parser.add_argument("--w", default=0.5, type=float, help="Layer weighting term for distance calculation")
+    parser.add_argument("--L", default=4, type=int, help="Depth of computational tree for graph comparison")
+    parser.add_argument("-nj", "--n_jobs", type=int, default=1, help="Number of parallel jobs for distance calculation")
     return parser.parse_args()
 
 
-def main():
+def load_and_validate_smiles(file_path: str) -> Tuple[pd.DataFrame, List[str]]:
+    """
+    Load SMILES strings from a file and validate the data format.
+
+    Args:
+        file_path (str): Path to the input file containing SMILES strings
+
+    Returns:
+        Tuple[pd.DataFrame, List[str]]: DataFrame containing the data and list of SMILES strings
+
+    Raises:
+        AssertionError: If the input file doesn't contain a 'smiles' column
+    """
+    df = pd.read_csv(file_path)
+    assert "smiles" in df.columns, 'Input file must contain a column named "smiles"'
+    return df, df["smiles"].tolist()
+
+
+def main() -> None:
+    """
+    Main function to calculate pairwise graph distances between molecular graphs.
+
+    The function:
+    1. Loads source (and optionally target) SMILES strings
+    2. Converts them to PyTorch Geometric graphs
+    3. Calculates pairwise distances in chunks if necessary
+    4. Saves the resulting distance matrix
+    """
+    # Parse command line arguments
     args = parse_args()
-    source_df = pd.read_csv(args.source_path)
-    assert "smiles" in source_df.columns, 'Input file must contain a column named "smiles"'
-    source_smiles = source_df["smiles"].tolist()
+
+    # Load and process source data
+    source_df, source_smiles = load_and_validate_smiles(args.source_path)
     source_graphs = create_pyg_graphs(source_smiles, "GCN")
 
+    # Handle target data (if provided)
     if args.target_path is not None:
-        target_df = pd.read_csv(args.target_path)
-        assert "smiles" in target_df.columns, 'Input file must contain a column named "smiles"'
-        target_smiles = target_df["smiles"].tolist()
+        target_df, target_smiles = load_and_validate_smiles(args.target_path)
         target_graphs = create_pyg_graphs(target_smiles, "GCN")
         symmetric = False
     else:
         target_graphs = source_graphs
         symmetric = True
 
-    n = len(source_graphs)
-    ## break the graphs to n chunks and run pairwise_graph_distances on each chunks and save the results
-    n_per_idx = 20000
-    idxs = n // n_per_idx
+    # Calculate total number of graphs and chunk size
+    n_graphs = len(source_graphs)
+    chunk_size = 20000  # Process 20,000 graphs at a time
+    n_chunks = n_graphs // chunk_size
 
-    kwds = {"w": args.w, "L": args.L}
-    if symmetric and idxs == 0:
-        distances = pairwise_graph_distances(src_pyg_graphs=source_graphs, n_jobs=args.n_jobs, **kwds)
+    # Set up distance calculation parameters
+    distance_params = {"w": args.w, "L": args.L}
+
+    # Calculate distances
+    if symmetric and n_chunks == 0:
+        # For small symmetric cases, calculate all distances at once
+        distances = pairwise_graph_distances(src_pyg_graphs=source_graphs, n_jobs=args.n_jobs, **distance_params)
         np.save(args.output_path, distances)
     else:
-        for idx in tqdm(range(idxs + 1)):
-            start = n_per_idx * idx
-            end = min(n_per_idx * (idx + 1), n)
+        # For large or asymmetric cases, process in chunks
+        for chunk_idx in tqdm(range(n_chunks + 1)):
+            # Calculate chunk boundaries
+            start_idx = chunk_size * chunk_idx
+            end_idx = min(chunk_size * (chunk_idx + 1), n_graphs)
 
-            source_chunk = source_graphs[start:end]
+            # Process current chunk
+            source_chunk = source_graphs[start_idx:end_idx]
             distances = pairwise_graph_distances(
-                src_pyg_graphs=source_chunk, tgt_pyg_graphs=target_graphs, n_jobs=args.n_jobs, **kwds
+                src_pyg_graphs=source_chunk, tgt_pyg_graphs=target_graphs, n_jobs=args.n_jobs, **distance_params
             )
-            np.save(args.output_path + f"_{idx}", distances)
+
+            # Save chunk results
+            np.save(f"{args.output_path}_{chunk_idx}", distances)
 
 
 if __name__ == "__main__":

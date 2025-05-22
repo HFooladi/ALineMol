@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union, Optional, Any, Literal, Callable
+from typing import Dict, List, Tuple, Union, Optional, Callable
 from typing_extensions import Literal
 from dataclasses import dataclass
 import numpy as np
@@ -13,17 +13,16 @@ from sklearn.metrics import (
     balanced_accuracy_score,
     auc,
     average_precision_score,
-    confusion_matrix,
     f1_score,
     precision_recall_curve,
     precision_score,
     recall_score,
     roc_auc_score,
-    roc_curve,
     cohen_kappa_score,
 )
 
 ReductionType = Literal["none", "mean", "sum"]
+
 
 @dataclass(frozen=True)
 class BinaryEvalMetrics:
@@ -37,7 +36,9 @@ class BinaryEvalMetrics:
     avg_precision: float
     kappa: float
 
+
 BinaryMetricType = Literal["acc", "balanced_acc", "f1", "prec", "recall", "roc_auc", "avg_precision", "kappa"]
+
 
 def compute_binary_task_metrics(predictions: List[float], labels: List[float]) -> BinaryEvalMetrics:
     """
@@ -152,7 +153,9 @@ def rescale(data: Union[List[float], np.ndarray], scaling: Optional[str] = None)
 
 
 ##TODO: Needs to check whether better method is available for this function or not.
-def compute_linear_fit(x: Union[List[float], np.ndarray], y: Union[List[float], np.ndarray]) -> Tuple[np.ndarray, float]:
+def compute_linear_fit(
+    x: Union[List[float], np.ndarray], y: Union[List[float], np.ndarray]
+) -> Tuple[np.ndarray, float]:
     """Returns bias and slope from regression y on x.
 
     Args:
@@ -304,7 +307,9 @@ class Meter:
         else:
             raise ValueError("Expect reduction to be 'none', 'mean' or 'sum', got {}".format(reduction))
 
-    def multilabel_score(self, score_func: Callable[[torch.Tensor, torch.Tensor], float], reduction: ReductionType = "none") -> Union[float, List[float]]:
+    def multilabel_score(
+        self, score_func: Callable[[torch.Tensor, torch.Tensor], float], reduction: ReductionType = "none"
+    ) -> Union[float, List[float]]:
         """Evaluate for multi-label prediction.
 
         Args:
@@ -408,9 +413,9 @@ class Meter:
         """
         # Todo: This function only supports binary classification and we may need
         #  to support categorical classes.
-        assert (self.mean is None) and (
-            self.std is None
-        ), "Label normalization should not be performed for binary classification."
+        assert (self.mean is None) and (self.std is None), (
+            "Label normalization should not be performed for binary classification."
+        )
 
         def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
@@ -444,9 +449,9 @@ class Meter:
         """
         # Todo: This function only supports binary classification and we may need
         #  to support categorical classes.
-        assert (self.mean is None) and (
-            self.std is None
-        ), "Label normalization should not be performed for binary classification."
+        assert (self.mean is None) and (self.std is None), (
+            "Label normalization should not be performed for binary classification."
+        )
 
         def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
@@ -478,9 +483,9 @@ class Meter:
                 * If ``reduction == 'mean'``, return the mean of scores for all tasks.
                 * If ``reduction == 'sum'``, return the sum of scores for all tasks.
         """
-        assert (self.mean is None) and (
-            self.std is None
-        ), "Label normalization should not be performed for binary classification."
+        assert (self.mean is None) and (self.std is None), (
+            "Label normalization should not be performed for binary classification."
+        )
 
         def score(y_true: torch.Tensor, y_pred: torch.Tensor) -> Optional[float]:
             if len(y_true.unique()) == 1:
@@ -535,63 +540,64 @@ class Meter:
             )
 
 
-
 def compare_rankings(
     condition1_values: Union[List[float], np.ndarray],
     condition2_values: Union[List[float], np.ndarray],
-    category_names: Optional[List[str]] = None
+    category_names: Optional[List[str]] = None,
 ) -> Dict[str, Union[float, pd.DataFrame]]:
     """
     Compare rankings between two conditions using multiple metrics.
-    
+
     Args:
         condition1_values: list or array of values from condition 1
         condition2_values: list or array of values from condition 2
         category_names: list of category names (optional)
-    
+
     Returns:
         dict: Dictionary containing various ranking comparison metrics
     """
     # Convert to numpy arrays
     c1 = np.array(condition1_values)
     c2 = np.array(condition2_values)
-    
+
     # Get rankings for each condition
     rank1 = stats.rankdata(-c1)  # Negative to rank in descending order
     rank2 = stats.rankdata(-c2)
-    
+
     # Calculate Spearman correlation
     spearman_corr, spearman_p = stats.spearmanr(c1, c2)
-    
+
     # Calculate Kendall's Tau
     kendall_tau, kendall_p = stats.kendalltau(c1, c2)
-    
+
     # Calculate Footrule distance (L1 distance between rankings)
     footrule_dist = np.sum(np.abs(rank1 - rank2))
-    
+
     # Create comparison DataFrame
     if category_names is None:
-        category_names = [f"Category_{i+1}" for i in range(len(c1))]
-        
-    comparison_df = pd.DataFrame({
-        'Category': category_names,
-        'Condition1_Value': c1,
-        'Condition2_Value': c2,
-        'Rank_Condition1': rank1,
-        'Rank_Condition2': rank2,
-        'Rank_Difference': np.abs(rank1 - rank2)
-    })
-    
+        category_names = [f"Category_{i + 1}" for i in range(len(c1))]
+
+    comparison_df = pd.DataFrame(
+        {
+            "Category": category_names,
+            "Condition1_Value": c1,
+            "Condition2_Value": c2,
+            "Rank_Condition1": rank1,
+            "Rank_Condition2": rank2,
+            "Rank_Difference": np.abs(rank1 - rank2),
+        }
+    )
+
     # Sort by Condition1 rank for better visualization
-    comparison_df = comparison_df.sort_values('Rank_Condition1')
-    
+    comparison_df = comparison_df.sort_values("Rank_Condition1")
+
     results = {
-        'spearman_correlation': spearman_corr,
-        'spearman_p_value': spearman_p,
-        'kendall_tau': kendall_tau,
-        'kendall_p_value': kendall_p,
-        'footrule_distance': footrule_dist,
-        'comparison_table': comparison_df
+        "spearman_correlation": spearman_corr,
+        "spearman_p_value": spearman_p,
+        "kendall_tau": kendall_tau,
+        "kendall_p_value": kendall_p,
+        "footrule_distance": footrule_dist,
+        "comparison_table": comparison_df,
     }
-    
+
     return results

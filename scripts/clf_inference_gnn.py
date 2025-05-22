@@ -11,7 +11,14 @@ from dgllife.data import UnlabeledSMILES
 from dgllife.utils import MolToBigraph
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from sklearn.metrics import roc_auc_score
+
+from alinemol.utils import (
+    collate_molgraphs_unlabeled,
+    init_featurizer,
+    load_model,
+    mkdir_p,
+    predict,
+)
 
 repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKOUT_PATH = repo_path
@@ -19,14 +26,6 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
-from alinemol.utils import (
-    collate_molgraphs_unlabeled,
-    init_featurizer,
-    load_model,
-    mkdir_p,
-    predict,
-    init_inference_trial_path,
-)
 
 
 def main(args):
@@ -140,7 +139,7 @@ if __name__ == "__main__":
             smiles = df[args["smiles_column"]].tolist()
         else:
             assert len(df.columns) == 1, (
-                "The CSV file has more than 1 columns and " "-sc (smiles-column) needs to be specified."
+                "The CSV file has more than 1 columns and -sc (smiles-column) needs to be specified."
             )
             smiles = df[df.columns[0]].tolist()
     elif args["file_path"].endswith(".txt"):
@@ -148,7 +147,7 @@ if __name__ == "__main__":
 
         smiles = load_smiles_from_txt(args["file_path"])
     else:
-        raise ValueError("Expect the input data file to be a .csv or a .txt file, " "got {}".format(args["file_path"]))
+        raise ValueError("Expect the input data file to be a .csv or a .txt file, got {}".format(args["file_path"]))
     args["smiles"] = smiles
     args = init_featurizer(args)
 

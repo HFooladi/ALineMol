@@ -1,30 +1,23 @@
 # The goal is implementing a custom splitter that splits the molecular datasets.
 import datamol as dm
-from typing import Optional, Union, Sequence, List, Tuple, Any, cast, Iterator
+from typing import Optional, Union, List, Tuple, Iterator
 
 import numpy as np
 from loguru import logger
-from numpy.random import RandomState
 from sklearn.model_selection import BaseShuffleSplit, ShuffleSplit
 from sklearn.model_selection._split import _validate_shuffle_split  # noqa W0212
 from sklearn.utils.validation import _num_samples  # noqa W0212
 from dgl.data.utils import Subset
 from sklearn.model_selection import StratifiedShuffleSplit
 
-from alinemol.utils.typing import (
-    LabeledDataset, 
-    DatasetSubset, 
-    DatasetSplit, 
-    KFoldSplit, 
-    RandomStateType,
-    SMILESList
-)
+from alinemol.utils.typing import LabeledDataset, DatasetSplit, KFoldSplit, RandomStateType, SMILESList
+
 
 def stratified_split_dataset(
-    dataset: LabeledDataset, 
-    frac_list: Optional[List[float]] = None, 
-    shuffle: bool = True, 
-    random_state: RandomStateType = None
+    dataset: LabeledDataset,
+    frac_list: Optional[List[float]] = None,
+    shuffle: bool = True,
+    random_state: RandomStateType = None,
 ) -> DatasetSplit:
     """Split dataset into training, validation and test set with stratified shffle splitting.
 
@@ -55,13 +48,13 @@ def stratified_split_dataset(
     num_data = len(dataset)
 
     # Validate dataset has labels attribute
-    if not hasattr(dataset, 'labels'):
+    if not hasattr(dataset, "labels"):
         raise AttributeError("Dataset must have a 'labels' attribute for stratified splitting")
-    
+
     # Validate labels are appropriate for stratification
     if len(dataset.labels) == 0:
         raise ValueError("Dataset is empty")
-    
+
     # Check for sufficient class representation
     unique_labels = np.unique(dataset.labels)
     if len(unique_labels) < 2:
@@ -86,23 +79,23 @@ def stratified_split_dataset(
 class MolecularLogPSplit(BaseShuffleSplit):
     """
     Split a molecular dataset by sorting molecules according to their LogP values.
-    
+
     This splitter is designed for chemical domain shift experiments, where
     you want to evaluate how well models generalize to molecules with different
-    physical properties than those they were trained on. LogP (octanol-water partition 
+    physical properties than those they were trained on. LogP (octanol-water partition
     coefficient) is a measure of lipophilicity, which affects molecular solubility,
     permeability, and binding properties.
-    
+
     The splitter works by:
     1. Calculating LogP values for all molecules
     2. Sorting molecules by their LogP values
     3. Splitting the sorted list according to train/test size parameters
-    
+
     When generalize_to_larger=True (default), the training set contains molecules with
     lower LogP values, and the test set contains those with higher LogP values. This
     mimics the real-world scenario of testing on molecules with properties outside the
     training distribution.
-    
+
     Args:
         generalize_to_larger : bool, default=True
             If True, train set will have smaller LogP values, test set will have larger values.
@@ -126,11 +119,11 @@ class MolecularLogPSplit(BaseShuffleSplit):
         Controls the randomness of the training and testing indices produced.
         Note that this splitter is deterministic, so random_state only affects
         the implementation of _validate_shuffle_split.
-        
+
     Returns:
         MolecularLogPSplit
             A splitter object that can be used to split datasets by LogP values.
-        
+
     Examples:
     >>> from alinemol.splitters import MolecularLogPSplit
     >>> import numpy as np
@@ -141,7 +134,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
     ...     print(f"Training on: {[smiles[i] for i in train_idx]}")
     ...     print(f"Testing on: {[smiles[i] for i in test_idx]}")
     ...     break  # Just show the first split
-    
+
     >>> # Example with separate features and target
     >>> X = np.random.randn(5, 10)  # Some molecular features
     >>> y = np.random.randint(0, 2, 5)  # Binary target
@@ -150,12 +143,12 @@ class MolecularLogPSplit(BaseShuffleSplit):
     ...     X_train, X_test = X[train_idx], X[test_idx]
     ...     y_train, y_test = y[train_idx], y[test_idx]
     ...     break  # Just show the first split
-    
+
     Notes:
     - LogP values are calculated using the Crippen method implemented in datamol
-    - This splitter is deterministic - calling split() multiple times will 
+    - This splitter is deterministic - calling split() multiple times will
       produce the same split regardless of n_splits value
-    - Useful for testing model extrapolation to molecules with different 
+    - Useful for testing model extrapolation to molecules with different
       physical-chemical properties than the training set
     """
 
@@ -184,7 +177,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
         groups: Optional[Union[int, np.ndarray]] = None,
     ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         """Generate indices to split data into training and test sets based on LogP values.
-        
+
         Args:
             X : list of strings or numpy array
                 List of SMILES strings to split, or features array if smiles
@@ -195,16 +188,16 @@ class MolecularLogPSplit(BaseShuffleSplit):
         groups : numpy array, optional
             Group labels for the samples.
             Not used, present for API consistency.
-            
+
         Yields:
             train_indices : numpy array
                 Indices of training samples, sorted by LogP values.
         test_indices : numpy array
             Indices of testing samples, sorted by LogP values.
-            
+
         Raises:
             ValueError:
-                If X is not a list of SMILES strings and no SMILES list was 
+                If X is not a list of SMILES strings and no SMILES list was
             provided during initialization.
         """
 
@@ -269,7 +262,7 @@ class RandomSplit(ShuffleSplit):
         """Generate (train, test) indices"""
         if X is None:
             raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
-        n_samples = _num_samples(X)
+        _ = _num_samples(X)
         for train, test in super()._iter_indices(X, y, groups):
             yield train, test
 
@@ -283,11 +276,11 @@ class StratifiedRandomSplit(object):
 
     @staticmethod
     def train_val_test_split(
-        dataset: LabeledDataset, 
-        frac_train: float = 0.8, 
-        frac_val: float = 0.1, 
-        frac_test: float = 0.1, 
-        random_state: RandomStateType = None
+        dataset: LabeledDataset,
+        frac_train: float = 0.8,
+        frac_val: float = 0.1,
+        frac_test: float = 0.1,
+        random_state: RandomStateType = None,
     ) -> DatasetSplit:
         """Randomly permute the dataset and then stratified split it into
         three consecutive chunks for training, validation and test.
@@ -324,10 +317,7 @@ class StratifiedRandomSplit(object):
 
     @staticmethod
     def k_fold_split(
-        dataset: LabeledDataset, 
-        k: int = 5, 
-        random_state: RandomStateType = None, 
-        log: bool = True
+        dataset: LabeledDataset, k: int = 5, random_state: RandomStateType = None, log: bool = True
     ) -> KFoldSplit:
         """Performs stratified k-fold split of the dataset.
 
@@ -350,26 +340,26 @@ class StratifiedRandomSplit(object):
                 are Subset objects of the original dataset.
         """
         from sklearn.model_selection import StratifiedKFold
-        
+
         # Validate dataset has labels attribute
-        if not hasattr(dataset, 'labels'):
+        if not hasattr(dataset, "labels"):
             raise AttributeError("Dataset must have a 'labels' attribute for stratified splitting")
-        
+
         num_data = len(dataset)
         if log:
             logger.info(f"Performing {k}-fold stratified cross-validation on {num_data} samples")
-        
+
         # Initialize the stratified k-fold splitter
         skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_state)
-        
+
         # Create the folds
         fold_datasets = []
         for train_idx, val_idx in skf.split(np.zeros(num_data), dataset.labels):
             train_set = Subset(dataset, train_idx)
             val_set = Subset(dataset, val_idx)
             fold_datasets.append((train_set, val_set))
-            
+
             if log:
                 logger.info(f"Split created: train size = {len(train_idx)}, validation size = {len(val_idx)}")
-        
+
         return fold_datasets

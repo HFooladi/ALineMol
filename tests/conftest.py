@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -47,6 +46,7 @@ def test_dataset_dili():
     # number of active/inactive: 236/238
     dataset = pd.read_csv("tests/conftest/dili.csv")
     return dataset
+
 
 @pytest.fixture(scope="module")
 def test_dataset_dili_standardize():

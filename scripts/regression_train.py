@@ -15,14 +15,6 @@ from shutil import copyfile
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHECKOUT_PATH = repo_path
-DATASET_PATH = os.path.join(repo_path, "datasets")
-
-os.chdir(CHECKOUT_PATH)
-sys.path.insert(0, CHECKOUT_PATH)
-
-
 from alinemol.hyper import init_hyper_space
 from alinemol.utils import (
     get_configure,
@@ -35,6 +27,13 @@ from alinemol.utils import (
     init_featurizer,
     load_dataset,
 )
+
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKOUT_PATH = repo_path
+DATASET_PATH = os.path.join(repo_path, "datasets")
+
+os.chdir(CHECKOUT_PATH)
+sys.path.insert(0, CHECKOUT_PATH)
 
 
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
@@ -217,7 +216,7 @@ if __name__ == "__main__":
         "--split-ratio",
         default="0.8,0.1,0.1",
         type=str,
-        help="Proportion of the dataset to use for training, validation and test " "(default: 0.8,0.1,0.1)",
+        help="Proportion of the dataset to use for training, validation and test (default: 0.8,0.1,0.1)",
     )
     parser.add_argument(
         "-me",
@@ -309,11 +308,9 @@ if __name__ == "__main__":
 
     if args["num_evals"] is not None:
         assert args["num_evals"] > 0, (
-            "Expect the number of hyperparameter search trials to " "be greater than 0, got {:d}".format(
-                args["num_evals"]
-            )
+            "Expect the number of hyperparameter search trials to be greater than 0, got {:d}".format(args["num_evals"])
         )
-        print("Start hyperparameter search with Bayesian " "optimization for {:d} trials".format(args["num_evals"]))
+        print("Start hyperparameter search with Bayesian optimization for {:d} trials".format(args["num_evals"]))
         trial_path = bayesian_optimization(args, train_set, val_set, test_set)
     else:
         print("Use the manually specified hyperparameters")

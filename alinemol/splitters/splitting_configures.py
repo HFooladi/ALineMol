@@ -3,7 +3,6 @@
 # The configuration is set in the dictionary variables.
 # The splitting.py script uses these configurations to split the molecules.
 
-from typing import Union
 from alinemol.utils.typing import ConfigDict
 
 RandomSplitConfig: ConfigDict = {}
@@ -25,5 +24,3 @@ MaxDissimilaritySplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidea
 MoodSplitConfig: ConfigDict = {}
 
 MolecularLogPSplitConfig: ConfigDict = {"generalize_to_larger": True}
-
-

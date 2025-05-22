@@ -7,6 +7,7 @@ from splito import MolecularWeightSplit, ScaffoldSplit, KMeansSplit, MaxDissimil
 from alinemol.utils.split_utils import get_scaffold
 from alinemol.splitters.splits import MolecularLogPSplit
 
+
 # Test 1: Test the MolecularWeightSplit class
 @pytest.mark.parametrize("generalize_to_larger", [True, False])
 def test_splits_molecular_weight(test_dataset_dili, generalize_to_larger):

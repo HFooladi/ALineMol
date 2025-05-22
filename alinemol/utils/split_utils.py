@@ -3,18 +3,17 @@ Utility functions for splitting datasets and distance calculation.
 """
 
 # importing required libraries
-import warnings # for ignoring warnings
-from typing import Dict, List, Tuple, Union, Optional, Sequence # for type hinting
+import warnings  # for ignoring warnings
+from typing import Dict, List, Tuple, Union, Optional, Sequence  # for type hinting
 
 
-import datamol as dm # for molecule processing
-import numpy as np # for numerical operations
-import pandas as pd # for data manipulation
-import rdkit # for molecule processing
-from rdkit import Chem # for molecule processing
-from sklearn.model_selection import train_test_split # for splitting the dataset
-from sklearn.model_selection import StratifiedShuffleSplit # for stratified splitting
-from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules 
+import datamol as dm  # for molecule processing
+import numpy as np  # for numerical operations
+import pandas as pd  # for data manipulation
+import rdkit  # for molecule processing
+from sklearn.model_selection import train_test_split  # for splitting the dataset
+from sklearn.model_selection import StratifiedShuffleSplit  # for stratified splitting
+from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from astartes.utils.exceptions import MoleculesNotInstalledError
 from scipy.spatial import distance
 from tqdm import tqdm
@@ -108,9 +107,9 @@ def compute_similarities(
     """
     fps1 = featurize(source_molecules, fingerprint, fprints_hopts)
     fps2 = featurize(target_molecules, fingerprint, fprints_hopts)
-    
+
     assert fps1.shape[1] == fps2.shape[1], "Fingerprint dimensions don't match"
-    
+
     sims = 1 - distance.cdist(fps1, fps2, metric="jaccard")
     return sims.astype(np.float32)
 
@@ -266,37 +265,36 @@ def sklearn_random_split(X, y, split_ratio, random_state=1234):
 def sklearn_stratified_random_split(X, y, split_ratio, random_state=1234):
     """
     Create stratified random train/val/test splits using scikit-learn.
-    
+
     Args:
         X (np.ndarray): Features.
         y (np.ndarray): Labels.
         split_ratio (tuple of float): Ratios for train, val, and test splits (must sum to 1).
         random_state (int): Random seed.
-    
+
     Returns:
         tuple: X_train, X_val, X_test, y_train, y_val, y_test
     """
     assert len(split_ratio) == 3, "split_ratio must have exactly three elements (train, val, test)."
     assert sum(split_ratio) == 1, "split_ratio must sum to 1."
     assert all(r > 0 for r in split_ratio), "split_ratio elements must be positive."
-    
+
     train_ratio, val_ratio, test_ratio = split_ratio
-    
+
     # First split: separate test set
     split = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=random_state)
     for train_index, test_index in split.split(X, y):
         X_train_val, X_test = X[train_index], X[test_index]
         y_train_val, y_test = y[train_index], y[test_index]
-    
+
     # Second split: separate train and validation sets
     val_relative_ratio = val_ratio / (train_ratio + val_ratio)
     split = StratifiedShuffleSplit(n_splits=1, test_size=val_relative_ratio, random_state=random_state)
     for train_index, val_index in split.split(X_train_val, y_train_val):
         X_train, X_val = X_train_val[train_index], X_train_val[val_index]
         y_train, y_val = y_train_val[train_index], y_train_val[val_index]
-    
-    return X_train, X_val, X_test, y_train, y_val, y_test
 
+    return X_train, X_val, X_test, y_train, y_val, y_test
 
 
 class EmpiricalKernelMapTransformer:
@@ -430,9 +428,9 @@ def train_test_dataset_distance_retrieve(
     assert "smiles" in original_df.columns, "Dataframe must have a 'smiles' column."
     assert "smiles" in train_df.columns, "Dataframe must have a 'smiles' column."
 
-    assert (
-        original_df.shape[0] == pairwise_distance.shape[0]
-    ), "Pairwise distance matrix must have the same number of rows as the original dataframe."
+    assert original_df.shape[0] == pairwise_distance.shape[0], (
+        "Pairwise distance matrix must have the same number of rows as the original dataframe."
+    )
     assert pairwise_distance.shape[0] == pairwise_distance.shape[1], "Pairwise distance matrix must be a square matrix"
 
     train_index = retrive_index(original_df, train_df)

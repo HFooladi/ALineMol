@@ -5,7 +5,7 @@ import os
 import os.path as osp
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple, Union, Optional, Any, Literal, TypeVar, Generic
+from typing import Dict, List, Tuple, Union, Any, TypeVar
 
 import dgl
 import numpy as np
@@ -26,7 +26,7 @@ ModelType = Union[nn.Module, Any]  # For model parameters
 DataLoaderType = Any  # For DataLoader objects
 TensorType = Union[torch.Tensor, np.ndarray]
 PathType = Union[str, Path]
-DatasetType = TypeVar('DatasetType', bound=MoleculeCSVDataset)
+DatasetType = TypeVar("DatasetType", bound=MoleculeCSVDataset)
 ConfigDict = Dict[str, Any]
 
 # Constants
@@ -44,6 +44,7 @@ GNN_MODELS = CONFIG["models"]["GNN"]["scratch"]
 PRETRAINED_GNN_MODELS = CONFIG["models"]["GNN"]["pretrained"]
 GNNs = GNN_MODELS + PRETRAINED_GNN_MODELS
 ALL_MODELS = ML_MODELS + GNN_MODELS + PRETRAINED_GNN_MODELS
+
 
 def init_featurizer(args: ConfigDict) -> ConfigDict:
     """Initialize node/edge featurizer
@@ -75,8 +76,7 @@ def init_featurizer(args: ConfigDict) -> ConfigDict:
         "gin_supervised_edgepred",
         "gin_supervised_masking",
     ]:
-        from dgllife.utils import (PretrainAtomFeaturizer,
-                                   PretrainBondFeaturizer)
+        from dgllife.utils import PretrainAtomFeaturizer, PretrainBondFeaturizer
 
         args["atom_featurizer_type"] = "pre_train"
         args["bond_featurizer_type"] = "pre_train"
@@ -94,9 +94,7 @@ def init_featurizer(args: ConfigDict) -> ConfigDict:
         args["node_featurizer"] = AttentiveFPAtomFeaturizer()
     else:
         raise ValueError(
-            "Expect node_featurizer to be in ['canonical', 'attentivefp'], " "got {}".format(
-                args["atom_featurizer_type"]
-            )
+            "Expect node_featurizer to be in ['canonical', 'attentivefp'], got {}".format(args["atom_featurizer_type"])
         )
 
     if args["model"] in ["Weave", "MPNN", "AttentiveFP"]:
@@ -123,7 +121,7 @@ def load_dataset(args: ConfigDict, df: pd.DataFrame) -> MoleculeCSVDataset:
 
     Returns:
         MoleculeCSVDataset
-    
+
     Raises:
         ValueError: If args does not contain the key 'smiles_column', 'task_names', 'result_path', 'num_workers'
 
@@ -296,7 +294,9 @@ def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, 
     return train_set, val_set, test_set
 
 
-def collate_molgraphs(data: List[Tuple[str, dgl.DGLGraph, torch.Tensor, torch.Tensor]]) -> Tuple[List[str], dgl.DGLGraph, torch.Tensor, torch.Tensor]:
+def collate_molgraphs(
+    data: List[Tuple[str, dgl.DGLGraph, torch.Tensor, torch.Tensor]],
+) -> Tuple[List[str], dgl.DGLGraph, torch.Tensor, torch.Tensor]:
     """Batching a list of datapoints for dataloader.
 
     Args:
@@ -597,12 +597,12 @@ def compute_difference(results: pd.DataFrame, metrics: List[str] = ["accuracy", 
     assert "model" in results.columns, "model column is missing in the results dataframe"
     diff = []
     for metric in metrics:
-        assert (
-            f"ID_test_{metric}" in results.columns
-        ), f'{f"ID_test_{metric}"} column is missing in the results dataframe'
-        assert (
-            f"OOD_test_{metric}" in results.columns
-        ), f'{f"OOD_test_{metric}"} column is missing in the results dataframe'
+        assert f"ID_test_{metric}" in results.columns, (
+            f"{f'ID_test_{metric}'} column is missing in the results dataframe"
+        )
+        assert f"OOD_test_{metric}" in results.columns, (
+            f"{f'OOD_test_{metric}'} column is missing in the results dataframe"
+        )
         results_copy = results.copy()
         results_copy[f"diff_{metric}"] = results_copy[f"ID_test_{metric}"] - results_copy[f"OOD_test_{metric}"]
         diff.append(results_copy.groupby("model")[f"diff_{metric}"].mean())
@@ -635,9 +635,9 @@ def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFr
     df_majority = df[df.label == 0]
     df_minority = df[df.label == 1]
 
-    assert len(df_majority) > int(
-        len(df_minority) * ratio
-    ), "Majority class should be greater than minority class * ratio"
+    assert len(df_majority) > int(len(df_minority) * ratio), (
+        "Majority class should be greater than minority class * ratio"
+    )
 
     # Downsample majority class
     df_majority_downsampled = df_majority.sample(n=int(len(df_minority) * ratio), random_state=42)
@@ -652,9 +652,7 @@ def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFr
 
 
 def concatanate_results(
-    dataset_names: str,
-    dataset_category: str = "TDC",
-    split_types: List[str] = SPLITTING_METHODS
+    dataset_names: str, dataset_category: str = "TDC", split_types: List[str] = SPLITTING_METHODS
 ) -> pd.DataFrame:
     """
     Concatanate the results of the model evaluation

@@ -6,12 +6,12 @@ import os
 import os.path as osp
 import sys
 import yaml
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import datamol as dm
 from argparse import ArgumentParser
 
+from alinemol.utils.split_utils import get_scaffold
 
 # Setting up local details:
 # This should be the location of the checkout of the ALineMol repository:
@@ -22,7 +22,6 @@ DATASET_PATH = os.path.join(repo_path, "datasets")
 os.chdir(CHECKOUT_PATH)
 sys.path.insert(0, CHECKOUT_PATH)
 
-from alinemol.utils.split_utils import get_scaffold
 
 with open(osp.join(DATASET_PATH, "config.yml"), "r") as f:
     config = yaml.safe_load(f)
@@ -96,9 +95,9 @@ def main():
                 test_smiles = test["smiles"].values
 
                 train_mws = [dm.descriptors.mw(dm.to_mol(smi)) for smi in train_smiles]
-                assert all(
-                    dm.descriptors.mw(dm.to_mol(smi)) >= max(train_mws) for smi in test_smiles
-                ), f"Test set in {dataset} should have molecular weight greater than the train set"
+                assert all(dm.descriptors.mw(dm.to_mol(smi)) >= max(train_mws) for smi in test_smiles), (
+                    f"Test set in {dataset} should have molecular weight greater than the train set"
+                )
                 N += 1
 
             print(f"Passed {N} tests for {split_type} split and {dataset} dataset")

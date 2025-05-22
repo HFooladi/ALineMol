@@ -6,16 +6,17 @@ from typing import Dict, List, Tuple, Union, Optional, Any, Callable, TypeVar, P
 import numpy as np
 from dgl.data.utils import Subset
 
+
 # Define a type for datasets that have a labels attribute
 class LabeledDataset(Protocol):
     """Protocol for datasets that have a labels attribute."""
+
     labels: np.ndarray
-    
-    def __len__(self) -> int:
-        ...
-    
-    def __getitem__(self, idx: int) -> Any:
-        ...
+
+    def __len__(self) -> int: ...
+
+    def __getitem__(self, idx: int) -> Any: ...
+
 
 # Type for dataset subsets
 DatasetSubset = Subset
@@ -40,7 +41,7 @@ RandomStateType = Optional[Union[int, np.random.RandomState]]
 MetricDict = Dict[str, float]
 
 # Generic type variable for any dataset
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Type for a function that can be applied to molecules
 MolFunction = Callable[[Any], Any]

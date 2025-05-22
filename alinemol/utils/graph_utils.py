@@ -19,11 +19,11 @@ def choose_featurizer(
     model: str, atom_featurizer_type: str = "canonical", bond_featurizer_type: str = "canonical"
 ) -> Tuple:
     """Initialize node and edge featurizers based on model and featurizer types.
-    
+
     This function selects appropriate atom (node) and bond (edge) featurizers
     based on the requested model and featurizer types. For pre-trained GIN models,
     it automatically uses the corresponding pre-trained featurizers.
-    
+
     Args:
         model (str): Model name to determine appropriate featurizers.
             Special handling for GIN models and models requiring edge features.
@@ -31,27 +31,27 @@ def choose_featurizer(
             Options: 'canonical', 'attentivefp'. Defaults to "canonical".
         bond_featurizer_type (str, optional): Type of bond featurizer to use.
             Options: 'canonical', 'attentivefp'. Defaults to "canonical".
-            
+
     Returns:
         Tuple[Featurizer, Featurizer or None]: A tuple containing:
             - The node (atom) featurizer
             - The edge (bond) featurizer, or None if not needed for the model
-            
+
     Raises:
         ValueError: If the atom_featurizer_type is not one of ['canonical', 'attentivefp']
-            
+
     Notes:
         - Pre-trained GIN models require specific featurizers
         - Weave, MPNN, and AttentiveFP models require edge featurizers
         - Other models typically only need node featurizers
-            
+
     Example:
         >>> from alinemol.utils.graph_utils import choose_featurizer
         >>> # For a GCN model with canonical featurizers
         >>> node_feat, edge_feat = choose_featurizer("GCN")
         >>> # For an AttentiveFP model with specialized featurizers
         >>> node_feat, edge_feat = choose_featurizer(
-        ...    "AttentiveFP", 
+        ...    "AttentiveFP",
         ...    atom_featurizer_type="attentivefp",
         ...    bond_featurizer_type="attentivefp"
         ... )
@@ -82,7 +82,7 @@ def choose_featurizer(
         node_featurizer = AttentiveFPAtomFeaturizer()
     else:
         return ValueError(
-            "Expect node_featurizer to be in ['canonical', 'attentivefp'], " "got {}".format(atom_featurizer_type)
+            "Expect node_featurizer to be in ['canonical', 'attentivefp'], got {}".format(atom_featurizer_type)
         )
 
     if model in ["Weave", "MPNN", "AttentiveFP"]:
@@ -194,12 +194,12 @@ def get_neighbors(g: Data) -> Dict:
 # URL: https://github.com/chingyaoc/TMD
 def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 4) -> float:
     """Calculate the Tree Mover's Distance (TMD) between two molecular graphs.
-    
+
     Tree Mover's Distance quantifies the structural similarity between graphs by measuring
     the optimal transport cost between their computation trees. This is particularly
     useful for comparing molecular structures in a way that aligns with how Graph Neural
     Networks process the structures.
-    
+
     Args:
         g1 (Data): First PyTorch Geometric graph object
         g2 (Data, optional): Second PyTorch Geometric graph object. If None,
@@ -209,22 +209,22 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
             - If List[float]: w[l] is the weight for depth-(l+1) tree
             Defaults to 1.0.
         L (int): Maximum depth of computation trees. Defaults to 4.
-            
+
     Returns:
         float: The Tree Mover's Distance between g1 and g2, rounded to 2 decimal places.
-            
+
     Notes:
         - Computation runtime scales with the depth L
         - Higher L values capture more global structural information
         - For comparing many molecules, use the pairwise_graph_distances function
-            
+
     Reference:
         Chuang et al., Tree Mover's Distance: Bridging Graph Metrics and
         Stability of Graph Neural Networks, NeurIPS 2022
-        
+
     Example:
         >>> from alinemol.utils.graph_utils import create_pyg_graphs, TMD
-        >>> # Create PyG graphs from SMILES strings 
+        >>> # Create PyG graphs from SMILES strings
         >>> smiles = ["CCO", "c1ccccc1"]
         >>> graphs = create_pyg_graphs(smiles, model="GCN")
         >>> # Calculate distance between two molecules
@@ -246,7 +246,7 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
     adj1 = get_neighbors(g1)
     adj2 = get_neighbors(g2)
 
-    blank = np.zeros(len(feat1[0]))
+    _ = np.zeros(len(feat1[0]))
     D = np.zeros((n1, n2))
 
     # level 1 (pair wise distance)
@@ -260,7 +260,7 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
     M[n1, :n2] = torch.norm(feat2, dim=1)
 
     # level l (tree OT)
-    for l in range(L - 1):
+    for layer_idx in range(L - 1):
         M1 = copy.deepcopy(M)
         M = np.zeros((n1 + 1, n2 + 1))
 
@@ -269,11 +269,11 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
             for j in range(n2):
                 try:
                     degree_i = len(adj1[i])
-                except:
+                except KeyError:
                     degree_i = 0
                 try:
                     degree_j = len(adj2[j])
-                except:
+                except KeyError:
                     degree_j = 0
 
                 if degree_i == 0 and degree_j == 0:
@@ -283,12 +283,12 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
                     wass = 0.0
                     for jj in range(degree_j):
                         wass += M1[n1, adj2[j][jj]]
-                    M[i, j] = D[i, j] + w[l] * wass
+                    M[i, j] = D[i, j] + w[layer_idx] * wass
                 elif degree_j == 0:
                     wass = 0.0
                     for ii in range(degree_i):
                         wass += M1[adj1[i][ii], n2]
-                    M[i, j] = D[i, j] + w[l] * wass
+                    M[i, j] = D[i, j] + w[layer_idx] * wass
                 # otherwise, calculate the tree distance
                 else:
                     max_degree = max(degree_i, degree_j)
@@ -308,13 +308,13 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
                     wass = ot.emd2(dist_1, dist_2, cost)
 
                     # summarize TMD at level l
-                    M[i, j] = D[i, j] + w[l] * wass
+                    M[i, j] = D[i, j] + w[layer_idx] * wass
 
         # fill in dist w.r.t. blank node
         for i in range(n1):
             try:
                 degree_i = len(adj1[i])
-            except:
+            except KeyError:
                 degree_i = 0
 
             if degree_i == 0:
@@ -323,12 +323,12 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
                 wass = 0.0
                 for ii in range(degree_i):
                     wass += M1[adj1[i][ii], n2]
-                M[i, n2] = torch.norm(feat1[i]) + w[l] * wass
+                M[i, n2] = torch.norm(feat1[i]) + w[layer_idx] * wass
 
         for j in range(n2):
             try:
                 degree_j = len(adj2[j])
-            except:
+            except KeyError:
                 degree_j = 0
             if degree_j == 0:
                 M[n1, j] = torch.norm(feat2[j])
@@ -336,7 +336,7 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
                 wass = 0.0
                 for jj in range(degree_j):
                     wass += M1[n1, adj2[j][jj]]
-                M[n1, j] = torch.norm(feat2[j]) + w[l] * wass
+                M[n1, j] = torch.norm(feat2[j]) + w[layer_idx] * wass
 
     # final OT cost
     max_n = max(n1, n2)
@@ -358,18 +358,18 @@ PAIRWISE_DISTANCE_FUNCTIONS = {
 
 
 def pairwise_graph_distances(
-    src_pyg_graphs: List[Data], 
-    tgt_pyg_graphs: Optional[List[Data]] = None, 
-    metric: str = "TMD", 
-    n_jobs: int = 1, 
-    **kwds
+    src_pyg_graphs: List[Data],
+    tgt_pyg_graphs: Optional[List[Data]] = None,
+    metric: str = "TMD",
+    n_jobs: int = 1,
+    **kwds,
 ) -> np.ndarray:
     """Calculate pairwise distances between collections of molecular graphs.
-    
+
     This function computes all pairwise distances between two sets of graphs
     (or within a single set if tgt_pyg_graphs=None). It supports parallel
     computation and various distance metrics.
-    
+
     Args:
         src_pyg_graphs (List[Data]): Source collection of PyG graph objects.
         tgt_pyg_graphs (List[Data], optional): Target collection of PyG graph objects.
@@ -380,32 +380,32 @@ def pairwise_graph_distances(
             Set to -1 to use all available cores. Defaults to 1.
         **kwds: Additional keyword arguments passed to the distance function.
             For TMD, these can include 'w' and 'L' parameters.
-            
+
     Returns:
         np.ndarray: Matrix of pairwise distances with shape:
             - (len(src_pyg_graphs), len(tgt_pyg_graphs)) if tgt_pyg_graphs is provided
             - (len(src_pyg_graphs), len(src_pyg_graphs)) if tgt_pyg_graphs is None
-            
+
     Notes:
         - For self-comparison (tgt_pyg_graphs=None), only computes the upper
           triangular part of the matrix and mirrors it for efficiency
         - Shows progress bars during computation
         - For large datasets, increasing n_jobs can significantly speed up computation
-            
+
     Example:
         >>> from alinemol.utils.graph_utils import create_pyg_graphs, pairwise_graph_distances
         >>> import numpy as np
-        
+
         >>> # Create PyG graphs from SMILES
         >>> smiles = ["CCO", "CC(=O)O", "c1ccccc1", "CCN", "CCCCCCC"]
         >>> graphs = create_pyg_graphs(smiles, model="GCN")
-        
+
         >>> # Calculate all pairwise distances
         >>> dist_matrix = pairwise_graph_distances(graphs, metric="TMD", n_jobs=4, L=3)
-        
+
         >>> # Find most similar pair
         >>> i, j = np.unravel_index(
-        ...     np.argmin(dist_matrix + np.eye(len(graphs)) * 999), 
+        ...     np.argmin(dist_matrix + np.eye(len(graphs)) * 999),
         ...     dist_matrix.shape
         ... )
         >>> print(f"Most similar molecules: {smiles[i]} and {smiles[j]}")
@@ -422,7 +422,7 @@ def pairwise_graph_distances(
 
     if symmetric:
         number_of_comparisons = len(src_pyg_graphs) * (len(src_pyg_graphs) + 1) // 2
-        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
+        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as _:
             distances = Parallel(n_jobs=n_jobs)(
                 delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j])
                 for i in range(len(src_pyg_graphs))
@@ -438,7 +438,7 @@ def pairwise_graph_distances(
 
     else:
         number_of_comparisons = len(src_pyg_graphs) * len(tgt_pyg_graphs)
-        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as progress:
+        with joblib_progress("computing the distance matrix ...", total=number_of_comparisons) as _:
             distances = Parallel(n_jobs=n_jobs)(
                 delayed(func)(src_pyg_graphs[i], tgt_pyg_graphs[j])
                 for i in range(len(src_pyg_graphs))
