@@ -3,7 +3,7 @@ from alinemol.utils.split_utils import (
     convert_to_default_feats_if_smiles,
     get_scaffold,
     pairwise_dataset_distance,
-    retrieve_k_nearest_neighbors,
+    retrieve_k_nearest_neighbors_Tanimoto,
     retrive_index,
     train_test_dataset_distance_retrieve,
     MOLECULE_DEFAULT_DISTANCE_METRIC,
@@ -211,6 +211,6 @@ def test_retrieve_k_nearest_neighbors():
         [[0.0, 0.5, 0.2, 0.3], [0.5, 0.0, 0.4, 0.1], [0.2, 0.4, 0.0, 0.6], [0.3, 0.1, 0.6, 0.0]]
     )
     k = 1
-    expected_similarity = np.array([0.6, 0.7])
-    similarity = retrieve_k_nearest_neighbors(pairwise_distance, original_df, train_df, test_df, k)
+    expected_similarity = np.array([0.4, 0.3])
+    similarity = retrieve_k_nearest_neighbors_Tanimoto(pairwise_distance, original_df, train_df, test_df, k)
     assert np.array_equal(similarity, expected_similarity)
