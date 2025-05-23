@@ -14,7 +14,7 @@
 
 ### Key Contributions
 
-🔬 **Comprehensive Evaluation**: Systematic assessment of 12 ML models (classical ML + GNNs) across 8 TDC datasets using 7 splitting strategies
+🔬 **Comprehensive Evaluation**: Systematic assessment of ML models (classical ML + GNNs) across multiple datasets using different splitting strategies
 
 📊 **Distribution Shift Analysis**: Quantitative investigation of what constitutes "out-of-distribution" data in molecular property prediction
 
