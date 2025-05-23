@@ -1,4 +1,4 @@
-# ALineMol
+# ALineMol: Evaluating Machine Learning Models for Molecular Property Prediction on OOD Data
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
@@ -10,27 +10,30 @@
 
 ## Overview
 
-ALineMol is a research framework for exploring and quantitatively assessing the relationship between machine learning model performance on in-distribution (ID) and out-of-distribution (OOD) data in the chemical domain.
+**ALineMol** is a comprehensive research framework for evaluating and quantitatively assessing the relationship between machine learning model performance on in-distribution (ID) and out-of-distribution (OOD) data in the molecular domain. This work addresses critical questions in AI-driven drug discovery about model generalization to novel chemical structures.
 
-The project aims to provide robust evaluation methods to understand how well molecular property prediction models generalize to novel chemical structures beyond their training distributions.
+### Key Contributions
 
-## Key Features
+🔬 **Comprehensive Evaluation**: Systematic assessment of 12 ML models (classical ML + GNNs) across 8 TDC datasets using 7 splitting strategies
 
-- Systematic evaluation of machine learning models on OOD chemical data
-- Benchmarking tools for molecular property prediction
-- Customizable data splitting strategies for distribution shift analysis
-- Preprocessing utilities for chemical structure representations
+📊 **Distribution Shift Analysis**: Quantitative investigation of what constitutes "out-of-distribution" data in molecular property prediction
 
-## Installation
+🎯 **ID-OOD Relationship**: Deep analysis of correlation between in-distribution and out-of-distribution performance across different scenarios
 
-ALineMol can be installed using pip. Follow these steps:
+⚗️ **Drug Discovery Focus**: Practical insights for molecular property prediction and bioactivity classification in pharmaceutical research
+
+### Setup
 
 ```bash
-# Create and activate a new conda environment
+# Clone the repository
+git clone https://github.com/HFooladi/ALineMol.git
+cd ALineMol
+
+# Create and activate conda environment
 conda env create -f environment.yml
 conda activate alinemol
 
-# Install the package
+# Install ALineMol package
 pip install --no-deps -e .
 ```
 
@@ -94,6 +97,21 @@ If you find ALineMol useful in your research, please cite the following paper:
 }
 ```
 
+## Documentation
+
+- 📖 [Full Documentation](docs/)
+- 📝 [API Reference](docs/api/)
+- 🎓 [Tutorials](docs/tutorials/)
+- 📊 [Paper](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
+- Reporting bugs
+- Suggesting enhancements  
+- Submitting pull requests
+- Code style guidelines
+
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
