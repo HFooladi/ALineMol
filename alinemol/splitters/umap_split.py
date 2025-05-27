@@ -2,11 +2,8 @@ import numpy as np
 from numpy.random import RandomState
 from typing import Callable, Union, Optional
 from sklearn.model_selection import GroupShuffleSplit
-from sklearn.decomposition import PCA
 from umap import UMAP
 from sklearn.cluster import AgglomerativeClustering
-from rdkit.Chem import rdFingerprintGenerator
-from rdkit import Chem
 from alinemol.utils.split_utils import convert_to_default_feats_if_smiles
 
 from typing import List
@@ -14,21 +11,43 @@ from typing import List
 
 class UMAPSplit(GroupShuffleSplit):
     """Group-based split that uses the UMAP clustering in the input space for splitting.
-    From "UMAP-based clustering split for rigorous evaluation of AI models for virtual screening on cancer cell lines"
-    https://doi.org/10.26434/chemrxiv-2024-f1v2v-v2
+
+    From the following papers:
+    1. "UMAP-based clustering split for rigorous evaluation of AI models for virtual screening on cancer cell lines"
+        https://doi.org/10.26434/chemrxiv-2024-f1v2v-v2
+    2. "On the Best Way to Cluster NCI-60 Molecules"
+        https://doi.org/10.3390/biom13030498
 
     Args:
         n_clusters: The number of clusters to use for clustering
-        n_splits: The number of splits to generate
-        metric: The metric to use for clustering
+        n_neighbors: The number of neighbors to use for the UMAP algorithm
+        min_dist: The minimum distance between points in the UMAP embedding
+        n_components: The number of components to use for the PCA algorithm
+        umap_metric: The metric to use for the UMAP algorithm
+        linkage: The linkage to use for the AgglomerativeClustering algorithm
+        n_splits: The number of splits to use for the split
         test_size: The size of the test set
+        train_size: The size of the train set
+        random_state: The random state to use for the split
+
+    Example:
+        >>> from alinemol.splitters import UMAPSplit
+        >>> splitter = UMAPSplit(n_clusters=2, linkage="ward", n_neighbors=3, min_dist=0.1, n_components=2, n_splits=5)
+        >>> smiles = ["c1ccccc1", "CCC", "CCCC(CCC)C(=O)O", "NC1CCCCC1N","COc1cc(CNC(=O)CCCCC=CC(C)C)ccc1O", "Cc1cc(Br)c(O)c2ncccc12", "OCC(O)c1oc(O)c(O)c1O"]
+        >>> for train_idx, test_idx in splitter.split(smiles):
+        >>>     print(train_idx)
+        >>>     print(test_idx)
     """
 
     def __init__(
         self,
         n_clusters: int = 10,
+        n_neighbors: int = 100,
+        min_dist: float = 0.1,
+        n_components: int = 2,
+        umap_metric: Union[str, Callable] = "jaccard",
+        linkage: str = "ward",
         n_splits: int = 5,
-        metric: Union[str, Callable] = "euclidean",
         test_size: Optional[Union[float, int]] = None,
         train_size: Optional[Union[float, int]] = None,
         random_state: Optional[Union[int, RandomState]] = None,
@@ -40,7 +59,11 @@ class UMAPSplit(GroupShuffleSplit):
             random_state=random_state,
         )
         self._n_clusters = n_clusters
-        self._cluster_metric = metric
+        self._umap_metric = umap_metric
+        self._n_neighbors = n_neighbors
+        self._min_dist = min_dist
+        self._n_components = n_components
+        self._linkage = linkage
 
     def _iter_indices(
         self,
@@ -52,36 +75,64 @@ class UMAPSplit(GroupShuffleSplit):
         if X is None:
             raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
 
-        X, self._cluster_metric = convert_to_default_feats_if_smiles(X, self._cluster_metric)
+        X, self._umap_metric = convert_to_default_feats_if_smiles(X, self._umap_metric)
         groups = get_umap_clusters(
             X=X,
             n_clusters=self._n_clusters,
+            n_neighbors=self._n_neighbors,
+            min_dist=self._min_dist,
+            n_components=self._n_components,
+            umap_metric=self._umap_metric,
+            linkage=self._linkage,
             random_state=self.random_state,
-            base_metric=self._cluster_metric,
         )
         yield from super()._iter_indices(X, y, groups)
 
 
-def get_umap_clusters(smiles_list: List[str], n_clusters: int = 7) -> np.ndarray:
+def get_umap_clusters(
+    X: Union[np.ndarray, List[np.ndarray]],
+    n_clusters: int = 10,
+    n_neighbors: int = 100,
+    min_dist: float = 0.1,
+    n_components: int = 2,
+    umap_metric: str = "euclidean",
+    linkage: str = "ward",
+    random_state: Optional[Union[int, RandomState]] = None,
+) -> np.ndarray:
     """
     Cluster a list of SMILES strings using the umap clustering algorithm.
-    From "UMAP-based clustering split for rigorous evaluation of AI models for virtual screening on cancer cell lines"
-    https://doi.org/10.26434/chemrxiv-2024-f1v2v-v2
 
     Args:
-        smiles_list: List of SMILES strings
+        X: The input data (N * D)
         n_clusters: The number of clusters to use for clustering
+        n_neighbors: The number of neighbors to use for the UMAP algorithm
+        min_dist: The minimum distance between points in the UMAP embedding
+        n_components: The number of components to use for the PCA algorithm
+        umap_metric: The metric to use for the UMAP algorithm
+        linkage: The linkage to use for the AgglomerativeClustering algorithm
+        random_state: The random state to use for the PCA algorithm and the Empirical Kernel Map
 
     Returns:
         Array of cluster labels corresponding to each SMILES string in the input list.
+
+    Example:
+        >>> from alinemol.splitters import get_umap_clusters
+        >>> X = np.random.rand(100, 128)
+        >>> clusters_indices = get_umap_clusters(X, n_clusters=10)
+        >>> print(clusters_indices)
     """
-    fp_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
-    mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
-    fp_list = [fp_gen.GetFingerprintAsNumPy(x) for x in mol_list]
-    pca = PCA(n_components=50)
-    pcs = pca.fit_transform(np.stack(fp_list))
-    reducer = UMAP(n_components=2, n_neighbors=15, min_dist=0.1)
-    embedding = reducer.fit_transform(pcs)
-    ac = AgglomerativeClustering(n_clusters=n_clusters)
-    ac.fit_predict(embedding)
-    return ac.labels_
+    if isinstance(X, list):
+        X = np.stack(X)
+
+    reducer = UMAP(
+        n_components=n_components,
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        random_state=random_state,
+        metric=umap_metric,
+    )
+    embedding = reducer.fit_transform(X)
+    model = AgglomerativeClustering(n_clusters=n_clusters, linkage=linkage)
+    model.fit_predict(embedding)
+    indices = model.labels_
+    return indices

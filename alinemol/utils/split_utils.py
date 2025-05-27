@@ -48,6 +48,7 @@ AVAILABLE_SPLITTERS = [
     "optisim",
     "target_property",
     "molecular_weight",
+    "umap",
 ]
 
 # url: https://github.com/JacksonBurns/astartes/tree/main/astartes/samplers/extrapolation
@@ -318,7 +319,13 @@ class EmpiricalKernelMapTransformer:
         return self.transform(X)
 
     def transform(self, X):
-        """Transforms a single datapoint"""
+        """Transforms a single datapoint
+        Args:
+            X (np.ndarray): The input data (N * D)
+
+        Returns:
+            np.ndarray: The transformed data (N * n_samples)
+        """
         if self._samples is None:
             # Select the reference set
             rng = np.random.default_rng(self._random_state)

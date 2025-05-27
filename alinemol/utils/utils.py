@@ -15,10 +15,9 @@ import torch.nn.functional as F
 import torch.nn as nn
 import yaml
 from dgllife.data import MoleculeCSVDataset
-from dgllife.utils import RandomSplitter, ScaffoldSplitter, SMILESToBigraph
+from dgllife.utils import ScaffoldSplitter, SMILESToBigraph
 from sklearn.metrics import brier_score_loss
 
-from alinemol.splitters.splits import StratifiedRandomSplit
 from alinemol.utils.metric_utils import eval_acc, eval_pr_auc, eval_roc_auc
 
 # Type aliases for common types
@@ -252,46 +251,51 @@ def init_inference_trial_path(args: ConfigDict) -> ConfigDict:
 
 
 def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, DatasetType, DatasetType]:
-    """Split the dataset
+    """Split the dataset into train, validation and test sets.
 
     Args:
         args (dict): Settings
-        dataset: Dataset instance
+        dataset (MoleculeCSVDataset): Dataset to split
 
     Returns:
-        train_set: Training subset
-        val_set: Validation subset
-        test_set: Test subset
+        tuple: (train_dataset, val_dataset, test_dataset)
+
+    Raises:
+        ValueError: If args does not contain the key 'split_type', 'frac_train', 'frac_val', 'frac_test'
+
+    Example:
+        >>> from alinemol.utils.utils import split_dataset
+        >>> args = {
+        ...    "split_type": "random",
+        ...    "frac_train": 0.8,
+        ...    "frac_val": 0.1,
+        ...    "frac_test": 0.1,
+        ... }
+        >>> train_dataset, val_dataset, test_dataset = split_dataset(args, dataset)
+        >>> print(train_dataset)
     """
-    train_ratio, val_ratio, test_ratio = map(float, args["split_ratio"].split(","))
-    if args["split"] == "scaffold_decompose":
-        train_set, val_set, test_set = ScaffoldSplitter.train_val_test_split(
+    if args["split_type"] == "random":
+        from alinemol.splitters.splits import StratifiedRandomSplit
+
+        train_dataset, val_dataset, test_dataset = StratifiedRandomSplit.train_val_test_split(
             dataset,
-            frac_train=train_ratio,
-            frac_val=val_ratio,
-            frac_test=test_ratio,
-            scaffold_func="decompose",
+            frac_train=args["frac_train"],
+            frac_val=args["frac_val"],
+            frac_test=args["frac_test"],
+            random_state=args["random_state"],
         )
-    elif args["split"] == "scaffold_smiles":
-        train_set, val_set, test_set = ScaffoldSplitter.train_val_test_split(
+    elif args["split_type"] == "scaffold":
+        train_dataset, val_dataset, test_dataset = ScaffoldSplitter.train_val_test_split(
             dataset,
-            frac_train=train_ratio,
-            frac_val=val_ratio,
-            frac_test=test_ratio,
-            scaffold_func="smiles",
-        )
-    elif args["split"] == "random":
-        train_set, val_set, test_set = RandomSplitter.train_val_test_split(
-            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
-        )
-    elif args["split"] == "stratified_random":
-        train_set, val_set, test_set = StratifiedRandomSplit.train_val_test_split(
-            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
+            frac_train=args["frac_train"],
+            frac_val=args["frac_val"],
+            frac_test=args["frac_test"],
+            random_state=args["random_state"],
         )
     else:
-        return ValueError("Expect the splitting method to be 'scaffold', got {}".format(args["split"]))
+        raise ValueError(f"Expect split_type to be in ['random', 'scaffold'], got {args['split_type']}")
 
-    return train_set, val_set, test_set
+    return train_dataset, val_dataset, test_dataset
 
 
 def collate_molgraphs(
@@ -597,12 +601,8 @@ def compute_difference(results: pd.DataFrame, metrics: List[str] = ["accuracy", 
     assert "model" in results.columns, "model column is missing in the results dataframe"
     diff = []
     for metric in metrics:
-        assert f"ID_test_{metric}" in results.columns, (
-            f"{f'ID_test_{metric}'} column is missing in the results dataframe"
-        )
-        assert f"OOD_test_{metric}" in results.columns, (
-            f"{f'OOD_test_{metric}'} column is missing in the results dataframe"
-        )
+        assert f"ID_test_{metric}" in results.columns, f"ID_test_{metric} column is missing in the results dataframe"
+        assert f"OOD_test_{metric}" in results.columns, f"OOD_test_{metric} column is missing in the results dataframe"
         results_copy = results.copy()
         results_copy[f"diff_{metric}"] = results_copy[f"ID_test_{metric}"] - results_copy[f"OOD_test_{metric}"]
         diff.append(results_copy.groupby("model")[f"diff_{metric}"].mean())
@@ -620,13 +620,11 @@ def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFr
         ratio (float): Ratio of majority to minority class
 
     Example:
-    ```
-    import pandas as pd
-    from alinemol.utils.utils import downsample_majority_class
-    df = pd.DataFrame({'label': [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]})
-    df_downsampled = downsample_majority_class(df, ratio=1.5)
-    print(df_downsampled)
-    ```
+        >>> import pandas as pd
+        >>> from alinemol.utils.utils import downsample_majority_class
+        >>> df = pd.DataFrame({'label': [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]})
+        >>> df_downsampled = downsample_majority_class(df, ratio=1.5)
+        >>> print(df_downsampled)
 
     Returns:
         pd.DataFrame
@@ -680,14 +678,12 @@ def brier_score(y_true: TensorType, y_pred_prob: TensorType) -> float:
         y_pred_prob (np.array): Predicted probabilities
 
     Example:
-    ```
-    import numpy as np
-    from alinemol.utils.utils import brier_score
-    y_true = np.array([0, 1, 0, 1])
-    y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
-    brier_score = brier_score(y_true, y_pred_prob)
-    print(brier_score)
-    ```
+        >>> import numpy as np
+        >>> from alinemol.utils.utils import brier_score
+        >>> y_true = np.array([0, 1, 0, 1])
+        >>> y_pred_prob = np.array([0.1, 0.9, 0.2, 0.8])
+        >>> brier_score = brier_score(y_true, y_pred_prob)
+        >>> print(brier_score)
     """
     brier_score = brier_score_loss(y_true, y_pred_prob)
     return brier_score

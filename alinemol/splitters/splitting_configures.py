@@ -24,3 +24,11 @@ MaxDissimilaritySplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidea
 MoodSplitConfig: ConfigDict = {}
 
 MolecularLogPSplitConfig: ConfigDict = {"generalize_to_larger": True}
+
+UMapSplitConfig: ConfigDict = {
+    "n_clusters": 10,
+    "metric": "euclidean",
+    "n_neighbors": 100,
+    "min_dist": 0.1,
+    "n_components": 2,
+}
