@@ -1,12 +1,10 @@
 import numpy as np
 from numpy.random import RandomState
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, List, Tuple
 from sklearn.model_selection import GroupShuffleSplit
 from umap import UMAP
 from sklearn.cluster import AgglomerativeClustering
 from alinemol.utils.split_utils import convert_to_default_feats_if_smiles
-
-from typing import List
 
 
 class UMAPSplit(GroupShuffleSplit):
@@ -48,9 +46,11 @@ class UMAPSplit(GroupShuffleSplit):
         umap_metric: Union[str, Callable] = "jaccard",
         linkage: str = "ward",
         n_splits: int = 5,
+        n_jobs: int = -1,
         test_size: Optional[Union[float, int]] = None,
         train_size: Optional[Union[float, int]] = None,
         random_state: Optional[Union[int, RandomState]] = None,
+        **kwargs,
     ):
         super().__init__(
             n_splits=n_splits,
@@ -64,6 +64,8 @@ class UMAPSplit(GroupShuffleSplit):
         self._min_dist = min_dist
         self._n_components = n_components
         self._linkage = linkage
+        self._n_jobs = n_jobs
+        self._kwargs = kwargs
 
     def _iter_indices(
         self,
@@ -85,6 +87,8 @@ class UMAPSplit(GroupShuffleSplit):
             umap_metric=self._umap_metric,
             linkage=self._linkage,
             random_state=self.random_state,
+            n_jobs=self._n_jobs,
+            **self._kwargs,
         )
         yield from super()._iter_indices(X, y, groups)
 
@@ -98,7 +102,10 @@ def get_umap_clusters(
     umap_metric: str = "euclidean",
     linkage: str = "ward",
     random_state: Optional[Union[int, RandomState]] = None,
-) -> np.ndarray:
+    n_jobs: int = -1,
+    return_embedding: bool = False,
+    **kwargs,
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Cluster a list of SMILES strings using the umap clustering algorithm.
 
@@ -111,14 +118,16 @@ def get_umap_clusters(
         umap_metric: The metric to use for the UMAP algorithm
         linkage: The linkage to use for the AgglomerativeClustering algorithm
         random_state: The random state to use for the PCA algorithm and the Empirical Kernel Map
+        n_jobs: The number of jobs to use for the UMAP algorithm
+        return_embedding: Whether to return the UMAP embedding
 
     Returns:
-        Array of cluster labels corresponding to each SMILES string in the input list.
+        Array of cluster labels corresponding to each SMILES string in the input list. If return_embedding is True, returns a tuple of the cluster labels and the UMAP embedding.
 
     Example:
         >>> from alinemol.splitters import get_umap_clusters
         >>> X = np.random.rand(100, 128)
-        >>> clusters_indices = get_umap_clusters(X, n_clusters=10)
+        >>> clusters_indices, embedding = get_umap_clusters(X, n_clusters=10, n_jobs=1, return_embedding=True)
         >>> print(clusters_indices)
     """
     if isinstance(X, list):
@@ -130,9 +139,14 @@ def get_umap_clusters(
         min_dist=min_dist,
         random_state=random_state,
         metric=umap_metric,
+        n_jobs=n_jobs,
+        **kwargs,
     )
     embedding = reducer.fit_transform(X)
     model = AgglomerativeClustering(n_clusters=n_clusters, linkage=linkage)
     model.fit_predict(embedding)
     indices = model.labels_
-    return indices
+    if return_embedding:
+        return indices, embedding
+    else:
+        return indices

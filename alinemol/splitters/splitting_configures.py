@@ -26,9 +26,10 @@ MoodSplitConfig: ConfigDict = {}
 MolecularLogPSplitConfig: ConfigDict = {"generalize_to_larger": True}
 
 UMapSplitConfig: ConfigDict = {
-    "n_clusters": 10,
-    "metric": "euclidean",
+    "n_clusters": 20,
+    "umap_metric": "jaccard",
     "n_neighbors": 100,
     "min_dist": 0.1,
     "n_components": 2,
+    "linkage": "ward",
 }
