@@ -6,7 +6,7 @@ The original code is licensed under the MIT License.
 
 import networkx as nx
 import numpy as np
-from typing import List, Tuple, Set, Optional
+from typing import List, Tuple, Set, Optional, Dict
 
 from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
@@ -256,23 +256,20 @@ def get_linear_problem_train_test(
     return m
 
 
-def get_linear_problem_k_fold(S, fold_min_frac, k, verbose=True):
+def get_linear_problem_k_fold(S: nx.Graph, fold_min_frac: float, k: int, verbose: bool = True) -> mip.Model:
     """
     Formulate min vertex k-cut problem for k.
     It is useful for k-fold cross-validation.
 
     Args:
-        S -- connected graph to cut (nx.Graph())
-        fold_min_frac -- minimal fraction of a part. e.g, 0.2 from the whole dataset
+        S: connected graph to cut (nx.Graph())
+        fold_min_frac: minimal fraction of a part. e.g, 0.2 from the whole dataset
             It is possible that k-cut is not possible without discarding some molecules,
             so ensure k*fold_min_frac < 1.0.
-        max_mip_gap -- value to stop optimization when the cost function is close enough to
-            the optimal solution. Set it to 0.5, and you will get quick but not-optimal
-            solution. Set it to 0.01, and you will get optimal solution, but it will take forever.
-            See more in MIP Python documentation.
-        verbose -- set to False, if you don't want messages.
+        k: number of folds
+        verbose: set to False, if you don't want messages.
     Returns:
-        model -- MIP model
+        mip.Model: MIP model
     """
     m, x, w = get_linear_problem_no_size_constraints(S, k)
 
@@ -293,9 +290,20 @@ def get_linear_problem_k_fold(S, fold_min_frac, k, verbose=True):
     return m
 
 
-def solve_linear_problem(m, max_mip_gap=0.1, verbose=True):
+def solve_linear_problem(m: mip.Model, max_mip_gap: float = 0.1, verbose: bool = True) -> mip.Model:
     """
     Solves MIP linear model with default parameters.
+
+    Args:
+        m: MIP model
+        max_mip_gap: value to stop optimization when the cost function is close enough to
+            the optimal solution. Set it to 0.5, and you will get quick but not-optimal
+            solution. Set it to 0.01, and you will get optimal solution, but it will take forever.
+            See more in MIP Python documentation.
+        verbose: set to False, if you don't want messages.
+
+    Returns:
+        mip.Model: Solved MIP model
     """
     m.max_mip_gap = max_mip_gap
     m.threads = -1
@@ -305,19 +313,19 @@ def solve_linear_problem(m, max_mip_gap=0.1, verbose=True):
     return m
 
 
-def process_results(model, S, k):
+def process_results(model: mip.Model, S: nx.Graph, k: int) -> np.ndarray:
     """
     Process solution of the linear programming problem.
 
     Args:
-        model -- solved MIP model
-        S -- connected graph of the model
-        k -- number of partitions
+        model: solved MIP model
+        S: connected graph of the model
+        k: number of partitions
 
     Return:
-        split -- array. len(split) = len(S). i'th element
-                 is equal to partition of the i'th node or
-                 -1 if the node is discarded.
+        np.ndarray: array. len(split) = len(S). i'th element
+                    is equal to partition of the i'th node or
+                    -1 if the node is discarded.
     """
     result = np.array([a.x for a in model.vars])
     split = [-1] * len(S)
@@ -329,10 +337,21 @@ def process_results(model, S, k):
     return split
 
 
-def uncoarse_results(split, node_to_cluster):
+def uncoarse_results(split: np.ndarray, node_to_cluster: np.ndarray) -> np.ndarray:
     """
     If the linear programming problem was sovled for coarsed graph,
     the result need to be mapped into original nodes.
+
+    Args:
+        split: array. len(split) = len(S). i'th element
+               is equal to partition of the i'th node or
+               -1 if the node is discarded.
+        node_to_cluster: array. len(node_to_cluster) = len(S). i'th element
+
+    Returns:
+        np.ndarray: array. len(uncoarsed_split) = len(S). i'th element
+                    is equal to partition of the i'th node or
+                    -1 if the node is discarded.
     """
     uncoarsed_split = []
     for node in range(len(node_to_cluster)):
@@ -341,10 +360,21 @@ def uncoarse_results(split, node_to_cluster):
     return uncoarsed_split
 
 
-def map_split_to_original_idx(split, k, new_nodes_to_old):
+def map_split_to_original_idx(split: np.ndarray, k: int, new_nodes_to_old: Dict[int, int]) -> List[List[int]]:
     """
     Maps partitioning of the nodes of the giant component, to nodes of
     the original non-connected neighborhood graph.
+
+    Args:
+        split: array. len(split) = len(S). i'th element
+               is equal to partition of the i'th node or
+               -1 if the node is discarded.
+        k: number of partitions
+        new_nodes_to_old: dictionary. key is the index of the node in the original graph,
+                            value is the index of the node in the giant component.
+
+    Returns:
+        List[List[int]]: list of lists. Each list contains the indices of molecules in that partition.
     """
     partitions = []
     for _ in range(k):
@@ -358,14 +388,40 @@ def map_split_to_original_idx(split, k, new_nodes_to_old):
     return partitions
 
 
-def assign_small_components_uniformly(small_components, partitions):
+def assign_small_components_uniformly(
+    small_components: List[List[int]], partitions: List[List[int]]
+) -> List[List[int]]:
+    """
+    Assigns small components to the partitions uniformly.
+
+    Args:
+        small_components: list of lists. Each list contains the indices of molecules in that component.
+        partitions: list of lists. Each list contains the indices of molecules in that partition.
+
+    Returns:
+        List[List[int]]: list of lists. Each list contains the indices of molecules in that partition.
+    """
     for component in small_components:
         smallest_partition_idx = np.argmin([len(partition) for partition in partitions])
         partitions[smallest_partition_idx].extend(component)
     return partitions
 
 
-def assign_small_components_train_test(small_components, partitions, train_min_frac, test_min_frac):
+def assign_small_components_train_test(
+    small_components: List[List[int]], partitions: List[List[int]], train_min_frac: float, test_min_frac: float
+) -> List[List[int]]:
+    """
+    Assigns small components to the partitions based on the train_min_frac and test_min_frac.
+
+    Args:
+        small_components: list of lists. Each list contains the indices of molecules in that component.
+        partitions: list of lists. Each list contains the indices of molecules in that partition.
+        train_min_frac: minimum fraction for the train set
+        test_min_frac: minimum fraction for the test set
+
+    Returns:
+        List[List[int]]: list of lists. Each list contains the indices of molecules in that partition.
+    """
     goal_ratio = train_min_frac / test_min_frac
 
     for component in small_components:
@@ -377,7 +433,17 @@ def assign_small_components_train_test(small_components, partitions, train_min_f
     return partitions
 
 
-def print_partition_analysis(partitions, total_molecules):
+def print_partition_analysis(partitions: List[List[int]], total_molecules: int):
+    """
+    Prints the analysis of the partitions.
+
+    Args:
+        partitions: list of lists. Each list contains the indices of molecules in that partition.
+        total_molecules: total number of molecules.
+
+    Returns:
+        None
+    """
     lost_molecules = total_molecules
     for part in partitions:
         lost_molecules -= len(part)
@@ -389,7 +455,18 @@ def print_partition_analysis(partitions, total_molecules):
         print("Molecules in partition", k, ":", len(partitions[k]))
 
 
-def check_model_status(model, is_coarsed, is_train_test):
+def check_model_status(model: mip.Model, is_coarsed: bool, is_train_test: bool):
+    """
+    Checks the status of the model.
+
+    Args:
+        model: MIP model
+        is_coarsed: whether the model is coarsed
+        is_train_test: whether the model is train-test split
+
+    Returns:
+        None
+    """
     if model.status == mip.OptimizationStatus.INFEASIBLE or model.status == mip.OptimizationStatus.NO_SOLUTION_FOUND:
         if is_coarsed:
             if is_train_test:
@@ -408,38 +485,38 @@ def check_model_status(model, is_coarsed, is_train_test):
 
 
 def hi_train_test_split(
-    smiles,
+    smiles: List[str],
     similarity_threshold=0.4,
     train_min_frac=0.7,
     test_min_frac=0.1,
     coarsening_threshold=None,
-    verbose=True,
-    max_mip_gap=0.1,
-):
+    verbose: bool = True,
+    max_mip_gap: float = 0.1,
+) -> List[List[int]]:
     """
     Splits a list of smiles into train and test sets such that no molecule in the test
     has ECFP4 Tanimoto similarity to the train > similarity_threshold.
 
-    Parameters:
-        smiles -- List of smiles to split.
-        similarity_threshold -- ECFP4 Tanimoto threshold. Molecules in the test set won't
+    Args:
+        smiles: List of smiles to split.
+        similarity_threshold: ECFP4 Tanimoto threshold. Molecules in the test set won't
             have a similarity greater than similarity_threshold to those in the train set.
-        train_min_frac -- Minimum fraction for the train set, e.g., 0.7 of the entire dataset.
-        test_min_frac -- Minimum fraction for the test set, e.g., 0.1 of the entire dataset.
+        train_min_frac: Minimum fraction for the train set, e.g., 0.7 of the entire dataset.
+        test_min_frac: Minimum fraction for the test set, e.g., 0.1 of the entire dataset.
             It's possible that the k-cut might not be feasible without discarding some molecules,
             so ensure that the sum of train_min_frac and test_min_frac is less than 1.0.
-        coarsening_threshold -- Molecules with a similarity greater than the coarsening_threshold will be
+        coarsening_threshold: Molecules with a similarity greater than the coarsening_threshold will be
             clustered together. It speeds up execution, but makes the solution less optimal.
                 None -- Disables clustering (default value).
                 1.0 -- Won't do anything
                 0.90 -- will cluster molecules with similarity > 0.90 together
-        verbose -- If set to False, suppresses status messages.
-        max_mip_gap -- Determines when to halt optimization based on proximity to the optimal solution.
+        verbose: If set to False, suppresses status messages.
+        max_mip_gap: Determines when to halt optimization based on proximity to the optimal solution.
             For example, setting it to 0.5 yields a faster but less optimal solution, while 0.01 aims for a more
             optimal solution, potentially at the cost of more computation time. See more in MIP Python documentation.
 
     Returns:
-        partitions - list of two lists. The first contains indices of train smiles, and the second contains indices of test smiles.
+        List[List[int]]: list of two lists. The first contains indices of train smiles, and the second contains indices of test smiles.
     """
     if not isinstance(smiles, np.ndarray):
         smiles = np.array(smiles)
@@ -472,37 +549,37 @@ def hi_train_test_split(
 
 
 def hi_k_fold_split(
-    smiles,
-    similarity_threshold=0.4,
-    fold_min_frac=None,
-    k=3,
-    coarsening_threshold=None,
-    verbose=True,
-    max_mip_gap=0.1,
-):
+    smiles: List[str],
+    similarity_threshold: float = 0.4,
+    fold_min_frac: Optional[float] = None,
+    k: int = 3,
+    coarsening_threshold: Optional[float] = None,
+    verbose: bool = True,
+    max_mip_gap: float = 0.1,
+) -> List[List[int]]:
     """
     Splits the list of smiles into k folds such that no molecule in any fold has an ECFP4 Tanimoto
     similarity greater than similarity_threshold when compared to molecules in another fold.
 
     Args:
-        smiles -- List of smiles to split
-        similarity_threshold -- ECFP4 Tanimoto threshold. Molecules in one fold won't
+        smiles: List of smiles to split
+        similarity_threshold: ECFP4 Tanimoto threshold. Molecules in one fold won't
             have a similarity greater than similarity_threshold to those in another fold.
-        fold_min_frac -- Minimum fraction of a fold (e.g., 0.2 of the entire dataset).
+        fold_min_frac: Minimum fraction of a fold (e.g., 0.2 of the entire dataset).
             If not specified (None), it defaults to 0.9 / k.
-        k -- number of folds
-        coarsening_threshold -- Molecules with a similarity greater than the coarsening_threshold will be
+        k: number of folds
+        coarsening_threshold: Molecules with a similarity greater than the coarsening_threshold will be
             clustered together. It speeds up execution, but makes the solution less optimal.
                 None -- Disables clustering (default value).
                 1.0 -- Won't do anything
                 0.90 -- will cluster molecules with similarity > 0.90 together
-        verbose -- If set to False, suppresses status messages.
-        max_mip_gap -- Determines when to halt optimization based on proximity to the optimal solution.
+        verbose: If set to False, suppresses status messages.
+        max_mip_gap: Determines when to halt optimization based on proximity to the optimal solution.
             For example, setting it to 0.5 yields a faster but less optimal solution, while 0.01 aims for a more
             optimal solution, potentially at the cost of more computation time. See more in MIP Python documentation.
 
     Returns:
-        partitions - list of lists. Each list contains the indices of smiles in that fold.
+        List[List[int]]: list of lists. Each list contains the indices of smiles in that fold.
     """
     if not isinstance(smiles, np.ndarray):
         smiles = np.array(smiles)
@@ -539,12 +616,12 @@ def hi_k_fold_split(
 class HiSplitter:
     def __init__(
         self,
-        similarity_threshold=0.4,
-        train_min_frac=0.7,
-        test_min_frac=0.1,
-        coarsening_threshold=None,
-        verbose=True,
-        max_mip_gap=0.1,
+        similarity_threshold: float = 0.4,
+        train_min_frac: float = 0.7,
+        test_min_frac: float = 0.1,
+        coarsening_threshold: Optional[float] = None,
+        verbose: bool = True,
+        max_mip_gap: float = 0.1,
     ):
         """
         A splitter that creates train/test splits with no molecules in the test set having
