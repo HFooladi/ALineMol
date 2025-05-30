@@ -1,4 +1,8 @@
-## This is the implementation from https://github.com/datamol-io/splito/blob/main/splito/lohi/_lo.py
+"""
+This code is adapted from https://github.com/datamol-io/splito/blob/main/splito/lohi/_lo.py
+
+The LoSplit needs a continuous activity value, and not a binary label.
+"""
 
 from rdkit import DataStructs
 import numpy as np
@@ -9,7 +13,7 @@ from loguru import logger
 from typing import List, Tuple, Optional, Any
 
 
-class LoSplitter:
+class LoSplit:
     def __init__(
         self,
         threshold: float = 0.4,

@@ -6,11 +6,14 @@ The original code is licensed under the MIT License.
 
 import networkx as nx
 import numpy as np
-from typing import List, Tuple, Set, Optional, Dict
+from typing import List, Tuple, Set, Optional, Dict, Iterator, Union
 
 from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
 import mip
+
+from sklearn.model_selection import BaseShuffleSplit
+from alinemol.utils.typing import SMILESList
 
 
 def get_neighborhood_graph(smiles: List[str], threshold: float) -> nx.Graph:
@@ -613,12 +616,12 @@ def hi_k_fold_split(
     return partitions
 
 
-class HiSplitter:
+class HiSplit(BaseShuffleSplit):
     def __init__(
         self,
         similarity_threshold: float = 0.4,
-        train_min_frac: float = 0.7,
-        test_min_frac: float = 0.1,
+        train_min_frac: float = 0.70,
+        test_min_frac: float = 0.15,
         coarsening_threshold: Optional[float] = None,
         verbose: bool = True,
         max_mip_gap: float = 0.1,
@@ -655,7 +658,55 @@ class HiSplitter:
         self.verbose = verbose
         self.max_mip_gap = max_mip_gap
 
-    def split(self, smiles: List[str]) -> Tuple[List[int], List[int]]:
+    def _iter_indices(
+        self,
+        X: Union[SMILESList, np.ndarray],
+        y: Optional[np.ndarray] = None,
+        groups: Optional[Union[int, np.ndarray]] = None,
+    ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
+        """Generate indices to split data into training and test sets based on molecular similarity.
+
+        Args:
+            X: List of SMILES strings to split, or features array if smiles
+                was provided in the constructor.
+            y: Target variable for supervised learning problems.
+                Not used, present for API consistency.
+            groups: Group labels for the samples.
+                Not used, present for API consistency.
+
+        Yields:
+            train_indices: numpy array of indices for training samples
+            test_indices: numpy array of indices for test samples
+
+        Raises:
+            ValueError: If X is not a list of SMILES strings and no SMILES list was
+                provided during initialization.
+        """
+        requires_smiles = X is None or not all(isinstance(x, str) for x in X)
+        if self._smiles is None and requires_smiles:
+            raise ValueError("If the input is not a list of SMILES, you need to provide the SMILES to the constructor.")
+
+        smiles = self._smiles if requires_smiles else X
+
+        # Use the existing hi_train_test_split function
+        partitions = hi_train_test_split(
+            smiles=smiles,
+            similarity_threshold=self.similarity_threshold,
+            train_min_frac=self.train_min_frac,
+            test_min_frac=self.test_min_frac,
+            coarsening_threshold=self.coarsening_threshold,
+            verbose=self.verbose,
+            max_mip_gap=self.max_mip_gap,
+        )
+
+        train_indices = np.array(partitions[0])
+        test_indices = np.array(partitions[1])
+
+        # Yield for each split (typically just once for this deterministic splitter)
+        for i in range(self.n_splits):
+            yield train_indices, test_indices
+
+    def split(self, smiles: List[str]) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         """
         Split the dataset into train and test sets such that no molecule in the test
         has ECFP4 Tanimoto similarity to the train > similarity_threshold.
@@ -667,6 +718,13 @@ class HiSplitter:
             Tuple containing:
                 - List[int]: Indices of training molecules
                 - List[int]: Indices of test molecules
+
+        Example:
+            >>> from alinemol.splitters.lohi import HiSplit
+            >>> splitter = HiSplit()
+            >>> for train_indices, test_indices in splitter.split(smiles):
+            >>>     print(train_indices)
+            >>>     print(test_indices)
         """
         partitions = hi_train_test_split(
             smiles=smiles,
@@ -678,7 +736,7 @@ class HiSplitter:
             max_mip_gap=self.max_mip_gap,
         )
 
-        return partitions[0], partitions[1]  # train_indices, test_indices
+        yield np.array(partitions[0]), np.array(partitions[1])  # train_indices, test_indices
 
     def k_fold_split(self, smiles: List[str], k: int = 3, fold_min_frac: Optional[float] = None) -> List[List[int]]:
         """

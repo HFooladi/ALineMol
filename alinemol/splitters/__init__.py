@@ -1,7 +1,7 @@
 from alinemol.splitters.splits import MolecularLogPSplit, StratifiedRandomSplit
 from alinemol.splitters.umap_split import UMAPSplit, get_umap_clusters
 from splito import KMeansSplit, MaxDissimilaritySplit, MolecularWeightSplit, PerimeterSplit, ScaffoldSplit
-from alinemol.splitters.lohi import LoSplitter, HiSplitter
+from alinemol.splitters.lohi import LoSplit, HiSplit
 from typing import List
 
 __all__: List[str] = [
@@ -14,6 +14,6 @@ __all__: List[str] = [
     "MolecularWeightSplit",
     "PerimeterSplit",
     "ScaffoldSplit",
-    "LoSplitter",
-    "HiSplitter",
+    "LoSplit",
+    "HiSplit",
 ]

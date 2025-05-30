@@ -1,5 +1,5 @@
-from .lo import LoSplitter
-from .hi import hi_train_test_split, HiSplitter
+from .lo import LoSplit
+from .hi import HiSplit
 
 
-__all__ = ["LoSplitter", "hi_train_test_split", "HiSplitter"]
+__all__ = ["LoSplit", "HiSplit"]

@@ -34,10 +34,10 @@ UMapSplitConfig: ConfigDict = {
     "linkage": "ward",
 }
 
-HiSplitterConfig: ConfigDict = {
+HiSplitConfig: ConfigDict = {
     "similarity_threshold": 0.4,
-    "train_min_frac": 0.7,
-    "test_min_frac": 0.1,
+    "train_min_frac": 0.70,
+    "test_min_frac": 0.15,
     "coarsening_threshold": None,
     "verbose": True,
     "max_mip_gap": 0.1,
