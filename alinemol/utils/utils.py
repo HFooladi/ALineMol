@@ -254,48 +254,63 @@ def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, 
     """Split the dataset into train, validation and test sets.
 
     Args:
-        args (dict): Settings
+        args (dict): Settings containing split method and ratios
         dataset (MoleculeCSVDataset): Dataset to split
 
     Returns:
         tuple: (train_dataset, val_dataset, test_dataset)
 
     Raises:
-        ValueError: If args does not contain the key 'split_type', 'frac_train', 'frac_val', 'frac_test'
+        ValueError: If split method is invalid or split ratios are invalid
 
     Example:
         >>> from alinemol.utils.utils import split_dataset
         >>> args = {
-        ...    "split_type": "random",
-        ...    "frac_train": 0.8,
-        ...    "frac_val": 0.1,
-        ...    "frac_test": 0.1,
+        ...    "split": "scaffold_decompose",
+        ...    "split_ratio": "0.8,0.1,0.1",
         ... }
-        >>> train_dataset, val_dataset, test_dataset = split_dataset(args, dataset)
-        >>> print(train_dataset)
+        >>> train_set, val_set, test_set = split_dataset(args, dataset)
+        >>> print(train_set)
     """
-    if args["split_type"] == "random":
+    # Parse split ratios from args
+    try:
+        train_ratio, val_ratio, test_ratio = map(float, args["split_ratio"].split(","))
+        if not (0 < train_ratio < 1 and 0 < val_ratio < 1 and 0 < test_ratio < 1):
+            raise ValueError("Split ratios must be between 0 and 1")
+        if not np.isclose(train_ratio + val_ratio + test_ratio, 1.0):
+            raise ValueError("Split ratios must sum to 1")
+    except (ValueError, KeyError) as e:
+        raise ValueError(f"Invalid split ratios: {e}")
+
+    # Perform split based on method
+    if args["split"] == "scaffold_decompose":
+        train_set, val_set, test_set = ScaffoldSplitter.train_val_test_split(
+            dataset,
+            frac_train=train_ratio,
+            frac_val=val_ratio,
+            frac_test=test_ratio,
+            scaffold_func="decompose",
+        )
+    elif args["split"] == "scaffold_smiles":
+        train_set, val_set, test_set = ScaffoldSplitter.train_val_test_split(
+            dataset,
+            frac_train=train_ratio,
+            frac_val=val_ratio,
+            frac_test=test_ratio,
+            scaffold_func="smiles",
+        )
+    elif args["split"] == "stratified_random":
         from alinemol.splitters.splits import StratifiedRandomSplit
 
-        train_dataset, val_dataset, test_dataset = StratifiedRandomSplit.train_val_test_split(
-            dataset,
-            frac_train=args["frac_train"],
-            frac_val=args["frac_val"],
-            frac_test=args["frac_test"],
-            random_state=args["random_state"],
-        )
-    elif args["split_type"] == "scaffold":
-        train_dataset, val_dataset, test_dataset = ScaffoldSplitter.train_val_test_split(
-            dataset,
-            frac_train=args["frac_train"],
-            frac_val=args["frac_val"],
-            frac_test=args["frac_test"],
-            random_state=args["random_state"],
+        train_set, val_set, test_set = StratifiedRandomSplit.train_val_test_split(
+            dataset, frac_train=train_ratio, frac_val=val_ratio, frac_test=test_ratio, random_state=1234
         )
     else:
-        raise ValueError(f"Expect split_type to be in ['random', 'scaffold'], got {args['split_type']}")
+        raise ValueError(
+            f"Invalid split method: {args['split']}. Must be one of ['scaffold_decompose', 'scaffold_smiles', 'stratified_random']"
+        )
 
-    return train_dataset, val_dataset, test_dataset
+    return train_set, val_set, test_set
 
 
 def collate_molgraphs(
