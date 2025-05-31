@@ -1,9 +1,9 @@
 site_name: "ALineMol"
-site_description: "ALineMol:   Exploring agreement-on-the-line and accuracy-on-the-line for molecule property and activity prediction "
+site_description: "ALineMol: Exploring agreement-on-the-line and accuracy-on-the-line for molecule property and activity prediction "
 site_url: "https://github.com/HFooladi/ALineMol"
 repo_url: "https://github.com/HFooladi/ALineMol"
 repo_name: "HFooladi/ALineMol"
-copyright: Copyright 2023 - 2024 datamol.io
+copyright: Copyright 2025 - 2025 ALineMol
 
 remote_branch: "gh-pages"
 use_directory_urls: false
@@ -21,12 +21,11 @@ nav:
       #- MPO Splitters: tutorials/MPO_Splitters.ipynb
       #- Lo Splitter: tutorials/Lo_splitter.ipynb
       #- Other Splitters: tutorials/Other_Splitters.ipynb
-  #- API:
-      #- splito: api/splito.md
-      #- splito.utils: api/utils.md
-      #- splito.simpd: api/simpd.md
-      #- splito.lohi: api/lohi.md
-      #- splito.plot: api/plot.md
+  - API:
+      - splitters: api/splitters.md
+      - preprocessing: api/preprocessing.md
+      - models: api/models.md
+      - utils: api/utils.md
 
 theme:
   name: material

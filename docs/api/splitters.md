@@ -1,0 +1,3 @@
+# `alinemol.splitters`
+
+::: alinemol.splitters
