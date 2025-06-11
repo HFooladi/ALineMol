@@ -11,6 +11,8 @@ from alinemol.splitters.splits import MolecularLogPSplit
 # Test 1: Test the MolecularWeightSplit class
 @pytest.mark.parametrize("generalize_to_larger", [True, False])
 def test_splits_molecular_weight(test_dataset_dili, generalize_to_larger):
+    """Test that MolecularWeightSplit correctly splits molecules based on molecular weight,
+    with test set having either larger or smaller weights than training set."""
     smiles = test_dataset_dili["smiles"].values
     splitter = MolecularWeightSplit(generalize_to_larger=generalize_to_larger, n_splits=2)
 
@@ -30,6 +32,8 @@ def test_splits_molecular_weight(test_dataset_dili, generalize_to_larger):
 # Test 2: Test the ScaffoldSplit class
 @pytest.mark.parametrize("make_generic", [True, False])
 def test_splits_scaffold(test_dataset_dili, make_generic):
+    """Test that ScaffoldSplit correctly splits molecules based on scaffold similarity,
+    ensuring test set scaffolds are not present in training set."""
     smiles = test_dataset_dili["smiles"].values
     splitter = ScaffoldSplit(smiles, n_splits=2, make_generic=make_generic)
     for train_ind, test_ind in splitter.split(smiles):
@@ -44,6 +48,7 @@ def test_splits_scaffold(test_dataset_dili, make_generic):
 
 # Test 3: Test the KMeansSplit class
 def test_splits_kmeans_default_feats(test_dataset_dili):
+    """Test that KMeansSplit works correctly with default molecular features and Jaccard metric."""
     smiles = test_dataset_dili["smiles"].values
     splitter = KMeansSplit(n_splits=2)
 
@@ -55,6 +60,7 @@ def test_splits_kmeans_default_feats(test_dataset_dili):
 
 
 def test_splits_kmeans():
+    """Test that KMeansSplit works correctly with custom features and Euclidean metric."""
     X = np.random.random((100, 100))
     splitter = KMeansSplit(n_splits=2, metric="euclidean")
 
@@ -66,6 +72,7 @@ def test_splits_kmeans():
 
 
 def test_splits_max_dissimilar_default_feats(test_dataset_dili):
+    """Test that MaxDissimilaritySplit works correctly with default molecular features."""
     smiles = test_dataset_dili["smiles"].values
     splitter = MaxDissimilaritySplit(n_splits=2)
 
@@ -76,6 +83,7 @@ def test_splits_max_dissimilar_default_feats(test_dataset_dili):
 
 
 def test_splits_max_dissimilar():
+    """Test that MaxDissimilaritySplit works correctly with custom features and Euclidean metric."""
     X = np.random.random((100, 100))
     splitter = MaxDissimilaritySplit(n_splits=2, metric="euclidean")
 
@@ -86,6 +94,7 @@ def test_splits_max_dissimilar():
 
 
 def test_splits_perimeter(test_dataset_dili):
+    """Test that PerimeterSplit works correctly with default molecular features and Jaccard metric."""
     smiles = test_dataset_dili["smiles"].values
     splitter = PerimeterSplit(n_splits=2)
 
@@ -97,6 +106,7 @@ def test_splits_perimeter(test_dataset_dili):
 
 
 def test_splits_perimeter_euclidean():
+    """Test that PerimeterSplit works correctly with custom features and Euclidean metric."""
     X = np.random.random((100, 100))
     splitter = PerimeterSplit(n_splits=2, metric="euclidean")
 
@@ -109,6 +119,8 @@ def test_splits_perimeter_euclidean():
 
 @pytest.mark.parametrize("generalize_to_larger", [True, False])
 def test_splits_molecular_logp(test_dataset_dili, generalize_to_larger):
+    """Test that MolecularLogPSplit correctly splits molecules based on LogP values,
+    with test set having either larger or smaller LogP than training set."""
     smiles = test_dataset_dili["smiles"].values
     splitter = MolecularLogPSplit(generalize_to_larger=generalize_to_larger, n_splits=2)
 

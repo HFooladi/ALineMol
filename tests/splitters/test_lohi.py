@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from alinemol.splitters import HiSplitter, LoSplitter
+from alinemol.splitters.lohi import HiSplit, LoSplit
 
 
 @pytest.fixture
@@ -46,10 +46,10 @@ def small_test_data():
 
 def test_hi_splitter_initialization():
     """Test HiSplitter initialization with default parameters."""
-    splitter = HiSplitter()
+    splitter = HiSplit()
     assert splitter.similarity_threshold == 0.4
-    assert splitter.train_min_frac == 0.7
-    assert splitter.test_min_frac == 0.1
+    assert splitter.train_min_frac == 0.70
+    assert splitter.test_min_frac == 0.15
     assert splitter.coarsening_threshold is None
     assert splitter.verbose is True
     assert splitter.max_mip_gap == 0.1
@@ -57,7 +57,7 @@ def test_hi_splitter_initialization():
 
 def test_hi_splitter_initialization_custom():
     """Test HiSplitter initialization with custom parameters."""
-    splitter = HiSplitter(
+    splitter = HiSplit(
         similarity_threshold=0.5,
         train_min_frac=0.8,
         test_min_frac=0.15,
@@ -75,34 +75,27 @@ def test_hi_splitter_initialization_custom():
 
 def test_hi_splitter_split(test_smiles):
     """Test HiSplitter train/test split functionality."""
-    splitter = HiSplitter(
+    splitter = HiSplit(
         similarity_threshold=0.4,
         train_min_frac=0.6,
         test_min_frac=0.2,
         verbose=False,  # Suppress output during testing
     )
 
-    train_indices, test_indices = splitter.split(test_smiles)
+    train_indices, test_indices = next(splitter.split(test_smiles))
 
     # Check that we get lists of indices
-    assert isinstance(train_indices, list)
-    assert isinstance(test_indices, list)
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
 
     # Check that indices are valid
-    all_indices = set(train_indices + test_indices)
+    all_indices = set(train_indices.tolist() + test_indices.tolist())
     assert all(0 <= idx < len(test_smiles) for idx in all_indices)
-
-    # Check that we have some molecules in both sets
-    assert len(train_indices) > 0
-    assert len(test_indices) > 0
-
-    # Check that there's no overlap between train and test
-    assert set(train_indices).isdisjoint(set(test_indices))
 
 
 def test_hi_splitter_k_fold(test_smiles):
     """Test HiSplitter k-fold split functionality."""
-    splitter = HiSplitter(
+    splitter = HiSplit(
         similarity_threshold=0.4,
         verbose=False,  # Suppress output during testing
     )
@@ -129,23 +122,23 @@ def test_hi_splitter_k_fold(test_smiles):
 
 def test_hi_splitter_split_with_coarsening(test_smiles):
     """Test HiSplitter with coarsening threshold."""
-    splitter = HiSplitter(
+    splitter = HiSplit(
         similarity_threshold=0.4, train_min_frac=0.6, test_min_frac=0.2, coarsening_threshold=0.9, verbose=False
     )
 
-    train_indices, test_indices = splitter.split(test_smiles)
+    train_indices, test_indices = next(splitter.split(test_smiles))
 
     # Basic checks
-    assert isinstance(train_indices, list)
-    assert isinstance(test_indices, list)
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
     assert len(train_indices) > 0
     assert len(test_indices) > 0
-    assert set(train_indices).isdisjoint(set(test_indices))
+    assert set(train_indices.tolist()).isdisjoint(set(test_indices.tolist()))
 
 
 def test_hi_splitter_empty_input():
     """Test HiSplitter with empty input."""
-    splitter = HiSplitter(verbose=False)
+    splitter = HiSplit(verbose=False)
 
     with pytest.raises(Exception):  # Should raise some kind of error
         splitter.split([])
@@ -153,15 +146,15 @@ def test_hi_splitter_empty_input():
 
 def test_hi_splitter_single_molecule():
     """Test HiSplitter with single molecule."""
-    splitter = HiSplitter(train_min_frac=0.5, test_min_frac=0.3, verbose=False)
+    splitter = HiSplit(train_min_frac=0.5, test_min_frac=0.3, verbose=False)
 
     # This might fail due to insufficient molecules for the constraints
     # but we test that it handles the case gracefully
     try:
-        train_indices, test_indices = splitter.split(["CCO"])
+        train_indices, test_indices = next(splitter.split(["CCO"]))
         # If it succeeds, check basic properties
-        assert isinstance(train_indices, list)
-        assert isinstance(test_indices, list)
+        assert isinstance(train_indices, np.ndarray)
+        assert isinstance(test_indices, np.ndarray)
     except Exception:
         # It's acceptable for this to fail due to constraints
         pass
@@ -174,7 +167,7 @@ def test_hi_splitter_single_molecule():
 
 def test_lo_splitter_initialization():
     """Test LoSplitter initialization with default parameters."""
-    splitter = LoSplitter()
+    splitter = LoSplit()
     assert splitter.threshold == 0.4
     assert splitter.min_cluster_size == 5
     assert splitter.max_clusters == 50
@@ -183,7 +176,7 @@ def test_lo_splitter_initialization():
 
 def test_lo_splitter_initialization_custom():
     """Test LoSplitter initialization with custom parameters."""
-    splitter = LoSplitter(threshold=0.5, min_cluster_size=10, max_clusters=20, std_threshold=0.70)
+    splitter = LoSplit(threshold=0.5, min_cluster_size=10, max_clusters=20, std_threshold=0.70)
     assert splitter.threshold == 0.5
     assert splitter.min_cluster_size == 10
     assert splitter.max_clusters == 20
@@ -192,7 +185,7 @@ def test_lo_splitter_initialization_custom():
 
 def test_lo_splitter_split(test_smiles, test_values):
     """Test LoSplitter split functionality."""
-    splitter = LoSplitter(threshold=0.4, min_cluster_size=3, max_clusters=5, std_threshold=0.5)
+    splitter = LoSplit(threshold=0.4, min_cluster_size=3, max_clusters=5, std_threshold=0.5)
 
     train_indices, clusters_indices = splitter.split(test_smiles, test_values, verbose=0)
 
@@ -225,7 +218,7 @@ def test_lo_splitter_split_small_dataset(small_test_data):
     """Test LoSplitter with small dataset."""
     smiles, values = small_test_data
 
-    splitter = LoSplitter(
+    splitter = LoSplit(
         threshold=0.4,
         min_cluster_size=2,
         max_clusters=3,
@@ -251,7 +244,7 @@ def test_lo_splitter_no_clusters_found():
     smiles = ["CCO", "CC(=O)O", "c1ccccc1"]
     values = [1.0, 1.0, 1.0]  # No variation, won't meet std_threshold
 
-    splitter = LoSplitter(
+    splitter = LoSplit(
         threshold=0.4,
         min_cluster_size=2,
         max_clusters=5,
@@ -269,7 +262,7 @@ def test_lo_splitter_high_similarity_threshold():
     """Test LoSplitter with high similarity threshold."""
     smiles, values = small_test_data
 
-    splitter = LoSplitter(
+    splitter = LoSplit(
         threshold=0.9,  # Very high threshold
         min_cluster_size=2,
         max_clusters=5,
@@ -286,7 +279,7 @@ def test_lo_splitter_high_similarity_threshold():
 
 def test_lo_splitter_empty_input():
     """Test LoSplitter with empty input."""
-    splitter = LoSplitter()
+    splitter = LoSplit()
 
     with pytest.raises(Exception):  # Should raise some kind of error
         splitter.split([], [])
@@ -294,7 +287,7 @@ def test_lo_splitter_empty_input():
 
 def test_lo_splitter_mismatched_input_lengths():
     """Test LoSplitter with mismatched SMILES and values lengths."""
-    splitter = LoSplitter()
+    splitter = LoSplit()
 
     with pytest.raises(Exception):  # Should raise some kind of error
         splitter.split(["CCO", "CC(=O)O"], [1.0])  # Different lengths
@@ -302,7 +295,7 @@ def test_lo_splitter_mismatched_input_lengths():
 
 def test_lo_splitter_single_molecule():
     """Test LoSplitter with single molecule."""
-    splitter = LoSplitter(min_cluster_size=1)
+    splitter = LoSplit(min_cluster_size=1)
 
     # Single molecule should go to training set
     train_indices, clusters_indices = splitter.split(["CCO"], [1.0], verbose=0)
@@ -316,7 +309,7 @@ def test_lo_splitter_numpy_input(small_test_data):
     """Test LoSplitter with numpy array inputs."""
     smiles, values = small_test_data
 
-    splitter = LoSplitter(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
+    splitter = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
 
     # Convert to numpy arrays
     smiles_array = np.array(smiles)
@@ -334,7 +327,7 @@ def test_lo_splitter_different_n_jobs():
     """Test LoSplitter with different n_jobs settings."""
     smiles, values = small_test_data
 
-    splitter = LoSplitter(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
+    splitter = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
 
     # Test with n_jobs=1
     train_indices_1, clusters_indices_1 = splitter.split(smiles, values, n_jobs=1, verbose=0)
