@@ -59,20 +59,57 @@ GNN layer, performing max pooling across all GNN layer output, and summing all G
 - `readout`: (str) The way to compute graph-level representations out of node-level representations, which 
 can be one of `'sum'`, `'mean'`, `'max'`, and `'attention'`.
 
+## NF (Neural Fingerprint)
+
+- `lr`: (float) Learning rate for updating model parameters
+- `batch_size`: (int) Batch size for mini-batch training
+- `batchnorm`: (bool) Whether to apply batch normalization to the output of each GNN layer
+- `dropout`: (float) Dropout probability
+- `gnn_hidden_feats`: (int) Hidden size for GNN layers
+- `num_gnn_layers`: (int) Number of GNN layers to use
+- `patience`: (int) Number of epochs to wait before early stopping when validation performance no longer gets improved
+- `predictor_hidden_feats`: (int) Hidden size for the MLP predictor
+- `weight_decay`: (float) Strength for L2 penalty in the objective function
+
 ## randomForest
 
 - `n_estimators`: (int) Number of trees in the forest
 - `max_depth`: (int) Maximum depth of the tree
 - `max_features`: (str) Number of features to consider when looking for the best split
-- -`min_samples_leaf`: (int) Minimum number of samples required to be at a leaf node
+- `min_samples_leaf`: (int) Minimum number of samples required to be at a leaf node
 
 ## SVM
 
 - `C`: (float) Regularization parameter
 - `kernel`: (str) Specifies the kernel type to be used in the algorithm
-- `gamma`: (str) Kernel coefficient for ‘rbf’, ‘poly’ and ‘sigmoid’
+- `gamma`: (str) Kernel coefficient for 'rbf', 'poly' and 'sigmoid'
 - `probability`: (bool) Whether to enable probability estimates
 
 ## XGBoost
 
 - `n_estimators`: (int) Number of boosting rounds
+
+## LightGBM
+
+- `boosting_type`: (str) The type of boosting to use. Default is 'gbdt' (Gradient Boosting Decision Tree)
+- `num_leaves`: (int) Maximum number of leaves in one tree
+- `max_depth`: (int) Maximum tree depth for base learners, -1 means no limit
+- `learning_rate`: (float) Boosting learning rate (also known as shrinkage rate)
+- `n_estimators`: (int) Number of boosted trees to fit
+- `subsample_for_bin`: (int) Number of samples for constructing bins
+- `min_split_gain`: (float) Minimum loss reduction required to make a further partition on a leaf node
+- `min_child_weight`: (float) Minimum sum of instance weight (hessian) needed in a child (leaf)
+- `min_child_samples`: (int) Minimum number of data needed in a child (leaf)
+- `subsample`: (float) Subsample ratio of the training instances
+- `subsample_freq`: (int) Frequency of subsample, <=0 means no enable
+- `colsample_bytree`: (float) Subsample ratio of columns when constructing each tree
+- `reg_alpha`: (float) L1 regularization term on weights
+- `reg_lambda`: (float) L2 regularization term on weights
+- `random_state`: (int or None) Random number seed
+- `n_jobs`: (int) Number of parallel threads to use for training
+- `importance_type`: (str) The type of feature importance to be filled into feature_importances_
+
+## kNN (k-Nearest Neighbors)
+
+- `n_neighbors`: (int) Number of neighbors to use for kneighbors queries
+- `metric`: (str) Distance metric to use for the tree. Default is 'minkowski' which results in the standard Euclidean distance when p=2
