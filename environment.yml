@@ -60,4 +60,5 @@ dependencies:
     - astartes
     - datasail
     - umap-learn
+    - mip
     - loguru

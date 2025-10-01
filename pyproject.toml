@@ -35,6 +35,7 @@ dependencies = [
     "splito",
     "datasail",
     "umap-learn",
+    "mip",
     "tqdm",
     "loguru",
     "pyyaml",
