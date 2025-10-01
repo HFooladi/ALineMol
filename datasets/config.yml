@@ -1,0 +1,48 @@
+datasets:
+  TDC:
+    - CYP1A2
+    - CYP2C9
+    - CYP2C19
+    - CYP2D6
+    - CYP3A4
+    - HIV
+    - AMES
+    - HERG
+
+splitting:
+  - random
+  - scaffold
+  - scaffold_generic
+  - molecular_weight
+  - molecular_weight_reverse
+  - molecular_logp
+  - kmeans
+  - max_dissimilarity
+  - umap
+  - hi
+  - datasail
+  #- perimeter
+  
+
+models:
+  GNN:
+    scratch:
+      - GCN
+      - GAT
+      - MPNN
+      #- NF
+      - AttentiveFP
+      - Weave
+    pretrained:
+      - gin_supervised_edgepred
+      - gin_supervised_contextpred
+      - gin_supervised_infomax
+      - gin_supervised_masking
+      - gem
+      - grover
+
+  ML:
+    - randomForest
+    - XGB
+    - SVM
+    #- LightGBM
