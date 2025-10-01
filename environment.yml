@@ -9,13 +9,20 @@ dependencies:
   - pip
   - numpy
   - pandas
+  - scipy
   - matplotlib
   - seaborn
+  - plotly
+  - scikit-learn
+  - statsmodels
+  - networkx
   - tqdm
   - pytorch >= 1.13
   - dgl
   - dgllife
   - pytorch_geometric
+  - pyyaml
+  - typing-extensions
 
   # Chemistry
   - datamol
@@ -50,4 +57,7 @@ dependencies:
     - chembl-webresource-client
     - rdkit
     - biopython
-    
+    - astartes
+    - datasail
+    - umap-learn
+    - loguru

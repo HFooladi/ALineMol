@@ -19,9 +19,26 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
+    "scipy",
     "matplotlib",
     "seaborn",
+    "plotly",
     "scikit-learn",
+    "statsmodels",
+    "torch>=1.13",
+    "dgl",
+    "dgllife",
+    "networkx",
+    "rdkit",
+    "datamol",
+    "astartes",
+    "splito",
+    "datasail",
+    "umap-learn",
+    "tqdm",
+    "loguru",
+    "pyyaml",
+    "typing-extensions",
 ]
 readme = "README.md"
 
