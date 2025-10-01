@@ -168,7 +168,9 @@ assets/figures/
 assets/tables/
 
 # put datasets folder in gitignore
-datasets/
+datasets/*
+!datasets/config.yml
+!datasets/dev_config.yml
 
 # ignore all the checkpoints
 *.pth 
