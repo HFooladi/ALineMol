@@ -28,13 +28,14 @@ class UMAPSplit(GroupShuffleSplit):
         train_size: The size of the train set
         random_state: The random state to use for the split
 
-    Example:
+    Examples:
         >>> from alinemol.splitters import UMAPSplit
         >>> splitter = UMAPSplit(n_clusters=2, linkage="ward", n_neighbors=3, min_dist=0.1, n_components=2, n_splits=5)
         >>> smiles = ["c1ccccc1", "CCC", "CCCC(CCC)C(=O)O", "NC1CCCCC1N","COc1cc(CNC(=O)CCCCC=CC(C)C)ccc1O", "Cc1cc(Br)c(O)c2ncccc12", "OCC(O)c1oc(O)c(O)c1O"]
         >>> for train_idx, test_idx in splitter.split(smiles):
-        >>>     print(train_idx)
-        >>>     print(test_idx)
+        ...     print(train_idx)
+        ...     print(test_idx)
+        ...     break  # Just show the first split
     """
 
     def __init__(
@@ -124,7 +125,7 @@ def get_umap_clusters(
     Returns:
         Array of cluster labels corresponding to each SMILES string in the input list. If return_embedding is True, returns a tuple of the cluster labels and the UMAP embedding.
 
-    Example:
+    Examples:
         >>> from alinemol.splitters import get_umap_clusters
         >>> X = np.random.rand(100, 128)
         >>> clusters_indices, embedding = get_umap_clusters(X, n_clusters=10, n_jobs=1, return_embedding=True)

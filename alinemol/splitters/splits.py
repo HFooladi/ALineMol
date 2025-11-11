@@ -99,57 +99,53 @@ class MolecularLogPSplit(BaseShuffleSplit):
     Args:
         generalize_to_larger : bool, default=True
             If True, train set will have smaller LogP values, test set will have larger values.
-        If False, train set will have larger LogP values, test set will have smaller values.
-    n_splits : int, default=5
-        Number of re-shuffling & splitting iterations. Note that for this deterministic
-        splitter, all iterations will produce the same split.
-    smiles : List[str], optional
-        List of SMILES strings if not provided directly as input in split() or _iter_indices().
-        Useful when the input X to those methods is not a list of SMILES strings but some
-        other feature representation.
-    test_size : float or int, optional
-        If float, represents the proportion of the dataset to include in the test split.
-        If int, represents the absolute number of test samples.
-        If None, the value is set to the complement of the train size.
-    train_size : float or int, optional
-        If float, represents the proportion of the dataset to include in the train split.
-        If int, represents the absolute number of train samples.
-        If None, the value is automatically set to the complement of the test size.
-    random_state : int or RandomState instance, optional
-        Controls the randomness of the training and testing indices produced.
-        Note that this splitter is deterministic, so random_state only affects
-        the implementation of _validate_shuffle_split.
-
-    Returns:
-        MolecularLogPSplit
-            A splitter object that can be used to split datasets by LogP values.
+            If False, train set will have larger LogP values, test set will have smaller values.
+        n_splits : int, default=5
+            Number of re-shuffling & splitting iterations. Note that for this deterministic
+            splitter, all iterations will produce the same split.
+        smiles : List[str], optional
+            List of SMILES strings if not provided directly as input in split() or _iter_indices().
+            Useful when the input X to those methods is not a list of SMILES strings but some
+            other feature representation.
+        test_size : float or int, optional
+            If float, represents the proportion of the dataset to include in the test split.
+            If int, represents the absolute number of test samples.
+            If None, the value is set to the complement of the train size.
+        train_size : float or int, optional
+            If float, represents the proportion of the dataset to include in the train split.
+            If int, represents the absolute number of train samples.
+            If None, the value is automatically set to the complement of the test size.
+        random_state : int or RandomState instance, optional
+            Controls the randomness of the training and testing indices produced.
+            Note that this splitter is deterministic, so random_state only affects
+            the implementation of _validate_shuffle_split.
 
     Examples:
-    >>> from alinemol.splitters import MolecularLogPSplit
-    >>> import numpy as np
-    >>> # Example with list of SMILES
-    >>> smiles = ["CCO", "CC(=O)O", "c1ccccc1", "CCN", "CCCCCCC"]
-    >>> splitter = MolecularLogPSplit(generalize_to_larger=True, test_size=0.4)
-    >>> for train_idx, test_idx in splitter.split(smiles):
-    ...     print(f"Training on: {[smiles[i] for i in train_idx]}")
-    ...     print(f"Testing on: {[smiles[i] for i in test_idx]}")
-    ...     break  # Just show the first split
+        >>> from alinemol.splitters import MolecularLogPSplit
+        >>> import numpy as np
+        >>> # Example with list of SMILES
+        >>> smiles = ["CCO", "CC(=O)O", "c1ccccc1", "CCN", "CCCCCCC"]
+        >>> splitter = MolecularLogPSplit(generalize_to_larger=True, test_size=0.4)
+        >>> for train_idx, test_idx in splitter.split(smiles):
+        ...     print(f"Training on: {[smiles[i] for i in train_idx]}")
+        ...     print(f"Testing on: {[smiles[i] for i in test_idx]}")
+        ...     break  # Just show the first split
 
-    >>> # Example with separate features and target
-    >>> X = np.random.randn(5, 10)  # Some molecular features
-    >>> y = np.random.randint(0, 2, 5)  # Binary target
-    >>> splitter = MolecularLogPSplit(smiles=smiles, test_size=0.4)
-    >>> for train_idx, test_idx in splitter.split(X, y):
-    ...     X_train, X_test = X[train_idx], X[test_idx]
-    ...     y_train, y_test = y[train_idx], y[test_idx]
-    ...     break  # Just show the first split
+        >>> # Example with separate features and target
+        >>> X = np.random.randn(5, 10)  # Some molecular features
+        >>> y = np.random.randint(0, 2, 5)  # Binary target
+        >>> splitter = MolecularLogPSplit(smiles=smiles, test_size=0.4)
+        >>> for train_idx, test_idx in splitter.split(X, y):
+        ...     X_train, X_test = X[train_idx], X[test_idx]
+        ...     y_train, y_test = y[train_idx], y[test_idx]
+        ...     break  # Just show the first split
 
     Notes:
-    - LogP values are calculated using the Crippen method implemented in datamol
-    - This splitter is deterministic - calling split() multiple times will
-      produce the same split regardless of n_splits value
-    - Useful for testing model extrapolation to molecules with different
-      physical-chemical properties than the training set
+        - LogP values are calculated using the Crippen method implemented in datamol
+        - This splitter is deterministic - calling split() multiple times will
+          produce the same split regardless of n_splits value
+        - Useful for testing model extrapolation to molecules with different
+          physical-chemical properties than the training set
     """
 
     def __init__(
@@ -181,24 +177,24 @@ class MolecularLogPSplit(BaseShuffleSplit):
         Args:
             X : list of strings or numpy array
                 List of SMILES strings to split, or features array if smiles
-            was provided in the constructor.
-        y : numpy array, optional
-            Target variable for supervised learning problems.
-            Not used, present for API consistency.
-        groups : numpy array, optional
-            Group labels for the samples.
-            Not used, present for API consistency.
+                was provided in the constructor.
+            y : numpy array, optional
+                Target variable for supervised learning problems.
+                Not used, present for API consistency.
+            groups : numpy array, optional
+                Group labels for the samples.
+                Not used, present for API consistency.
 
         Yields:
             train_indices : numpy array
                 Indices of training samples, sorted by LogP values.
-        test_indices : numpy array
-            Indices of testing samples, sorted by LogP values.
+            test_indices : numpy array
+                Indices of testing samples, sorted by LogP values.
 
         Raises:
             ValueError:
                 If X is not a list of SMILES strings and no SMILES list was
-            provided during initialization.
+                provided during initialization.
         """
 
         requires_smiles = X is None or not all(isinstance(x, str) for x in X)
@@ -286,7 +282,7 @@ class StratifiedRandomSplit(object):
         three consecutive chunks for training, validation and test.
 
         Args:
-            dataset
+            dataset : LabeledDataset
                 We assume ``len(dataset)`` gives the size for the dataset and ``dataset[i]``
                 gives the ith datapoint.
             frac_train : float
@@ -322,7 +318,7 @@ class StratifiedRandomSplit(object):
         """Performs stratified k-fold split of the dataset.
 
         Args:
-            dataset
+            dataset : LabeledDataset
                 We assume ``len(dataset)`` gives the size for the dataset and ``dataset[i]``
                 gives the ith datapoint. The dataset should have a 'labels' attribute.
             k : int

@@ -719,12 +719,13 @@ class HiSplit(BaseShuffleSplit):
                 - List[int]: Indices of training molecules
                 - List[int]: Indices of test molecules
 
-        Example:
+        Examples:
             >>> from alinemol.splitters.lohi import HiSplit
             >>> splitter = HiSplit()
             >>> for train_indices, test_indices in splitter.split(smiles):
-            >>>     print(train_indices)
-            >>>     print(test_indices)
+            ...     print(train_indices)
+            ...     print(test_indices)
+            ...     break  # Just show the first split
         """
         partitions = hi_train_test_split(
             smiles=smiles,
