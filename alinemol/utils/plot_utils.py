@@ -18,6 +18,9 @@ import yaml  # for configuration
 from sklearn.calibration import calibration_curve  # for calibration curve
 from sklearn.decomposition import PCA  # for PCA
 from sklearn.manifold import TSNE  # for t-SNE
+import matplotlib.gridspec as gridspec
+from scipy.stats import pearsonr
+from math import pi
 
 # Path to the repository and datasets
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -36,7 +39,7 @@ rcparams = {
     "font.serif": ["Computer Modern Roman"],
     "font.size": 14,
     # Figure settings
-    "figure.dpi": 300,  # Higher DPI for better quality
+    "figure.dpi": 600,  # Higher DPI for better quality
     "figure.figsize": [6.4, 4.8],  # Default figure size
     "figure.constrained_layout.use": True,  # Better layout handling
     # Axes settings
@@ -70,17 +73,38 @@ ALL_MODELS: List = [ML_MODELS, GNN_MODELS, PRETRAINED_GNN_MODELS]
 DATASET_NAMES: List = CFG["datasets"]["TDC"]
 SPLIT_TYPES: List = CFG["splitting"]
 
-metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
-spitting_mapping = {
+MODEL_MAPPING = {
+    "randomForest": "Random Forest",
+    "XGB": "XGBoost",
+    "SVM": "SVM",
+    "GCN": "GCN",
+    "GAT": "GAT",
+    "MPNN": "MPNN",
+    "AttentiveFP": "AttentiveFP",
+    "Weave": "Weave",
+    "gin_supervised_edgepred": "GIN + Edge",
+    "gin_supervised_contextpred": "GIN + Context",
+    "gin_supervised_infomax": "GIN + InfoMax",
+    "gin_supervised_masking": "GIN + Masking",
+    "gem": "GEM",
+    "grover": "GROVER",
+}
+
+SPLIT_TYPPE_MAPPING = {
     "random": "Random",
     "scaffold": "Scaffold",
     "scaffold_generic": "Scaffold generic",
     "molecular_weight": "Molecular weight",
-    "molecular_logp": "Molecular logp",
     "molecular_weight_reverse": "Molecular weight reverse",
+    "molecular_logp": "Molecular logP",
     "kmeans": "K-means",
     "max_dissimilarity": "Max dissimilarity",
+    "umap": "UMAP",
+    "hi": "Lo-Hi",
+    "datasail": "DataSAIL",
 }
+
+METRIC_MAPPING = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
 
 
 def reduce_dimensionality(data: np.ndarray, method="pca"):
@@ -154,7 +178,7 @@ def plot_ID_OOD(
 
     if save:
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"{dataset_name}_{metric}_ID_OOD.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"{dataset_name}_{metric}_ID_OOD.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
@@ -231,7 +255,7 @@ def plot_ID_OOD_sns(data: pd.DataFrame, dataset_category="TDC", dataset_name="CY
 
     if save:
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"ID_vs_OOD_{dataset_category}_{dataset_name}.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"ID_vs_OOD_{dataset_category}_{dataset_name}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
@@ -268,7 +292,7 @@ def plot_ID_OOD_bar(data: pd.DataFrame, metrics=["accuracy", "roc_auc", "pr_auc"
         ax.set_title(f"{metric} comparison between ID and OOD", fontsize=20)
         if save:
             fig.savefig(
-                os.path.join(REPO_PATH, "assets", "dummy.pdf"),
+                os.path.join(REPO_PATH, "assets", "figures", "dummy.pdf"),
                 bbox_inches="tight",
                 backend="pgf",
             )
@@ -437,25 +461,34 @@ def heatmap_plot(results: pd.DataFrame = None, metric: str = "roc_auc", perc=Fal
     vmin, vmax = 0.0, 0.2
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
     a = sns.heatmap(
-        df, ax=ax, cmap="coolwarm", annot=True, fmt=".3f", vmin=vmin, vmax=vmax, cbar_kws={"label": f"{metric}"}
+        df,
+        ax=ax,
+        cmap="coolwarm",
+        annot=True,
+        fmt=".3f",
+        vmin=vmin,
+        vmax=vmax,
+        cbar_kws={"label": r"\textbf{$\Delta$ " + METRIC_MAPPING[metric] + "}"},
     )
     plt.xlabel("", fontsize=24)
-    plt.ylabel("Dataset", fontsize=24)
-    plt.title(f"Difference between ID and OOD {metric_mapping[metric]}", fontsize=24)
-    a.set_xticklabels(a.get_xticklabels(), rotation=45, horizontalalignment="right", fontsize=18)
-    a.set_yticklabels(a.get_yticklabels(), rotation=0, horizontalalignment="right", fontsize=18)
-    ax.set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
-
+    plt.ylabel(r"\textbf{Dataset}", fontsize=18, labelpad=10)
+    plt.title(rf"\textbf{{Difference between ID and OOD}} \textbf{{{METRIC_MAPPING[metric]}}}", fontsize=24, pad=15)
+    a.set_xticklabels(a.get_xticklabels(), rotation=45, horizontalalignment="right", fontsize=14)
+    a.set_yticklabels(a.get_yticklabels(), rotation=0, horizontalalignment="right", fontsize=14)
+    ax.set_xticklabels(
+        [r"\textbf{" + SPLIT_TYPPE_MAPPING[split] + "}" for split in SPLIT_TYPES], rotation=45, ha="right"
+    )
+    ax.set_yticklabels([r"\textbf{" + dataset + "}" for dataset in dataset_names])
     if save:
         # save as pdf
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_{metric}.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
         # save as png
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_{metric}.png"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_{metric}.png"),
             bbox_inches="tight",
         )
     plt.show()
@@ -478,7 +511,6 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     Options:
         metric: "accuracy", "roc_auc", "pr_auc"
     """
-    metric_mapping = {"accuracy": "Accuracy", "roc_auc": "ROC-AUC", "pr_auc": "PR-AUC"}
     dataset_names = results["dataset"].unique()  # get the unique dataset names
     # split_types = results["split"].unique()  # get the unique split types
     # reorder the split types to this order
@@ -503,35 +535,56 @@ def heatmap_plot_id_ood(results: pd.DataFrame = None, metric: str = "roc_auc", p
     fig, ax = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     # one plot for id and one plot for ood
     sns.heatmap(
-        id_df, ax=ax[0], annot=True, fmt=".3f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
+        id_df,
+        ax=ax[0],
+        annot=True,
+        fmt=".3f",
+        cmap="coolwarm",
+        cbar_kws={"label": rf"\textbf{{{METRIC_MAPPING[metric]}}}"},
+        vmin=vmin,
+        vmax=vmax,
     )
-    ax[0].set_title(f"ID {metric_mapping[metric]}", fontsize=18)
+    ax[0].set_title(rf"\textbf{{ID}} \textbf{{{METRIC_MAPPING[metric]}}}", fontsize=18, pad=10)
     ax[0].set_xlabel("", fontsize=18)
-    ax[0].set_ylabel("Dataset", fontsize=18)
+    ax[0].set_ylabel(r"\textbf{Dataset}", fontsize=18, labelpad=10)
     ax[0].tick_params(axis="both", which="major", labelsize=14)
-    ax[0].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+    ax[0].set_xticklabels(
+        [r"\textbf{" + SPLIT_TYPPE_MAPPING[split] + "}" for split in SPLIT_TYPES], rotation=45, ha="right"
+    )
+    ax[0].set_yticklabels([r"\textbf{" + dataset + "}" for dataset in dataset_names])
 
     sns.heatmap(
-        ood_df, ax=ax[1], annot=True, fmt=".3f", cmap="coolwarm", cbar_kws={"label": f"{metric}"}, vmin=vmin, vmax=vmax
+        ood_df,
+        ax=ax[1],
+        annot=True,
+        fmt=".3f",
+        cmap="coolwarm",
+        cbar_kws={"label": rf"\textbf{{{METRIC_MAPPING[metric]}}}"},
+        vmin=vmin,
+        vmax=vmax,
     )
-    ax[1].set_title(f"OOD {metric_mapping[metric]}", fontsize=18)
+    ax[1].set_title(rf"\textbf{{OOD}} \textbf{{{METRIC_MAPPING[metric]}}}", fontsize=18, pad=10)
     ax[1].set_xlabel("", fontsize=18)
-    ax[1].set_ylabel("Dataset", fontsize=18)
+    ax[1].set_ylabel(r"\textbf{Dataset}", fontsize=18, labelpad=10)
     ax[1].tick_params(axis="both", which="major", labelsize=14)
-    ax[1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+    ax[1].set_xticklabels(
+        [r"\textbf{" + SPLIT_TYPPE_MAPPING[split] + "}" for split in SPLIT_TYPES], rotation=45, ha="right"
+    )
+    ax[1].set_yticklabels([r"\textbf{" + dataset + "}" for dataset in dataset_names])
 
     # plt.tight_layout()
     if save:
         # save as pdf
         fig.savefig(
-            os.path.join("assets", f"heatmap_id_ood_{metric}.pdf"),
+            os.path.join("assets", "figures", f"heatmap_id_ood_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
         # save as png
         fig.savefig(
-            os.path.join("assets", f"heatmap_id_ood_{metric}.png"),
+            os.path.join("assets", "figures", f"heatmap_id_ood_{metric}.png"),
             bbox_inches="tight",
+            dpi=600,
         )
     plt.show()
 
@@ -597,13 +650,13 @@ def heatmap_plot_dataset_fixed(
     if save:
         # save as pdf
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_{dataset}_{metric}.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_{dataset}_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
         # save as png
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_{dataset}_{metric}.png"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_{dataset}_{metric}.png"),
             bbox_inches="tight",
         )
     plt.show()
@@ -670,13 +723,12 @@ def heatmap_plot_all_dataset(
             annot=True,
             fmt=".3f",
             cmap="coolwarm",
-            cbar_kws={"label": f"{metric} difference"},
+            cbar_kws={"label": r"\textbf{$\Delta$ " + METRIC_MAPPING[metric] + "}"},
             vmin=vmin,
             vmax=vmax,
+            annot_kws={"size": 12},
         )
-        ax[i // 2, i % 2].set_title(f"{dataset}", fontsize=18)
-        ax[i // 2, i % 2].set_xlabel("Split", fontsize=18)
-        ax[i // 2, i % 2].set_ylabel("Model", fontsize=18)
+        ax[i // 2, i % 2].set_title(r"\textbf{" + dataset + "}", fontsize=18, pad=10)
         # ax[i // 2, i % 2].tick_params(axis='both', which='major', labelsize=14)
 
         ax[i // 2, i % 2].set_xlabel("")
@@ -685,7 +737,9 @@ def heatmap_plot_all_dataset(
         # just keep the xticks (ax.set_xticks) for left plots and yticks (ax.set_yticks) for bottom plots
         if i % 2 == 0:
             ax[i // 2, i % 2].set_yticks(np.arange(len(models)) + 0.5)
-            ax[i // 2, i % 2].set_yticklabels(models, fontsize=18)
+            ax[i // 2, i % 2].set_yticklabels(
+                [r"\textbf{" + MODEL_MAPPING[model] + "}" for model in models], fontsize=16
+            )
             ax[i // 2, i % 2].set_xticks([])
         else:
             ax[i // 2, i % 2].set_xticks([])
@@ -697,26 +751,34 @@ def heatmap_plot_all_dataset(
         #    ax[i // 2, i % 2].set_yticks([])
 
         ax[3, 0].set_xticks(np.arange(len(split_types)) + 0.5)
-        ax[3, 0].set_xticklabels(split_types, rotation=90, fontsize=18)
-        ax[3, 0].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+        ax[3, 0].set_xticklabels(
+            [r"\textbf{" + SPLIT_TYPPE_MAPPING[split] + "}" for split in SPLIT_TYPES],
+            rotation=45,
+            fontsize=16,
+            ha="right",
+        )
         ax[3, 1].set_xticks(np.arange(len(split_types)) + 0.5)
-        ax[3, 1].set_xticklabels(split_types, rotation=90, fontsize=18)
-        ax[3, 1].set_xticklabels([spitting_mapping[split] for split in SPLIT_TYPES])
+        ax[3, 1].set_xticklabels(
+            [r"\textbf{" + SPLIT_TYPPE_MAPPING[split] + "}" for split in SPLIT_TYPES],
+            rotation=45,
+            fontsize=16,
+            ha="right",
+        )
 
     # plt.tight_layout()
     # save the plot to pdf
     if save:
         # save as pdf
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_all_datasets_{metric}_{report}.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_all_datasets_{metric}_{report}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
         # save as png
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"heatmap_all_datasets_{metric}_{report}.png"),
+            os.path.join(REPO_PATH, "assets", "figures", f"heatmap_all_datasets_{metric}_{report}.png"),
             bbox_inches="tight",
-            dpi=300,
+            dpi=600,
         )
     plt.show()
 
@@ -782,7 +844,7 @@ def dataset_fixed_split_comparisson(
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
     if save:
         fig.savefig(
-            os.path.join(REPO_PATH, "assets", f"{dataset}_{split_type1}_{split_type2}_{metric}.pdf"),
+            os.path.join(REPO_PATH, "assets", "figures", f"{dataset}_{split_type1}_{split_type2}_{metric}.pdf"),
             bbox_inches="tight",
             backend="pgf",
         )
@@ -808,7 +870,7 @@ def test_size_statistics(dataset_names: Optional[List] = None, split_types: Opti
         - Test set ratios are shown as percentages of total dataset size
         - Separate boxplots are created for ID and OOD test sets
         - Results are grouped by split type
-        - If save=True, saves plot as PDF in assets folder
+        - If save=True, saves plot as PDF in assets/figures folder
     """
     dataset_category = "TDC"
 
@@ -879,6 +941,1035 @@ def test_size_statistics(dataset_names: Optional[List] = None, split_types: Opti
     plt.xticks(rotation=45, fontsize=16)
 
     if save:
-        fig.savefig(os.path.join(REPO_PATH, "assets", "test_size_ratio.pdf"), bbox_inches="tight", backend="pgf")
+        fig.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "test_size_ratio.pdf"), bbox_inches="tight", backend="pgf"
+        )
+
+    plt.show()
+
+
+def regplot_with_model_categories(results: pd.DataFrame, metric: str = "roc_auc", save: bool = False):
+    """
+    Create a regression plot between ID and OOD performance of model categories (Classical ML, GNN, Pretrained GNN)
+    all-in-one and individual split types.
+
+    Args:
+        results (pd.DataFrame): DataFrame containing the results
+        metric (str): Metric to use for the plot
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    # 3 model type groups: each group has 6 rows × 2 columns
+    fig = plt.figure(figsize=(14, 16))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[1.5, 3], hspace=2.5, figure=fig)
+
+    fig.suptitle(rf"\textbf{{ID vs OOD Performance Comparison ({METRIC_MAPPING[metric]})}}", fontsize=24, y=1)
+
+    gs1 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0], wspace=0.13)
+    ax1 = plt.subplot(gs1[0, 0])
+    ax2 = plt.subplot(gs1[0, 1])
+    ax3 = plt.subplot(gs1[0, 2])
+
+    # Create 6×6 grid (6 rows, 3 groups × 2 columns each)
+    gs2 = gridspec.GridSpecFromSubplotSpec(6, 6, subplot_spec=gs[1], hspace=0.04, wspace=0.25)
+
+    # Get available splits
+    available_splits = results["split"].unique()
+    n_splits = len(available_splits)  # 11
+
+    # Create axes for each model type group
+    ml_axes = []
+    gnn_axes = []
+    pretrained_gnn_axes = []
+
+    for i in range(n_splits):
+        row = i // 2
+        col_in_group = i % 2
+
+        # ML group: columns 0-1
+        ml_ax = plt.subplot(gs2[row, col_in_group])
+
+        # GNN group: columns 2-3
+        gnn_ax = plt.subplot(gs2[row, col_in_group + 2])
+
+        # Pretrained GNN group: columns 4-5
+        pretrained_gnn_ax = plt.subplot(gs2[row, col_in_group + 4])
+
+        ml_axes.append(ml_ax)
+        gnn_axes.append(gnn_ax)
+        pretrained_gnn_axes.append(pretrained_gnn_ax)
+
+    ML_result = results[results["model_type"] == "Classical ML"]
+    GNN_result = results[results["model_type"] == "GNN"]
+    Pretrained_GNN_result = results[results["model_type"] == "Pretrained GNN"]
+
+    make_regplot(ML_result[f"ID_test_{metric}"], ML_result[f"OOD_test_{metric}"], ax1)
+    make_regplot(GNN_result[f"ID_test_{metric}"], GNN_result[f"OOD_test_{metric}"], ax2, color="#8da0cb")
+    make_regplot(
+        Pretrained_GNN_result[f"ID_test_{metric}"], Pretrained_GNN_result[f"OOD_test_{metric}"], ax3, color="#4daf4a"
+    )
+
+    for ax, title in [(ax1, "Classical ML Models"), (ax2, "GNN Models"), (ax3, "Pretrained GNN Models")]:
+        ax.set_title(rf"\textbf{{{title}}}", fontsize=20, pad=10)
+        ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=15)
+        # ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=15 if ax == ax1 else 0)
+        if ax == ax1:
+            ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=15, labelpad=10)
+        else:
+            ax.set_ylabel("")
+        ax.tick_params(axis="both", labelsize=15)
+        format_axis(ax)
+
+    for i, split in enumerate(available_splits):
+        ML_split = ML_result[ML_result["split"] == split]
+        GNN_split = GNN_result[GNN_result["split"] == split]
+        Pretrained_GNN_split = Pretrained_GNN_result[Pretrained_GNN_result["split"] == split]
+
+        make_regplot(ML_split[f"ID_test_{metric}"], ML_split[f"OOD_test_{metric}"], ml_axes[i], linewidth=1)
+        make_regplot(
+            GNN_split[f"ID_test_{metric}"], GNN_split[f"OOD_test_{metric}"], gnn_axes[i], color="#8da0cb", linewidth=1
+        )
+        make_regplot(
+            Pretrained_GNN_split[f"ID_test_{metric}"],
+            Pretrained_GNN_split[f"OOD_test_{metric}"],
+            pretrained_gnn_axes[i],
+            color="#4daf4a",
+            linewidth=1,
+        )
+
+        for ax in [ml_axes[i], gnn_axes[i], pretrained_gnn_axes[i]]:
+            ax.set_title(rf"\textbf{{{SPLIT_TYPPE_MAPPING[split]}}}", fontsize=12)
+            format_axis(ax, linewidth=1, ticklabelsize=10)
+
+            # Y-label only for leftmost column of each group
+            if ax == ml_axes[i] and i % 2 == 0:
+                ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=10, labelpad=10)
+            else:
+                ax.set_ylabel("")
+
+            # X-label only for bottom row
+            if i >= len(available_splits) - 2:  # Last row
+                ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=10)
+            else:
+                ax.set_xlabel("")
+
+    ax1.text(-0.2, 1.15, r"\textbf{(a)}", transform=ax1.transAxes, fontsize=20)
+    ml_axes[0].text(-1, 1.2, r"\textbf{(b)}", transform=ml_axes[0].transAxes, fontsize=20)
+
+    if save:
+        plt.savefig(os.path.join(REPO_PATH, "assets", "figures", "regplot_with_categories.pdf"), bbox_inches="tight")
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "regplot_with_categories.png"), bbox_inches="tight", dpi=300
+        )
+    plt.show()
+
+
+def regplot_with_model_categories_fixed_split(
+    results: pd.DataFrame, split: str, metric: str = "roc_auc", save: bool = False
+):
+    """
+    Create a regression plot between ID and OOD performance of model categories (Classical ML, GNN, Pretrained GNN)
+    for a specific split type, all-in-one and individual datasets.
+
+    Args:
+        results (pd.DataFrame): DataFrame containing the results
+        split (str): Split type to use
+        metric (str): Metric to use
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    # fotmat
+    alpha = 0.7  # for the data points
+    ticklabelsize_mainplot = 19
+    ticklabelsize_datasetplot = 16
+
+    fig = plt.figure(figsize=(16, 18))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[1.3, 2], hspace=4, figure=fig)
+
+    gs1 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0], wspace=0.15)
+    ax1 = plt.subplot(gs1[0, 0])
+    ax2 = plt.subplot(gs1[0, 1])
+    ax3 = plt.subplot(gs1[0, 2])
+
+    # Add super title
+    fig.suptitle(rf"\textbf{{ID vs OOD Performance Comparison ({METRIC_MAPPING[metric]})}}", fontsize=26, y=0.98)
+
+    gs2 = gridspec.GridSpecFromSubplotSpec(4, 6, subplot_spec=gs[1], hspace=0.08, wspace=0.22)
+    # Second and third rows: 4x2 grid (8 subplots)
+    ml_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(0, 2)]
+    gnn_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(2, 4)]
+    pretrained_gnn_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(4, 6)]
+
+    ML_result = results[results["model_type"] == "Classical ML"]
+    GNN_result = results[results["model_type"] == "GNN"]
+    Pretrained_GNN_result = results[results["model_type"] == "Pretrained GNN"]
+
+    ML_result = ML_result[ML_result["split"] == split]
+    GNN_result = GNN_result[GNN_result["split"] == split]
+    Pretrained_GNN_result = Pretrained_GNN_result[Pretrained_GNN_result["split"] == split]
+
+    # Plot main comparisons
+    make_regplot(
+        ML_result[f"ID_test_{metric}"],
+        ML_result[f"OOD_test_{metric}"],
+        ax1,
+        alpha=alpha,
+        fontsize=ticklabelsize_mainplot,
+    )
+    make_regplot(
+        GNN_result[f"ID_test_{metric}"],
+        GNN_result[f"OOD_test_{metric}"],
+        ax2,
+        color="#8da0cb",
+        alpha=alpha,
+        fontsize=ticklabelsize_mainplot,
+    )
+    make_regplot(
+        Pretrained_GNN_result[f"ID_test_{metric}"],
+        Pretrained_GNN_result[f"OOD_test_{metric}"],
+        ax3,
+        color="#4daf4a",
+        alpha=alpha,
+        fontsize=ticklabelsize_mainplot,
+    )
+
+    # Format main plots
+    for ax, title in [
+        (ax1, f"Classical ML Models ({split})"),
+        (ax2, f"GNN Models ({split})"),
+        (ax3, f"Pretrained GNN Models ({split})"),
+    ]:
+        ax.set_title(rf"\textbf{{{title}}}", fontsize=19, pad=20)
+        ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=18)
+        ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=18)
+        if ax == ax2 or ax == ax3:
+            ax.set_ylabel("")
+        ax.tick_params(axis="both", labelsize=18)
+        format_axis(ax, ticklabelsize=18)
+
+    # For other axis, plot the same for ML and GNN for each datasets
+    # Plot and format datasets comparisons
+    for i, dataset in enumerate(DATASET_NAMES):
+        ML_dataset = ML_result[ML_result["dataset"] == dataset]
+        GNN_dataset = GNN_result[GNN_result["dataset"] == dataset]
+        Pretrained_GNN_dataset = Pretrained_GNN_result[Pretrained_GNN_result["dataset"] == dataset]
+
+        # plot for the whole dataset in the background
+        sns.scatterplot(
+            x=f"ID_test_{metric}", y=f"OOD_test_{metric}", data=ML_result, ax=ml_axes[i], alpha=0.15, s=40, color="gray"
+        )
+        make_regplot(
+            ML_dataset[f"ID_test_{metric}"],
+            ML_dataset[f"OOD_test_{metric}"],
+            ml_axes[i],
+            linewidth=1,
+            alpha=alpha,
+            fontsize=ticklabelsize_datasetplot,
+        )
+
+        sns.scatterplot(
+            x=f"ID_test_{metric}",
+            y=f"OOD_test_{metric}",
+            data=GNN_result,
+            ax=gnn_axes[i],
+            alpha=0.15,
+            s=40,
+            color="gray",
+        )
+        make_regplot(
+            GNN_dataset[f"ID_test_{metric}"],
+            GNN_dataset[f"OOD_test_{metric}"],
+            gnn_axes[i],
+            color="#8da0cb",
+            alpha=alpha,
+            linewidth=1,
+            fontsize=ticklabelsize_datasetplot,
+        )
+
+        sns.scatterplot(
+            x=f"ID_test_{metric}",
+            y=f"OOD_test_{metric}",
+            data=Pretrained_GNN_result,
+            ax=pretrained_gnn_axes[i],
+            alpha=0.15,
+            s=40,
+            color="gray",
+        )
+        make_regplot(
+            Pretrained_GNN_dataset[f"ID_test_{metric}"],
+            Pretrained_GNN_dataset[f"OOD_test_{metric}"],
+            pretrained_gnn_axes[i],
+            color="#4daf4a",
+            alpha=alpha,
+            linewidth=1,
+            fontsize=ticklabelsize_datasetplot,
+        )
+
+        # Format dataset plots
+        for ax in [ml_axes[i], gnn_axes[i], pretrained_gnn_axes[i]]:
+            ax.set_title(rf"\textbf{{{dataset}}}", fontsize=18, pad=12)
+            ax.tick_params(axis="both", labelsize=ticklabelsize_datasetplot)
+            format_axis(ax, linewidth=1, ticklabelsize=ticklabelsize_datasetplot)
+
+            # Only show y-label for leftmost plots
+            if ax == ml_axes[i] and i % 2 == 0:
+                ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=16, labelpad=10)
+            else:
+                ax.set_ylabel("")
+
+            # Only show x-label for bottom plots
+            if i >= len(DATASET_NAMES) - 2:
+                ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=16, labelpad=10)
+            else:
+                ax.set_xlabel("")
+
+    # For the wole plots in row 1, add panel a, For the whole plots on next rows, add panel B
+    ax1.text(-0.15, 1.2, r"\textbf{(a)}", transform=ax1.transAxes, fontsize=20)
+    ml_axes[0].text(-0.6, 1.3, r"\textbf{(b)}", transform=ml_axes[0].transAxes, fontsize=20)
+
+    # Adjust layout to prevent label cutoff
+    # plt.tight_layout()
+    if save:
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", f"regplot_{split}_specific_with_categories.pdf"),
+            bbox_inches="tight",
+        )
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", f"regplot_{split}_specific_with_categories.png"),
+            bbox_inches="tight",
+            dpi=300,
+        )
+    plt.show()
+
+
+def make_regplot(x, y, ax, color="#66c2a5", alpha=0.5, linewidth=2, fontsize=12):
+    """
+    Make a regression plot
+    """
+    sns.regplot(
+        x=x,
+        y=y,
+        ax=ax,
+        scatter_kws={"alpha": alpha, "s": 40},
+        line_kws={"color": "red", "linewidth": linewidth},
+        ci=95,
+        color=color,
+    )
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.8, linestyle="-", linewidth=0.5)
+    corr = pearsonr(x, y)[0]
+    props = dict(boxstyle="round", facecolor="white", alpha=0.8, edgecolor="gray", linewidth=0.5)
+    ax.text(
+        0.05,
+        0.95,
+        rf"\textbf{{r = {corr:.2f}}}",
+        transform=ax.transAxes,
+        fontsize=fontsize,
+        verticalalignment="top",
+        bbox=props,
+    )
+
+
+def format_axis(ax, linewidth=2, ticklabelsize=14):
+    """
+    Format the axis of the plot
+    """
+    lims = [0.5, 0.95]
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    ax.plot(lims, lims, "--", alpha=1, color="gray", linewidth=linewidth)
+    ax.set_xticks(np.arange(0.5, 1.0, 0.1))
+    ax.set_yticks(np.arange(0.5, 1.0, 0.1))
+    ax.tick_params(axis="both", which="major", labelsize=ticklabelsize)
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize=ticklabelsize)
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=ticklabelsize)
+
+
+def regplot_with_model_categories_old(results: pd.DataFrame, metric: str = "roc_auc", save: bool = False):
+    """
+    Create a regression plot between ID and OOD performance of model categories (Classical ML, GNN, Pretrained GNN)
+    all-in-one and individual split types.
+
+    Args:
+        results (pd.DataFrame): DataFrame containing the results
+        metric (str): Metric to use for the plot
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    # 3 model type groups: each group has 6 rows × 2 columns
+    fig = plt.figure(figsize=(17, 14))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[1.2, 6], hspace=0.4, wspace=0, figure=fig)
+
+    fig.suptitle(rf"\textbf{{ID vs OOD Performance Comparison ({METRIC_MAPPING[metric]})}}", fontsize=24, y=0.96)
+
+    gs1 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0], wspace=0.2)
+    ax1 = plt.subplot(gs1[0, 0])
+    ax2 = plt.subplot(gs1[0, 1])
+    ax3 = plt.subplot(gs1[0, 2])
+
+    # Create 6×6 grid (6 rows, 3 groups × 2 columns each)
+    gs2 = gridspec.GridSpecFromSubplotSpec(6, 6, subplot_spec=gs[1], hspace=1, wspace=0.5)
+
+    # Get available splits
+    available_splits = results["split"].unique()
+    n_splits = len(available_splits)  # 11
+
+    # Create axes for each model type group
+    ml_axes = []
+    gnn_axes = []
+    pretrained_gnn_axes = []
+
+    for i in range(n_splits):
+        row = i // 2
+        col_in_group = i % 2
+
+        # ML group: columns 0-1
+        ml_ax = plt.subplot(gs2[row, col_in_group])
+
+        # GNN group: columns 2-3
+        gnn_ax = plt.subplot(gs2[row, col_in_group + 2])
+
+        # Pretrained GNN group: columns 4-5
+        pretrained_gnn_ax = plt.subplot(gs2[row, col_in_group + 4])
+
+        ml_axes.append(ml_ax)
+        gnn_axes.append(gnn_ax)
+        pretrained_gnn_axes.append(pretrained_gnn_ax)
+
+    ML_result = results[results["model_type"] == "Classical ML"]
+    GNN_result = results[results["model_type"] == "GNN"]
+    Pretrained_GNN_result = results[results["model_type"] == "Pretrained GNN"]
+
+    make_regplot(ML_result[f"ID_test_{metric}"], ML_result[f"OOD_test_{metric}"], ax1)
+    make_regplot(GNN_result[f"ID_test_{metric}"], GNN_result[f"OOD_test_{metric}"], ax2, color="#8da0cb")
+    make_regplot(
+        Pretrained_GNN_result[f"ID_test_{metric}"], Pretrained_GNN_result[f"OOD_test_{metric}"], ax3, color="#4daf4a"
+    )
+
+    for ax, title in [(ax1, "Classical ML Models"), (ax2, "GNN Models"), (ax3, "Pretrained GNN Models")]:
+        ax.set_title(rf"\textbf{{{title}}}", fontsize=20, pad=10)
+        ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=15)
+        # ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=15 if ax == ax1 else 0)
+        if ax == ax1:
+            ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=15, labelpad=10)
+        else:
+            ax.set_ylabel("")
+        ax.tick_params(axis="both", labelsize=15)
+        format_axis(ax)
+
+    for i, split in enumerate(available_splits):
+        ML_split = ML_result[ML_result["split"] == split]
+        GNN_split = GNN_result[GNN_result["split"] == split]
+        Pretrained_GNN_split = Pretrained_GNN_result[Pretrained_GNN_result["split"] == split]
+
+        make_regplot(ML_split[f"ID_test_{metric}"], ML_split[f"OOD_test_{metric}"], ml_axes[i], linewidth=1)
+        make_regplot(
+            GNN_split[f"ID_test_{metric}"], GNN_split[f"OOD_test_{metric}"], gnn_axes[i], color="#8da0cb", linewidth=1
+        )
+        make_regplot(
+            Pretrained_GNN_split[f"ID_test_{metric}"],
+            Pretrained_GNN_split[f"OOD_test_{metric}"],
+            pretrained_gnn_axes[i],
+            color="#4daf4a",
+            linewidth=1,
+        )
+
+        for ax in [ml_axes[i], gnn_axes[i], pretrained_gnn_axes[i]]:
+            ax.set_title(rf"\textbf{{{SPLIT_TYPPE_MAPPING[split]}}}", fontsize=12)
+            format_axis(ax, linewidth=1, ticklabelsize=10)
+
+            # Y-label only for leftmost column of each group
+            if ax == ml_axes[i] and i % 2 == 0:
+                ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=10, labelpad=10)
+            else:
+                ax.set_ylabel("")
+
+            # X-label only for bottom row
+            if i >= len(available_splits) - 2:  # Last row
+                ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=10)
+            else:
+                ax.set_xlabel("")
+
+    ax1.text(-0.2, 1.4, r"\textbf{(a)}", transform=ax1.transAxes, fontsize=20)
+    ml_axes[0].text(-0.5, 1.5, r"\textbf{(b)}", transform=ml_axes[0].transAxes, fontsize=20)
+
+    if save:
+        plt.savefig(os.path.join(REPO_PATH, "assets", "figures", "regplot_with_categories.pdf"), bbox_inches="tight")
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "regplot_with_categories.png"), bbox_inches="tight", dpi=600
+        )
+    plt.show()
+
+
+def regplot_with_model_categories_fixed_split_old(
+    results: pd.DataFrame, split: str, metric: str = "roc_auc", save: bool = False
+):
+    """
+    Create a regression plot between ID and OOD performance of model categories (Classical ML, GNN, Pretrained GNN)
+    for a specific split type, all-in-one and individual datasets.
+
+    Args:
+        results (pd.DataFrame): DataFrame containing the results
+        split (str): Split type to use
+        metric (str): Metric to use
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+
+    def make_regplot(x, y, ax, color="#66c2a5", linewidth=2):
+        sns.regplot(
+            x=x,
+            y=y,
+            ax=ax,
+            scatter_kws={"alpha": 0.5, "s": 40},
+            line_kws={"color": "red", "linewidth": linewidth},
+            ci=95,
+            color=color,
+        )
+
+        corr = pearsonr(x, y)[0]
+        props = dict(boxstyle="round", facecolor="white", alpha=0.8, edgecolor="gray", linewidth=0.5)
+        ax.text(
+            0.05,
+            0.95,
+            rf"\textbf{{r = {corr:.2f}}}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+            bbox=props,
+        )
+
+    fig = plt.figure(figsize=(17, 12))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[1, 4], hspace=0.4, wspace=0)
+
+    gs1 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0], wspace=0.2)
+    ax1 = plt.subplot(gs1[0, 0])
+    ax2 = plt.subplot(gs1[0, 1])
+    ax3 = plt.subplot(gs1[0, 2])
+
+    # Add super title
+    fig.suptitle(rf"\textbf{{ID vs OOD Performance Comparison ({METRIC_MAPPING[metric]})}}", fontsize=24, y=0.98)
+
+    gs2 = gridspec.GridSpecFromSubplotSpec(4, 6, subplot_spec=gs[1], hspace=1, wspace=0.3)
+    # Second and third rows: 4x2 grid (8 subplots)
+    ml_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(0, 2)]
+    gnn_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(2, 4)]
+    pretrained_gnn_axes = [plt.subplot(gs2[i, j]) for i in range(0, 4) for j in range(4, 6)]
+
+    ML_result = results[results["model_type"] == "Classical ML"]
+    GNN_result = results[results["model_type"] == "GNN"]
+    Pretrained_GNN_result = results[results["model_type"] == "Pretrained GNN"]
+
+    ML_result = ML_result[ML_result["split"] == split]
+    GNN_result = GNN_result[GNN_result["split"] == split]
+    Pretrained_GNN_result = Pretrained_GNN_result[Pretrained_GNN_result["split"] == split]
+
+    # Plot main comparisons
+    make_regplot(ML_result[f"ID_test_{metric}"], ML_result[f"OOD_test_{metric}"], ax1)
+    make_regplot(GNN_result[f"ID_test_{metric}"], GNN_result[f"OOD_test_{metric}"], ax2, color="#8da0cb")
+    make_regplot(
+        Pretrained_GNN_result[f"ID_test_{metric}"], Pretrained_GNN_result[f"OOD_test_{metric}"], ax3, color="#4daf4a"
+    )
+
+    # Format main plots
+    for ax, title in [
+        (ax1, f"Classical ML Models ({split})"),
+        (ax2, f"GNN Models ({split})"),
+        (ax3, f"Pretrained GNN Models ({split})"),
+    ]:
+        ax.set_title(rf"\textbf{{{title}}}", fontsize=16, pad=10)
+        ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=16)
+        ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=16)
+        if ax == ax2 or ax == ax3:
+            ax.set_ylabel("")
+        ax.tick_params(axis="both", labelsize=16)
+        format_axis(ax)
+
+    # For other axis, plot the same for ML and GNN for each datasets
+    # Plot and format datasets comparisons
+    for i, dataset in enumerate(DATASET_NAMES):
+        ML_dataset = ML_result[ML_result["dataset"] == dataset]
+        GNN_dataset = GNN_result[GNN_result["dataset"] == dataset]
+        Pretrained_GNN_dataset = Pretrained_GNN_result[Pretrained_GNN_result["dataset"] == dataset]
+
+        # plot for the whole dataset in the background
+        sns.scatterplot(
+            x=f"ID_test_{metric}", y=f"OOD_test_{metric}", data=ML_result, ax=ml_axes[i], alpha=0.15, s=40, color="gray"
+        )
+        make_regplot(ML_dataset[f"ID_test_{metric}"], ML_dataset[f"OOD_test_{metric}"], ml_axes[i], linewidth=1)
+        sns.scatterplot(
+            x=f"ID_test_{metric}",
+            y=f"OOD_test_{metric}",
+            data=GNN_result,
+            ax=gnn_axes[i],
+            alpha=0.15,
+            s=40,
+            color="gray",
+        )
+        make_regplot(
+            GNN_dataset[f"ID_test_{metric}"],
+            GNN_dataset[f"OOD_test_{metric}"],
+            gnn_axes[i],
+            color="#8da0cb",
+            linewidth=1,
+        )
+        sns.scatterplot(
+            x=f"ID_test_{metric}",
+            y=f"OOD_test_{metric}",
+            data=Pretrained_GNN_result,
+            ax=pretrained_gnn_axes[i],
+            alpha=0.15,
+            s=40,
+            color="gray",
+        )
+        make_regplot(
+            Pretrained_GNN_dataset[f"ID_test_{metric}"],
+            Pretrained_GNN_dataset[f"OOD_test_{metric}"],
+            pretrained_gnn_axes[i],
+            color="#4daf4a",
+            linewidth=1,
+        )
+
+        # Format dataset plots
+        for ax in [ml_axes[i], gnn_axes[i], pretrained_gnn_axes[i]]:
+            ax.set_title(rf"\textbf{{{dataset}}}", fontsize=14, pad=10)
+            ax.tick_params(axis="both", labelsize=14)
+            format_axis(ax, linewidth=1, ticklabelsize=10)
+
+            # Only show y-label for leftmost plots
+            if ax == ml_axes[i] and i % 2 == 0:
+                ax.set_ylabel(rf"\textbf{{OOD {METRIC_MAPPING[metric]}}}", fontsize=12, labelpad=10)
+            else:
+                ax.set_ylabel("")
+
+            # Only show x-label for bottom plots
+            if i >= len(DATASET_NAMES) - 2:
+                ax.set_xlabel(rf"\textbf{{ID {METRIC_MAPPING[metric]}}}", fontsize=12, labelpad=10)
+            else:
+                ax.set_xlabel("")
+
+    # For the wole plots in row 1, add panel a, For the whole plots on next rows, add panel B
+    ax1.text(-0.15, 1.3, r"\textbf{(a)}", transform=ax1.transAxes, fontsize=20)
+    ml_axes[0].text(-0.35, 1.4, r"\textbf{(b)}", transform=ml_axes[0].transAxes, fontsize=20)
+
+    # Adjust layout to prevent label cutoff
+    # plt.tight_layout()
+    if save:
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", f"regplot_{split}_specific_with_categories.pdf"),
+            bbox_inches="tight",
+        )
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", f"regplot_{split}_specific_with_categories.png"),
+            bbox_inches="tight",
+            dpi=600,
+        )
+    plt.show()
+
+
+def boxplot_heatmap_performance_difference(
+    results: pd.DataFrame, metric: str = "roc_auc", perc: bool = False, save: bool = False
+):
+    """
+    Boxplot and heatmap of the performance difference between ID and OOD for each splitter.
+    Plot all-in-one (boxplot) and individual datasets (heatmap).
+
+    Args:
+        results (pd.DataFrame): DataFrame containing the results
+        metric (str): Metric to use
+        perc (bool): Whether to use percentage difference instead of absolute difference
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    results_plot = results.copy()
+    results_plot["difference"] = results_plot[f"ID_test_{metric}"] - results_plot[f"OOD_test_{metric}"]
+    results_plot["split"] = results_plot["split"].map(SPLIT_TYPPE_MAPPING)
+
+    # Create a single figure with two subplots with more horizontal space between them
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={"wspace": 0.1})
+
+    # First subplot - Boxplot
+    sns.boxplot(
+        x="split",
+        y="difference",
+        data=results_plot,
+        hue="split",
+        ax=ax1,
+        showfliers=True,
+        medianprops={"linewidth": 1.5},
+        width=0.7,
+        capwidths=0.25,
+        fliersize=1,
+    )
+    format_xticklabels(ax1)
+    plt.setp(ax1.get_yticklabels(), fontsize=16)
+    ax1.set_title(r"$\textbf{Difference between ID and OOD test " + METRIC_MAPPING[metric] + "}$", fontsize=20, pad=20)
+    ax1.set_xlabel("", fontsize=24)
+    ax1.set_ylabel(r"$\Delta$" + r"$\textbf{" + METRIC_MAPPING[metric] + "}$", fontsize=20)
+    ax1.grid(axis="y", linestyle="--", alpha=0.6)
+
+    # Second subplot - Heatmap
+    dataset_names = results_plot["dataset"].unique()
+    split_types = [SPLIT_TYPPE_MAPPING[split] for split in SPLIT_TYPES]
+    df = pd.DataFrame(index=dataset_names, columns=split_types)
+
+    # Fill the dataframe
+    for dataset in dataset_names:
+        for split in split_types:
+            num = results_plot[(results_plot["dataset"] == dataset) & (results_plot["split"] == split)][
+                f"ID_test_{metric}"
+            ].mean()
+            den = results_plot[(results_plot["dataset"] == dataset) & (results_plot["split"] == split)][
+                f"OOD_test_{metric}"
+            ].mean()
+            df.loc[dataset, split] = num - den if not perc else (num - den) / num * 100
+
+    df = df.astype(float)
+
+    # Plot heatmap
+    vmin, vmax = 0.0, 0.2
+    sns.heatmap(df, ax=ax2, cmap="coolwarm", annot=True, fmt=".3f", vmin=vmin, vmax=vmax, annot_kws={"size": 12})
+    ax2.set_xlabel("", fontsize=24)
+    ax2.set_ylabel(r"$\textbf{Data Sets}$", fontsize=20)
+    ax2.set_title(r"$\textbf{Difference between ID and OOD test " + METRIC_MAPPING[metric] + "}$", fontsize=20, pad=20)
+
+    format_xticklabels(ax2, rotation=45, ha="right", fontsize=16, is_heatmap=True)
+    plt.setp(ax2.get_yticklabels(), fontsize=16, ha="right")
+    # Format colorbar
+    colorbar = ax2.collections[0].colorbar
+    colorbar.ax.tick_params(labelsize=12)
+    colorbar.ax.set_ylabel(r"$\Delta$" + r"$\textbf{" + METRIC_MAPPING[metric] + "}$", fontsize=16)
+
+    # Add subplot labels
+    ax1.text(-0.15, 1.2, r"$\textbf{(a)}$", transform=ax1.transAxes, fontsize=20)
+    ax2.text(-0.23, 1.2, r"$\textbf{(b)}$", transform=ax2.transAxes, fontsize=20)
+
+    if save:
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "box_heatmap_id_ood_comparison_roc_auc.pdf"),
+            bbox_inches="tight",
+        )
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "box_heatmap_id_ood_comparison_roc_auc.png"),
+            bbox_inches="tight",
+            dpi=300,
+        )
+
+    plt.show()
+
+
+def barplot_performance_difference_model_categories(results: pd.DataFrame, metric: str = "roc_auc", save: bool = False):
+    """
+    Barplot of the performance difference between ID and OOD for each model category for each splitter.
+    Plot all-in-one and individual datasets.
+    """
+    fig = plt.figure(figsize=(16, 12))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1], hspace=0.8, figure=fig)  # Increased hspace for more gap
+
+    # First row: one wide subplot
+    gs1 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs[0])
+    ax1 = plt.subplot(gs1[0, 0])
+
+    # Second and third rows: 4x2 grid (8 subplots)
+    gs2 = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=gs[1])
+    axes = [plt.subplot(gs2[i, j]) for i in range(2) for j in range(4)]
+
+    results_plot = results.copy()
+    results_plot["difference"] = results_plot[f"ID_test_{metric}"] - results_plot[f"OOD_test_{metric}"]
+
+    df = results_plot.groupby(["split", "model_type", "dataset"])["difference"].mean().reset_index()
+    df["split"] = df["split"].map(SPLIT_TYPPE_MAPPING)
+    # rearrange the order of the split
+    split_order = [SPLIT_TYPPE_MAPPING[split] for split in SPLIT_TYPES]
+    df["split"] = pd.Categorical(df["split"], split_order)
+
+    # Main plot
+    g = sns.barplot(x="split", y="difference", hue="model_type", data=df, ax=ax1, legend=True)
+    ax1.set_xlabel("")  # No x-label on main plot
+    ax1.set_ylabel(r"\textbf{$\Delta$ " + METRIC_MAPPING[metric] + "}", fontsize=20)
+    ax1.set_title(r"\textbf{Difference between ID and OOD test " + METRIC_MAPPING[metric] + "}", fontsize=24, pad=20)
+
+    # ticks formatting
+    format_xticklabels(ax1, rotation=30, ha="right", fontsize=16)
+    plt.setp(ax1.get_yticklabels(), fontsize=16)
+
+    # Grid and legend
+    ax1.grid(axis="y", linestyle="--", alpha=0.6)
+    legend = ax1.legend(loc="upper left", bbox_to_anchor=(1, 1), fontsize=14, title=r"\textbf{Model Type}")
+    for text in legend.get_texts():
+        text.set_fontsize(14)
+        text.set_text(r"\textbf{" + text.get_text() + "}")
+
+    # Subplots
+    dataset_names = results_plot["dataset"].unique()
+    for i, dataset in enumerate(dataset_names):
+        df_dataset = df[df["dataset"] == dataset]
+        g = sns.barplot(x="split", y="difference", hue="model_type", data=df_dataset, ax=axes[i])
+
+        axes[i].set_title(r"\textbf{" + dataset + "}", fontsize=18, pad=10)
+        axes[i].set_xlabel("")
+        if i % 4 == 0:
+            axes[i].set_ylabel(r"\textbf{$\Delta$ " + METRIC_MAPPING[metric] + "}", fontsize=14)
+        else:
+            axes[i].set_ylabel("")
+
+        if i >= 4:
+            format_xticklabels(axes[i])
+        else:
+            axes[i].set_xticklabels([])
+
+        axes[i].tick_params(axis="both", labelsize=14)
+        axes[i].grid(axis="y", linestyle="--", alpha=0.5)
+        g.legend().remove()
+        axes[i].set_ylim(-0.10, 0.20)
+        axes[i].set_yticks(np.arange(-0.10, 0.21, 0.05))
+
+    # Subplot labels
+    ax1.text(-0.08, 1.15, r"\textbf{(a)}", transform=ax1.transAxes, fontsize=20)
+    axes[0].text(-0.27, 1.35, r"\textbf{(b)}", transform=axes[0].transAxes, fontsize=20)
+
+    if save:
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "grouped_barplot_ml_gnn_difference.pdf"), bbox_inches="tight"
+        )
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "grouped_barplot_ml_gnn_difference.png"),
+            bbox_inches="tight",
+            dpi=600,
+        )
+
+    plt.show()
+
+
+def format_xticklabels(ax, rotation=45, ha="right", fontsize=16, is_heatmap=False):
+    """
+    Format the x-tick labels of the plot: bold, rotaton, ha, fontsize
+    """
+    xticklabels = [label.get_text() for label in ax.get_xticklabels()]
+    if not is_heatmap:
+        ax.set_xticks(range(len(xticklabels)))
+    ax.set_xticklabels(
+        [r"\textbf{" + label + "}" for label in xticklabels], rotation=rotation, ha=ha, fontsize=fontsize
+    )
+
+
+def plot_radar_subplots(datasets, save=False):
+    """
+    Plot radar subplots for each property
+    Args:
+        datasets (dict): Dictionary of datasets with property values
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    properties = ["Molecular_Weight", "LogP", "TPSA", "HBD", "HBA", "Rotatable_Bonds"]
+    dataset_names = list(datasets.keys())
+    _ = len(dataset_names)
+
+    # Create figure with better spacing
+    fig = plt.figure(figsize=(12, 18))
+    gs = fig.add_gridspec(3, 2, hspace=0.1, wspace=0.2)
+
+    # Use a more distinguishable color palette
+    colors = sns.color_palette("Set2")
+
+    for i, property_name in enumerate(properties):
+        ax = fig.add_subplot(gs[i // 2, i % 2], projection="polar")
+
+        # Collect and normalize median values
+        values = [datasets[name][property_name].median() for name in dataset_names]  # Changed to median
+        values = normalize_property(np.array(values), property_name)
+
+        # Calculate angles
+        angles = np.linspace(0, 2 * pi, len(dataset_names), endpoint=False)
+
+        # Close the radar chart
+        values = np.concatenate((values, [values[0]]))
+        angles = np.concatenate((angles, [angles[0]]))
+
+        # Plot with enhanced styling
+        ax.plot(angles, values, "o-", color=colors[i], linewidth=2.5, markersize=8)
+        ax.fill(angles, values, color=colors[i], alpha=0.25)
+
+        # Enhance grid and labels
+        ax.grid(True, color="gray", alpha=0.3, linewidth=0.5)
+        ax.set_xticks(angles[:-1])
+
+        # Rotate labels for better readability
+        ax.set_xticklabels([r"\textbf{" + name + "}" for name in dataset_names], fontsize=16)
+
+        # Add value markers at specific intervals
+        ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+        ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=16)
+
+        # Add property statistics (using median and IQR)
+        median_val = np.median(values[:-1])
+        q1 = np.percentile(values[:-1], 25)
+        q3 = np.percentile(values[:-1], 75)
+        iqr = q3 - q1
+        stats_text = f"Median: {median_val:.2f}\nIQR: {iqr:.2f}"
+        ax.text(
+            1.0,
+            1.1,
+            stats_text,
+            transform=ax.transAxes,
+            bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
+            fontsize=16,
+            ha="right",
+            va="top",
+        )
+
+        # Enhance title
+        title_text = rf"\textbf{{{property_name}}}" + "\n" + r"\textbf{Distribution (Median)}"
+        ax.set_title(title_text, fontsize=20, pad=22)
+
+    # Add main title
+    plt.suptitle(
+        r"\textbf{Physicochemical Properties Distribution Across Data Sets (Median Values)}",
+        fontsize=24,
+        fontweight="bold",
+        y=1.05,
+    )
+
+    # Add legend with property ranges
+    # For the legend text
+    legend_text = {
+        r"\textbf{Molecular Weight}": r"\textbf{Range: 160-480 Da}",
+        r"\textbf{LogP}": r"\textbf{Range: -2 to 5}",
+        r"\textbf{TPSA}": r"\textbf{Range: 0-140 Å²}",
+        r"\textbf{HBD}": r"\textbf{Range: 0-5}",
+        r"\textbf{HBA}": r"\textbf{Range: 0-10}",
+        r"\textbf{Rotatable Bonds}": r"\textbf{Range: 0-10}",
+    }
+
+    fig.text(
+        1.02,
+        0.9,
+        "\n".join([f"{k}: {v}" for k, v in legend_text.items()]),
+        fontsize=18,
+        transform=fig.transFigure,
+        bbox=dict(facecolor="white", alpha=0.8, edgecolor="none", pad=12),
+    )
+
+    if save:
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "physchem_props_radar_subplots.pdf"), bbox_inches="tight"
+        )
+        plt.savefig(
+            os.path.join(REPO_PATH, "assets", "figures", "physchem_props_radar_subplots.png"),
+            bbox_inches="tight",
+            dpi=300,
+        )
+    plt.show()
+
+
+def normalize_property(values, property_name):
+    """
+    Normalize properties based on their characteristics
+    """
+    if property_name == "LogP":
+        # Center around 0 with typical drug-like range (-2 to 5)
+        return (values - (-2)) / (5 - (-2))
+    elif property_name == "Molecular_Weight":
+        # Normalize based on typical drug-like range (160-480)
+        return (values - 160) / (480 - 160)
+    elif property_name == "TPSA":
+        # Normalize based on typical range (0-140)
+        return values / 140
+    elif property_name == "HBD":
+        # Normalize based on Lipinski's rule (≤5)
+        return values / 5
+    elif property_name == "HBA":
+        # Normalize based on Lipinski's rule (≤10)
+        return values / 10
+    elif property_name == "Rotatable_Bonds":
+        # Normalize based on typical flexibility rule (≤10)
+        return values / 10
+    else:
+        # Default min-max normalization
+        return (values - values.min()) / (values.max() - values.min())
+
+
+def boxplot_test_set_size(test_size_df: pd.DataFrame, save: bool = False):
+    """
+    Boxplot of the test set sizes (ID and OOD) for each split type and dataset.
+
+    Args:
+        test_size_df (pd.DataFrame): DataFrame ["ood_test_size", "id_test_size", "split_type", "dataset"]
+        save (bool): Whether to save the plot
+
+    Returns:
+        None
+    """
+    fig, ax = plt.subplots(figsize=(12, 6), dpi=300)
+
+    # Melt the dataframe
+    df_melt = test_size_df.melt(id_vars=["split_type", "dataset"], var_name="test_type", value_name="size_ratio")
+
+    # Create boxplot with publication-ready styling
+    sns.boxplot(
+        x="split_type",
+        y="size_ratio",
+        hue="test_type",
+        data=df_melt,
+        ax=ax,
+        palette="Set2",
+        fliersize=3,
+        medianprops={"linewidth": 1.5},
+        width=0.7,
+        capwidths=0.15,
+    )
+
+    # Customize axes
+    ax.set_ylabel(r"\textbf{Test Set Size (\%)}", fontsize=18, fontweight="bold", labelpad=10)
+    ax.set_xlabel(r"\textbf{Split Type}", fontsize=18, fontweight="bold", labelpad=10)
+    ax.set_title(
+        r"\textbf{Distribution of Test Set Sizes Across Different Split Types}", fontsize=20, fontweight="bold", pad=20
+    )
+
+    # format xticklabels bold
+    ax.set_xticks(range(len(ax.get_xticklabels())))
+    ax.set_xticklabels(
+        [r"\textbf{" + SPLIT_TYPPE_MAPPING[split.get_text()] + "}" for split in ax.get_xticklabels()],
+        rotation=45,
+        ha="right",
+        fontsize=14,
+    )
+    plt.yticks(fontsize=14)
+
+    # Enhance grid
+    ax.grid(axis="y", linestyle="--", alpha=0.3, color="gray")
+    ax.set_axisbelow(True)
+
+    # Customize legend
+    handles, labels = ax.get_legend_handles_labels()
+    label_mapping = {"ood_test_size": "Out-of-Distribution", "id_test_size": "In-Distribution"}
+    labels = [label_mapping[label] for label in labels]
+    ax.legend(
+        handles=handles,
+        labels=labels,
+        title="Test Set Type",
+        title_fontsize=14,
+        fontsize=12,
+        loc="upper right",
+        frameon=True,
+        framealpha=0.7,
+        edgecolor="gray",
+    )
+
+    if save:
+        fig.savefig(os.path.join(REPO_PATH, "assets", "figures", "test_size_ratio.pdf"), bbox_inches="tight", dpi=300)
+        fig.savefig(os.path.join(REPO_PATH, "assets", "figures", "test_size_ratio.png"), bbox_inches="tight", dpi=300)
 
     plt.show()

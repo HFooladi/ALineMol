@@ -97,25 +97,25 @@ class MolecularLogPSplit(BaseShuffleSplit):
     training distribution.
 
     Args:
-        generalize_to_larger : bool, default=True
+        generalize_to_larger: bool, default=True
             If True, train set will have smaller LogP values, test set will have larger values.
             If False, train set will have larger LogP values, test set will have smaller values.
-        n_splits : int, default=5
+        n_splits: int, default=5
             Number of re-shuffling & splitting iterations. Note that for this deterministic
             splitter, all iterations will produce the same split.
-        smiles : List[str], optional
+        smiles: List[str], optional
             List of SMILES strings if not provided directly as input in split() or _iter_indices().
             Useful when the input X to those methods is not a list of SMILES strings but some
             other feature representation.
-        test_size : float or int, optional
+        test_size: float or int, optional
             If float, represents the proportion of the dataset to include in the test split.
             If int, represents the absolute number of test samples.
             If None, the value is set to the complement of the train size.
-        train_size : float or int, optional
+        train_size: float or int, optional
             If float, represents the proportion of the dataset to include in the train split.
             If int, represents the absolute number of train samples.
             If None, the value is automatically set to the complement of the test size.
-        random_state : int or RandomState instance, optional
+        random_state: int or RandomState instance, optional
             Controls the randomness of the training and testing indices produced.
             Note that this splitter is deterministic, so random_state only affects
             the implementation of _validate_shuffle_split.
@@ -282,19 +282,19 @@ class StratifiedRandomSplit(object):
         three consecutive chunks for training, validation and test.
 
         Args:
-            dataset : LabeledDataset
+            dataset: LabeledDataset
                 We assume ``len(dataset)`` gives the size for the dataset and ``dataset[i]``
                 gives the ith datapoint.
-            frac_train : float
+            frac_train: float
                 Fraction of data to use for training. By default, we set this to be 0.8, i.e.
                 80% of the dataset is used for training.
-            frac_val : float
+            frac_val: float
                 Fraction of data to use for validation. By default, we set this to be 0.1, i.e.
                 10% of the dataset is used for validation.
-            frac_test : float
+            frac_test: float
                 Fraction of data to use for test. By default, we set this to be 0.1, i.e.
                 10% of the dataset is used for test.
-            random_state : None, int or array_like, optional
+            random_state: None, int or array_like, optional
                 Random seed used to initialize the pseudo-random number generator.
                 Can be any integer between 0 and 2**32 - 1 inclusive, an array
                 (or other sequence) of such integers, or None (the default).
@@ -318,16 +318,16 @@ class StratifiedRandomSplit(object):
         """Performs stratified k-fold split of the dataset.
 
         Args:
-            dataset : LabeledDataset
+            dataset: LabeledDataset
                 We assume ``len(dataset)`` gives the size for the dataset and ``dataset[i]``
                 gives the ith datapoint. The dataset should have a 'labels' attribute.
-            k : int
+            k: int
                 Number of folds. Default is 5.
-            random_state : None, int or array_like, optional
+            random_state: None, int or array_like, optional
                 Random seed used to initialize the pseudo-random number generator.
                 Can be any integer between 0 and 2**32 - 1 inclusive, an array
                 (or other sequence) of such integers, or None (the default).
-            log : bool
+            log: bool
                 Whether to log information about the split. Default is True.
 
         Returns:
