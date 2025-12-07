@@ -1,0 +1,116 @@
+# =============================================================================
+# ALineMol Molecular Splitting Configuration Template
+# =============================================================================
+#
+# This is a sample configuration file for the molecular splitting script.
+# Copy this file and modify the values according to your needs.
+#
+# Usage:
+#   python scripts/splitting.py -c scripts/split_config.yaml
+#
+# CLI arguments override config file values when both are provided.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Required Settings
+# -----------------------------------------------------------------------------
+
+# Path to input file containing molecular data
+# Must be a CSV or TSV file with at minimum a 'smiles' column
+# Optional 'label' column for class-balanced splitting
+file_path: data/molecules.csv
+
+# Splitting strategy to use
+# Available options:
+#   Structure-Based:
+#     - scaffold           : Bemis-Murcko scaffold splitting (specific)
+#     - scaffold_generic   : Bemis-Murcko scaffold splitting (generic)
+#   Clustering-Based:
+#     - kmeans             : K-means clustering on fingerprints
+#     - perimeter          : Perimeter-based clustering
+#     - max_dissimilarity  : Maximum dissimilarity splitting
+#     - umap               : UMAP + hierarchical clustering
+#   Property-Based:
+#     - molecular_weight   : Split by MW (test on larger molecules)
+#     - molecular_weight_reverse : Split by MW (test on smaller molecules)
+#     - molecular_logp     : Split by lipophilicity
+#   Similarity-Based:
+#     - hi                 : Hi-split (low train-test similarity)
+#   Baseline:
+#     - random             : Random splitting
+#   Special:
+#     - all                : Run ALL splitting strategies
+splitter: scaffold
+
+# -----------------------------------------------------------------------------
+# Split Parameters
+# -----------------------------------------------------------------------------
+
+# Fraction of data to use for the test set (0 < value < 1)
+test_size: 0.2
+
+# Number of train/test splits to generate
+n_splits: 10
+
+# Maximum allowed difference between train and test active percentages
+# Only applies when 'label' column is present in the data
+tolerance: 0.1
+
+# -----------------------------------------------------------------------------
+# Computation Settings
+# -----------------------------------------------------------------------------
+
+# Number of parallel jobs for splitters that support parallelization
+# -1 = use all available CPUs
+# 1  = no parallelization
+n_jobs: -1
+
+# -----------------------------------------------------------------------------
+# Output Settings
+# -----------------------------------------------------------------------------
+
+# Save split files to disk
+# Set to true to generate train_*.csv and test_*.csv files
+save: true
+
+# Custom output directory (optional)
+# If not specified, splits are saved to: {input_dir}/split/{splitter_name}/
+# output_dir: results/splits/
+
+# -----------------------------------------------------------------------------
+# Preview Mode
+# -----------------------------------------------------------------------------
+
+# Dry run mode: preview operations without saving any files
+# Set to true to see what would happen without making changes
+dry_run: false
+
+
+# =============================================================================
+# Example Configurations
+# =============================================================================
+#
+# --- Scaffold splitting for drug discovery benchmark ---
+# file_path: datasets/TDC/CYP2C19/CYP2C19_standardize.csv
+# splitter: scaffold
+# test_size: 0.2
+# n_splits: 10
+# save: true
+#
+# --- Run all splitters for comprehensive OOD evaluation ---
+# file_path: data/my_dataset.csv
+# splitter: all
+# test_size: 0.2
+# n_splits: 5
+# save: true
+# output_dir: results/all_splits/
+#
+# --- Hi-split for maximum distribution shift ---
+# file_path: data/molecules.csv
+# splitter: hi
+# test_size: 0.2
+# n_splits: 1  # Hi-split is deterministic, typically 1 split
+# save: true
+#
+# =============================================================================
+
