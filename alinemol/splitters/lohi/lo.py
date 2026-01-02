@@ -12,7 +12,10 @@ import functools
 from loguru import logger
 from typing import List, Tuple, Optional, Any
 
+from alinemol.splitters.factory import register_splitter
 
+
+@register_splitter("lo", aliases=["lo_split", "losplit"])
 class LoSplit:
     def __init__(
         self,
@@ -71,7 +74,7 @@ class LoSplit:
         train_idx = list(train_idx) + central_nodes
 
         if not clusters_idx:
-            logger.warninig("No clusters were found. Was your std_threshold too constrained?")
+            logger.warning("No clusters were found. Was your std_threshold too constrained?")
 
         return train_idx, clusters_idx
 

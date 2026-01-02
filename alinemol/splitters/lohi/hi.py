@@ -14,6 +14,7 @@ import mip
 
 from sklearn.model_selection import BaseShuffleSplit
 from alinemol.utils.typing import SMILESList
+from alinemol.splitters.factory import register_splitter
 
 
 def get_neighborhood_graph(smiles: List[str], threshold: float) -> nx.Graph:
@@ -616,6 +617,7 @@ def hi_k_fold_split(
     return partitions
 
 
+@register_splitter("hi", aliases=["hi_split", "hisplit"])
 class HiSplit(BaseShuffleSplit):
     def __init__(
         self,
@@ -625,6 +627,7 @@ class HiSplit(BaseShuffleSplit):
         coarsening_threshold: Optional[float] = None,
         verbose: bool = True,
         max_mip_gap: float = 0.1,
+        n_splits: int = 1,
     ):
         """
         A splitter that creates train/test splits with no molecules in the test set having
@@ -650,7 +653,10 @@ class HiSplit(BaseShuffleSplit):
             max_mip_gap: Determines when to halt optimization based on proximity to the optimal solution.
                 For example, setting it to 0.5 yields a faster but less optimal solution, while 0.01 aims for a more
                 optimal solution, potentially at the cost of more computation time.
+            n_splits: Number of splits to generate (default 1, as this is deterministic).
         """
+        self.n_splits = n_splits
+        self._smiles: Optional[List[str]] = None
         self.similarity_threshold = similarity_threshold
         self.train_min_frac = train_min_frac
         self.test_min_frac = test_min_frac

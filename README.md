@@ -93,43 +93,69 @@ heatmap_plot(results, metric="roc_auc", save=True)
 
 ## Splitting Strategies
 
-ALineMol implements various molecular splitting strategies to simulate different types of distribution shift:
+ALineMol provides a unified API for molecular dataset splitting with multiple strategies to simulate different types of distribution shift.
+
+### Factory Function (Recommended)
+
+The easiest way to create splitters is using the `get_splitter()` factory function:
+
+```python
+from alinemol.splitters import get_splitter, list_splitters, get_splitter_names
+
+# List all available splitters
+print(get_splitter_names())
+# ['butina', 'datasail', 'hi', 'kmeans', 'lo', 'max_dissimilarity',
+#  'molecular_logp', 'molecular_weight', 'molecular_weight_reverse',
+#  'perimeter', 'random', 'scaffold', 'scaffold_generic', 'umap']
+
+# Create a splitter via factory function
+splitter = get_splitter("scaffold", make_generic=True, n_splits=5, test_size=0.2)
+
+# Use with SMILES directly
+smiles = ["CCO", "c1ccccc1", "CCN", ...]
+for train_idx, test_idx in splitter.split(smiles):
+    train_smiles = [smiles[i] for i in train_idx]
+    test_smiles = [smiles[i] for i in test_idx]
+```
 
 ### 1. Structure-Based Splits
 ```python
-from alinemol.splitters import ScaffoldSplit, PerimeterSplit
+from alinemol.splitters import get_splitter, ScaffoldSplit, PerimeterSplit
 
-# Bemis-Murcko scaffold splitting
+# Bemis-Murcko scaffold splitting (via factory)
+scaffold_split = get_splitter("scaffold", make_generic=True)
+
+# Or direct class instantiation
 scaffold_split = ScaffoldSplit(make_generic=True)
 
 # Perimeter-based clustering
-perimeter_split = PerimeterSplit(n_clusters=10)
+perimeter_split = get_splitter("perimeter", n_clusters=10)
 ```
 
 ### 2. Property-Based Splits
 ```python
-from alinemol.splitters import MolecularWeightSplit, MolecularLogPSplit
+from alinemol.splitters import get_splitter, MolecularWeightSplit, MolecularLogPSplit
 
 # Split by molecular weight (test on larger molecules)
-mw_split = MolecularWeightSplit(generalize_to_larger=True)
+mw_split = get_splitter("molecular_weight", generalize_to_larger=True)
 
 # Split by lipophilicity
-logp_split = MolecularLogPSplit(generalize_to_larger=True)
+logp_split = get_splitter("molecular_logp", generalize_to_larger=True)
 ```
 
 ### 3. Similarity-Based Splits
 ```python
-from alinemol.splitters.lohi import HiSplit, LoSplit
+from alinemol.splitters import get_splitter, HiSplit, LoSplit
 
 # Hi-split: ensures low similarity between train/test
-hi_split = HiSplit(
+hi_split = get_splitter("hi",
     similarity_threshold=0.4,
     train_min_frac=0.7,
     test_min_frac=0.15
 )
 
 # Lo-split: for lead optimization scenarios
-lo_split = LoSplit(
+lo_split = get_splitter("lo",
     threshold=0.4,
     min_cluster_size=5,
     std_threshold=0.6
@@ -138,17 +164,38 @@ lo_split = LoSplit(
 
 ### 4. Clustering-Based Splits
 ```python
-from alinemol.splitters import UMAPSplit, KMeansSplit
+from alinemol.splitters import get_splitter, UMAPSplit, KMeansSplit
 
 # UMAP + clustering split
-umap_split = UMAPSplit(
+umap_split = get_splitter("umap",
     n_clusters=20,
     n_neighbors=100,
     min_dist=0.1
 )
 
-# K-means clustering split  
-kmeans_split = KMeansSplit(n_clusters=10, metric="jaccard")
+# K-means clustering split
+kmeans_split = get_splitter("kmeans", n_clusters=10, metric="jaccard")
+
+# Butina clustering (Taylor-Butina algorithm)
+butina_split = get_splitter("butina", cutoff=0.65)
+```
+
+### Command-Line Splitting Tool
+
+ALineMol includes a production-ready CLI tool for dataset splitting:
+
+```bash
+# Basic scaffold splitting
+python scripts/splitting.py -f data/molecules.csv -sp scaffold --save
+
+# Run all splitters at once
+python scripts/splitting.py -f data/molecules.csv -sp all --save
+
+# Preview without saving (dry run)
+python scripts/splitting.py -f data/molecules.csv -sp kmeans --dry-run
+
+# List available splitters
+python scripts/splitting.py --list-splitters
 ```
 
 ## Development

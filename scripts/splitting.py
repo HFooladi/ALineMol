@@ -73,13 +73,22 @@ from typing import Any, Dict, List, Union
 
 import pandas as pd
 import yaml
-from splito import KMeansSplit, MaxDissimilaritySplit, MolecularWeightSplit, PerimeterSplit, ScaffoldSplit
 from tqdm import tqdm
 
-# Import ALineMol modules
-from alinemol.splitters.splits import MolecularLogPSplit, RandomSplit
-from alinemol.splitters.umap_split import UMAPSplit
-from alinemol.splitters.lohi.hi import HiSplit
+# Import ALineMol splitters - using unified API
+from alinemol.splitters import (
+    ScaffoldSplit,
+    ScaffoldGenericSplit,
+    KMeansSplit,
+    MolecularWeightSplit,
+    MolecularWeightReverseSplit,
+    PerimeterSplit,
+    MaxDissimilaritySplit,
+    MolecularLogPSplit,
+    RandomSplit,
+    UMAPSplit,
+    HiSplit,
+)
 from alinemol.splitters.splitting_configures import (
     KMeansSplitConfig,
     MaxDissimilaritySplitConfig,
@@ -120,12 +129,13 @@ INTERNAL_N_SPLITS = 100
 SUPPORTED_EXTENSIONS = {".csv", ".txt"}
 
 # Dictionary mapping splitter names to their corresponding classes
+# Now using unified ALineMol wrappers instead of direct splito imports
 SPLITTER_CLASSES: Dict[str, Any] = {
     "scaffold": ScaffoldSplit,
-    "scaffold_generic": ScaffoldSplit,
+    "scaffold_generic": ScaffoldGenericSplit,
     "kmeans": KMeansSplit,
     "molecular_weight": MolecularWeightSplit,
-    "molecular_weight_reverse": MolecularWeightSplit,
+    "molecular_weight_reverse": MolecularWeightReverseSplit,
     "perimeter": PerimeterSplit,
     "max_dissimilarity": MaxDissimilaritySplit,
     "molecular_logp": MolecularLogPSplit,
@@ -165,12 +175,31 @@ SPLITTER_DESCRIPTIONS: Dict[str, str] = {
 }
 
 # Splitter categories for different initialization patterns
-SIMPLE_SPLITTERS = {RandomSplit, KMeansSplit, MaxDissimilaritySplit, PerimeterSplit, UMAPSplit}
-SMILES_DEPENDENT_SPLITTERS = {MolecularWeightSplit, MolecularLogPSplit}
+# Most splitters use unified API - SMILES passed to split() method
+SIMPLE_SPLITTERS = {
+    RandomSplit,
+    KMeansSplit,
+    MaxDissimilaritySplit,
+    PerimeterSplit,
+    UMAPSplit,
+    ScaffoldSplit,
+    ScaffoldGenericSplit,
+    MolecularWeightSplit,
+    MolecularWeightReverseSplit,
+    MolecularLogPSplit,
+}
 SPECIAL_SPLITTERS = {HiSplit}
 
-# Splitters that support n_jobs parameter (not all do)
-SPLITTERS_WITH_N_JOBS = {RandomSplit, UMAPSplit}
+# Splitters that support n_jobs parameter
+SPLITTERS_WITH_N_JOBS = {
+    RandomSplit,
+    UMAPSplit,
+    ScaffoldSplit,
+    ScaffoldGenericSplit,
+    KMeansSplit,
+    MaxDissimilaritySplit,
+    PerimeterSplit,
+}
 
 
 def load_config_file(config_path: Union[str, Path]) -> Dict[str, Any]:
@@ -372,39 +401,22 @@ class MolecularSplitter:
         # Get configuration options
         hopts = config_class() if callable(config_class) else config_class
 
-        # Build base kwargs based on splitter capabilities
-        supports_n_jobs = method_class in SPLITTERS_WITH_N_JOBS
+        # Build base kwargs - all new wrapper classes use unified API
+        # SMILES are passed to split() method, not constructor
+        base_kwargs = {
+            "n_splits": INTERNAL_N_SPLITS,
+            "test_size": self.test_size,
+            "random_state": DEFAULT_RANDOM_STATE,
+        }
 
-        # Initialize splitter based on its type
-        if method_class in SIMPLE_SPLITTERS:
-            base_kwargs = {
-                "n_splits": INTERNAL_N_SPLITS,
-                "test_size": self.test_size,
-                "random_state": DEFAULT_RANDOM_STATE,
-            }
-            if supports_n_jobs:
-                base_kwargs["n_jobs"] = self.n_jobs
-            splitter = method_class(**base_kwargs, **hopts)
-        elif method_class in SMILES_DEPENDENT_SPLITTERS:
-            splitter = method_class(
-                smiles=smiles,
-                n_splits=INTERNAL_N_SPLITS,
-                test_size=self.test_size,
-                random_state=DEFAULT_RANDOM_STATE,
-                **hopts,
-            )
-        elif method_class in SPECIAL_SPLITTERS:
+        # Add n_jobs for splitters that support it
+        if method_class in SPLITTERS_WITH_N_JOBS:
+            base_kwargs["n_jobs"] = self.n_jobs
+
+        # Special handling for HiSplit which has different initialization
+        if method_class in SPECIAL_SPLITTERS:
             splitter = method_class(**hopts)
         else:
-            # Default initialization pattern (e.g., ScaffoldSplit)
-            base_kwargs = {
-                "smiles": smiles,
-                "n_splits": INTERNAL_N_SPLITS,
-                "test_size": self.test_size,
-                "random_state": DEFAULT_RANDOM_STATE,
-            }
-            if supports_n_jobs:
-                base_kwargs["n_jobs"] = self.n_jobs
             splitter = method_class(**base_kwargs, **hopts)
 
         logger.info(f"Initialized {self.splitter_name} splitter with configuration: {hopts}")

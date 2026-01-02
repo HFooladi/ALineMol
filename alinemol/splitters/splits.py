@@ -11,6 +11,7 @@ from dgl.data.utils import Subset
 from sklearn.model_selection import StratifiedShuffleSplit
 
 from alinemol.utils.typing import LabeledDataset, DatasetSplit, KFoldSplit, RandomStateType, SMILESList
+from alinemol.splitters.factory import register_splitter
 
 
 def stratified_split_dataset(
@@ -76,6 +77,7 @@ def stratified_split_dataset(
     ]
 
 
+@register_splitter("molecular_logp", aliases=["logp", "molecular-logp"])
 class MolecularLogPSplit(BaseShuffleSplit):
     """
     Split a molecular dataset by sorting molecules according to their LogP values.
@@ -229,6 +231,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
                 yield sorted_idx[n_test:], sorted_idx[:n_test]
 
 
+@register_splitter("random", aliases=["random_split"])
 class RandomSplit(ShuffleSplit):
     """
     Splits the dataset randomly.

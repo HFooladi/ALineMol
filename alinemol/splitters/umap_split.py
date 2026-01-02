@@ -6,7 +6,10 @@ from umap import UMAP
 from sklearn.cluster import AgglomerativeClustering
 from alinemol.utils.split_utils import convert_to_default_feats_if_smiles
 
+from alinemol.splitters.factory import register_splitter
 
+
+@register_splitter("umap", aliases=["umap_cluster", "umap_split"])
 class UMAPSplit(GroupShuffleSplit):
     """Group-based split that uses the UMAP clustering in the input space for splitting.
 
