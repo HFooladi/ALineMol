@@ -21,22 +21,21 @@ jobs:
       with:
         enable-cache: true
 
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        uv venv
-        uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
+        PYTHON_VERSION=${{ matrix.python-version }} ./install.sh cpu
 
     - name: Lint with ruff
       run: |
-        uv run ruff check .
+        source .venv/bin/activate
+        ruff check .
 
     - name: Format check with ruff
       run: |
-        uv run ruff format --check .
+        source .venv/bin/activate
+        ruff format --check .
 
     - name: Test with pytest
       run: |
-        uv run pytest -m "not slow"
+        source .venv/bin/activate
+        pytest -m "not slow"
