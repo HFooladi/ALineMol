@@ -9,7 +9,7 @@ authors = [
     {name="Hosein Fooladi", email="fooladi.hosein@gmail.com"}
 ]
 description = "Package for evaluating accuracy and agreement on the line for molecules"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -17,7 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "numpy",
+    "numpy<2",
     "pandas",
     "scipy",
     "matplotlib",
@@ -25,10 +25,13 @@ dependencies = [
     "plotly",
     "scikit-learn",
     "statsmodels",
-    "torch>=1.13",
+    "torch>=1.13,<2.2",
     "dgl",
     "dgllife",
+    "torch-geometric",
     "networkx",
+    "POT",
+    "joblib-progress",
     "rdkit",
     "datamol",
     "astartes",
@@ -109,3 +112,8 @@ disallow_incomplete_defs = true
 module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[tool.uv]
+# Configure PyTorch index for CPU-only installation (default)
+index-url = "https://pypi.org/simple"
+extra-index-url = ["https://download.pytorch.org/whl/cpu"]

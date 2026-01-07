@@ -14,7 +14,6 @@ import rdkit  # for molecule processing
 from sklearn.model_selection import train_test_split  # for splitting the dataset
 from sklearn.model_selection import StratifiedShuffleSplit  # for stratified splitting
 from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
-from astartes.utils.exceptions import MoleculesNotInstalledError
 from scipy.spatial import distance
 from tqdm import tqdm
 
@@ -22,6 +21,12 @@ from tqdm import tqdm
 # In case users provide a list of SMILES instead of features, we rely on ECFP4 and the Tanimoto (Jaccard) distance by default
 MOLECULE_DEFAULT_FEATURIZER = dict(name="ecfp", kwargs=dict(radius=2, fpSize=2048))
 MOLECULE_DEFAULT_DISTANCE_METRIC = "jaccard"
+
+# aimsim is an optional dependency for featurization
+# It will only raise an error when the featurize function is called
+_AIMSIM_AVAILABLE = False
+Molecule = None
+LoadingError = None
 
 try:
     """
@@ -34,10 +39,9 @@ try:
         warnings.simplefilter("ignore", category=DeprecationWarning)
         from aimsim.chemical_datastructures import Molecule
         from aimsim.exceptions import LoadingError
+    _AIMSIM_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    raise MoleculesNotInstalledError(
-        """To use molecule featurizer, install astartes with pip install astartes[molecules]."""
-    )
+    pass  # aimsim is optional, only needed for featurize function
 
 AVAILABLE_SPLITTERS = [
     "random",
@@ -64,7 +68,12 @@ def featurize(molecules: Union[List, np.ndarray], fingerprint: str, fprints_hopt
 
     Returns:
         np.ndarray: X array (featurized molecules)
+
+    Raises:
+        ImportError: If aimsim is not installed.
     """
+    if not _AIMSIM_AVAILABLE:
+        raise ImportError("aimsim is required for featurization. Install it with: pip install astartes[molecules]")
     X = []
     for molecule in tqdm(molecules, desc="Featurizing molecules"):
         try:

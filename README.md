@@ -24,6 +24,50 @@
 
 ### Setup
 
+#### Option 1: Using uv (Recommended)
+
+[uv](https://docs.astral.sh/uv/) is a fast Python package installer.
+
+**Quick Install (using script):**
+```bash
+# Clone the repository
+git clone https://github.com/HFooladi/ALineMol.git
+cd ALineMol
+
+# Install with CPU (default)
+./install.sh
+
+# Or install with CUDA support
+./install.sh cu121  # CUDA 12.1
+./install.sh cu118  # CUDA 11.8
+./install.sh cu124  # CUDA 12.4
+
+# Activate the environment
+source .venv/bin/activate
+```
+
+**Manual Install:**
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repository
+git clone https://github.com/HFooladi/ALineMol.git
+cd ALineMol
+
+# Create virtual environment
+uv venv --python 3.11
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# CPU-only installation
+uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
+
+# Or CUDA 12.1 installation
+uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
+```
+
+#### Option 2: Using conda
+
 ```bash
 # Clone the repository
 git clone https://github.com/HFooladi/ALineMol.git
