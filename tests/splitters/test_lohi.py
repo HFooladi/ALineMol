@@ -141,7 +141,8 @@ def test_hi_splitter_empty_input():
     splitter = HiSplit(verbose=False)
 
     with pytest.raises(Exception):  # Should raise some kind of error
-        splitter.split([])
+        # Must consume the generator to trigger the error
+        list(splitter.split([]))
 
 
 def test_hi_splitter_single_molecule():
@@ -258,7 +259,7 @@ def test_lo_splitter_no_clusters_found():
     assert len(clusters_indices) == 0
 
 
-def test_lo_splitter_high_similarity_threshold():
+def test_lo_splitter_high_similarity_threshold(small_test_data):
     """Test LoSplitter with high similarity threshold."""
     smiles, values = small_test_data
 
@@ -323,7 +324,7 @@ def test_lo_splitter_numpy_input(small_test_data):
     assert len(train_indices) > 0
 
 
-def test_lo_splitter_different_n_jobs():
+def test_lo_splitter_different_n_jobs(small_test_data):
     """Test LoSplitter with different n_jobs settings."""
     smiles, values = small_test_data
 
