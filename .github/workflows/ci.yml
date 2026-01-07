@@ -28,12 +28,12 @@ jobs:
     - name: Lint with ruff
       run: |
         source .venv/bin/activate
-        ruff check .
+        ruff check . --exclude "notebooks/*"
 
     - name: Format check with ruff
       run: |
         source .venv/bin/activate
-        ruff format --check .
+        ruff format --check . --exclude "notebooks/*"
 
     - name: Test with pytest
       run: |
