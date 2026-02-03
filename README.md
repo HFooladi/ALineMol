@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
-[![JCIM](https://img.shields.io/badge/JCIM-2025-blue)](https://pubs.acs.org/doi/10.1021/acs.jcim.5c00049)
+[![JCIM](https://img.shields.io/badge/JCIM-2025-blue)](https://doi.org/10.1021/acs.jcim.5c00475)
 
 <p align="center">
   <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
@@ -298,7 +298,8 @@ If you find ALineMol useful in your research, please cite the following paper:
   number={19},
   pages={9871--9891},
   year={2025},
-  publisher={ACS Publications}
+  publisher={ACS Publications},
+  doi={https://doi.org/10.1021/acs.jcim.5c00475}
 }
 ```
 
@@ -313,7 +314,7 @@ If you find ALineMol useful in your research, please cite the following paper:
 - 📖 [Full Documentation](docs/)
 - 📝 [API Reference](docs/api/)
 - 🎓 [Tutorials](docs/tutorials/)
-- 📊 [Paper](https://pubs.acs.org/doi/10.1021/acs.jcim.5c00049)
+- 📊 [Paper](https://doi.org/10.1021/acs.jcim.5c00475)
 
 ## Contributing
 
