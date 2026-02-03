@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
-[![DOI](https://img.shields.io/badge/DOI-10.26434%2Fchemrxiv--2025--g1vjf--v2-blue)](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
+[![JCIM](https://img.shields.io/badge/JCIM-2025-blue)](https://pubs.acs.org/doi/10.1021/acs.jcim.5c00049)
 
 <p align="center">
   <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
@@ -292,9 +292,13 @@ If you find ALineMol useful in your research, please cite the following paper:
 ```bibtex
 @article{fooladi2025evaluating,
   title={Evaluating Machine Learning Models for Molecular Property Prediction: Performance and Robustness on Out-of-Distribution Data},
-  author={Fooladi, Hosein and Vu, Thi Ngoc Lan and Kirchmair, Johannes},
+  author={Fooladi, Hosein and Vu, Thi Ngoc Lan and Mathea, Miriam and Kirchmair, Johannes},
+  journal={Journal of Chemical Information and Modeling},
+  volume={65},
+  number={19},
+  pages={9871--9891},
   year={2025},
-  doi = {https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2}
+  publisher={ACS Publications}
 }
 ```
 
@@ -309,7 +313,7 @@ If you find ALineMol useful in your research, please cite the following paper:
 - 📖 [Full Documentation](docs/)
 - 📝 [API Reference](docs/api/)
 - 🎓 [Tutorials](docs/tutorials/)
-- 📊 [Paper](https://doi.org/10.26434/chemrxiv-2025-g1vjf-v2)
+- 📊 [Paper](https://pubs.acs.org/doi/10.1021/acs.jcim.5c00049)
 
 ## Contributing
 
