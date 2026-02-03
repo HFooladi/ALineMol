@@ -29,21 +29,56 @@ mypy alinemol/
 ```
 
 ### Building and Installation
+
 ```bash
-# Install in development mode
-pip install --no-deps -e .
+# Using uv (recommended)
+uv pip install -e .
 
-# Install with test dependencies
-pip install -e ".[test]"
+# Using uv with test dependencies
+uv pip install -e ".[test]"
 
-# Install with development dependencies  
-pip install -e ".[dev]"
+# Using uv with development dependencies
+uv pip install -e ".[dev,test]"
+
+# Using pip (alternative)
+pip install -e ".[dev,test]"
 
 # Build documentation
 mkdocs serve
 ```
 
 ### Environment Setup
+
+#### Using install.sh (Recommended)
+```bash
+# CPU installation (default)
+./install.sh
+source .venv/bin/activate
+
+# CUDA installation (choose your CUDA version)
+./install.sh cu121  # CUDA 12.1
+./install.sh cu118  # CUDA 11.8
+./install.sh cu124  # CUDA 12.4
+source .venv/bin/activate
+```
+
+#### Manual uv Installation
+```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment
+uv venv --python 3.11
+source .venv/bin/activate
+
+# CPU PyTorch
+uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
+
+# Or CUDA 12.1 PyTorch
+uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
+```
+
+#### Using conda
 ```bash
 # Create conda environment from file
 conda env create -f environment.yml
