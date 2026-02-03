@@ -540,6 +540,147 @@ class Meter:
             )
 
 
+def calculate_top100_hit_rate(
+    predictions_df: pd.DataFrame,
+    labels_df: pd.DataFrame,
+    smiles_col_pred: str = "smiles",
+    smiles_col_label: str = "smiles",
+    prediction_col: str = "prediction",
+    label_col: str = "label",
+    top_k: int = 100,
+) -> Dict[str, Union[float, int, pd.DataFrame]]:
+    """
+    Calculate top-100 hit rate for virtual screening evaluation.
+
+    This function implements the ranking-based classification method for VS:
+    1. Rank molecules by predicted pGI50 values (descending order)
+    2. Select top K molecules as predicted positives
+    3. Calculate hit rate as proportion of true positives in top K
+
+    Args:
+        predictions_df (pd.DataFrame): DataFrame with SMILES and predicted pGI50 values
+        labels_df (pd.DataFrame): DataFrame with SMILES and true binary labels (1=active, 0=inactive)
+        smiles_col_pred (str): Column name for SMILES strings in predictions_df
+        smiles_col_label (str): Column name for SMILES strings in labels_df
+        prediction_col (str): Column name for predicted pGI50 values in predictions_df
+        label_col (str): Column name for true binary labels in labels_df
+        top_k (int): Number of top molecules to consider as positives (default: 100)
+
+    Returns:
+        dict: Dictionary containing:
+            - hit_rate: proportion of true positives in top K
+            - tp_count: number of true positives in top K
+            - fp_count: number of false positives in top K
+            - tn_count: number of true negatives in remaining molecules
+            - fn_count: number of false negatives in remaining molecules
+            - top_k_molecules: DataFrame with top K molecules and their predictions/labels
+            - confusion_matrix: DataFrame showing TP, FP, TN, FN counts
+
+    Examples:
+        >>> predictions_df = pd.DataFrame({
+        ...     'smiles': ['CCO', 'CCCO', 'CCCC'],
+        ...     'prediction': [7.2, 6.8, 5.5]
+        ... })
+        >>> labels_df = pd.DataFrame({
+        ...     'smiles': ['CCO', 'CCCO', 'CCCC'],
+        ...     'label': [1, 1, 0]
+        ... })
+        >>> results = calculate_top100_hit_rate(predictions_df, labels_df)
+        >>> print(f"Hit Rate: {results['hit_rate']:.3f}")
+    """
+    # Validate input dataframes
+    required_cols_pred = [smiles_col_pred, prediction_col]
+    required_cols_label = [smiles_col_label, label_col]
+
+    for col in required_cols_pred:
+        if col not in predictions_df.columns:
+            raise ValueError(f"Column '{col}' not found in predictions_df")
+
+    for col in required_cols_label:
+        if col not in labels_df.columns:
+            raise ValueError(f"Column '{col}' not found in labels_df")
+
+    # Create a copy of labels_df with renamed SMILES column for merging
+    prediction_df_renamed = predictions_df.copy()
+    prediction_df_renamed = prediction_df_renamed.rename(columns={smiles_col_pred: smiles_col_label})
+
+    # Merge predictions and labels on SMILES
+    merged_df = prediction_df_renamed.merge(labels_df, on=smiles_col_label, how="inner")
+
+    if len(merged_df) == 0:
+        raise ValueError("No matching SMILES found between predictions and labels dataframes")
+
+    # Sort by predicted values in descending order (highest predictions first)
+    merged_df = merged_df.sort_values(prediction_col, ascending=False).reset_index(drop=True)
+
+    # Select top K molecules as predicted positives
+    top_k_molecules = merged_df.head(top_k).copy()
+    remaining_molecules = merged_df.iloc[top_k:].copy() if len(merged_df) > top_k else pd.DataFrame()
+
+    # Calculate confusion matrix components
+    tp_count = len(top_k_molecules[top_k_molecules[label_col] == 1])
+    fp_count = len(top_k_molecules[top_k_molecules[label_col] == 0])
+
+    if len(remaining_molecules) > 0:
+        tn_count = len(remaining_molecules[remaining_molecules[label_col] == 0])
+        fn_count = len(remaining_molecules[remaining_molecules[label_col] == 1])
+    else:
+        tn_count = 0
+        fn_count = 0
+
+    # Calculate hit rate (proportion of true positives in top K)
+    hit_rate = tp_count / top_k if top_k > 0 else 0.0
+
+    # Calculate additional metrics
+    total_positives = tp_count + fn_count
+    total_negatives = fp_count + tn_count
+
+    # True Positive Rate (Sensitivity/Recall)
+    tpr = tp_count / total_positives if total_positives > 0 else 0.0
+
+    # False Positive Rate
+    fpr = fp_count / total_negatives if total_negatives > 0 else 0.0
+
+    # Precision
+    precision = tp_count / (tp_count + fp_count) if (tp_count + fp_count) > 0 else 0.0
+
+    # Create confusion matrix DataFrame
+    confusion_matrix = pd.DataFrame(
+        {
+            "Predicted": ["Positive", "Positive", "Negative", "Negative"],
+            "Actual": ["Positive", "Negative", "Negative", "Positive"],
+            "Count": [tp_count, fp_count, tn_count, fn_count],
+            "Metric": ["TP", "FP", "TN", "FN"],
+        }
+    )
+
+    # Add ranking information to top K molecules
+    top_k_molecules["rank"] = range(1, len(top_k_molecules) + 1)
+    top_k_molecules["predicted_positive"] = True
+
+    if len(remaining_molecules) > 0:
+        remaining_molecules["rank"] = range(top_k + 1, len(merged_df) + 1)
+        remaining_molecules["predicted_positive"] = False
+
+    results = {
+        "hit_rate": hit_rate,
+        "tp_count": tp_count,
+        "fp_count": fp_count,
+        "tn_count": tn_count,
+        "fn_count": fn_count,
+        "tpr": tpr,
+        "fpr": fpr,
+        "precision": precision,
+        "top_k_molecules": top_k_molecules,
+        "remaining_molecules": remaining_molecules,
+        "confusion_matrix": confusion_matrix,
+        "total_molecules": len(merged_df),
+        "top_k": top_k,
+    }
+
+    return results
+
+
 def compare_rankings(
     condition1_values: Union[List[float], np.ndarray],
     condition2_values: Union[List[float], np.ndarray],
