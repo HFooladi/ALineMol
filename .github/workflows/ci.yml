@@ -37,6 +37,8 @@ jobs:
         ruff format --check . --exclude "notebooks/*"
 
     - name: Test with pytest
+      env:
+        DGL_SKIP_GRAPHBOLT: "1"
       run: |
         source .venv/bin/activate
         pytest -m "not slow"
