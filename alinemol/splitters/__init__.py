@@ -7,6 +7,7 @@ a focus on out-of-distribution (OOD) performance analysis.
 Main API:
     get_splitter(name, **kwargs) - Factory function to create splitters by name
     list_splitters() - List all available splitters
+    SplitAnalyzer - Analyze and compare split quality
 
 Available Splitters:
     Structure-based: scaffold, scaffold_generic
@@ -16,7 +17,7 @@ Available Splitters:
     Information leakage: datasail
     Baseline: random
 
-Example:
+Example - Creating splits:
     >>> from alinemol.splitters import get_splitter, list_splitters
     >>>
     >>> # List available splitters
@@ -31,6 +32,24 @@ Example:
     >>> # Direct class import also works
     >>> from alinemol.splitters import ScaffoldSplit
     >>> splitter = ScaffoldSplit(make_generic=True)
+
+Example - Analyzing split quality:
+    >>> from alinemol.splitters import SplitAnalyzer, get_splitter
+    >>>
+    >>> # Create analyzer
+    >>> analyzer = SplitAnalyzer(smiles_list)
+    >>>
+    >>> # Analyze a single split
+    >>> splitter = get_splitter("scaffold")
+    >>> train_idx, test_idx = next(splitter.split(smiles_list))
+    >>> report = analyzer.analyze_split(train_idx, test_idx, "scaffold")
+    >>>
+    >>> print(f"Mean similarity: {report.similarity_metrics.mean_sim:.3f}")
+    >>> print(f"Scaffold overlap: {report.scaffold_metrics.scaffold_overlap_percentage:.1f}%")
+    >>>
+    >>> # Compare multiple splitters
+    >>> comparison = analyzer.compare_splitters(["scaffold", "kmeans", "random"])
+    >>> print(comparison)  # DataFrame with aggregated metrics
 """
 
 from typing import List
@@ -79,6 +98,16 @@ from alinemol.splitters.lohi import LoSplit, HiSplit
 # DataSAIL integration
 from alinemol.splitters.datasail import DataSAILSplit, DataSAILGroupSplit
 
+# Split Quality Analyzer
+from alinemol.splitters.analyzer import (
+    SplitAnalyzer,
+    SplitQualityReport,
+    SimilarityMetrics,
+    ScaffoldMetrics,
+    PropertyDistribution,
+    SizeMetrics,
+)
+
 
 __all__: List[str] = [
     # Base class
@@ -115,4 +144,11 @@ __all__: List[str] = [
     # DataSAIL
     "DataSAILSplit",
     "DataSAILGroupSplit",
+    # Split Quality Analyzer
+    "SplitAnalyzer",
+    "SplitQualityReport",
+    "SimilarityMetrics",
+    "ScaffoldMetrics",
+    "PropertyDistribution",
+    "SizeMetrics",
 ]
