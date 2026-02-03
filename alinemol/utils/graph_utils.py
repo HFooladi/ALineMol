@@ -45,7 +45,7 @@ def choose_featurizer(
         - Weave, MPNN, and AttentiveFP models require edge featurizers
         - Other models typically only need node featurizers
 
-    Example:
+    Examples:
         >>> from alinemol.utils.graph_utils import choose_featurizer
         >>> # For a GCN model with canonical featurizers
         >>> node_feat, edge_feat = choose_featurizer("GCN")
@@ -222,7 +222,7 @@ def TMD(g1: Data, g2: Data = None, w: Union[float, List[float]] = 1.0, L: int = 
         Chuang et al., Tree Mover's Distance: Bridging Graph Metrics and
         Stability of Graph Neural Networks, NeurIPS 2022
 
-    Example:
+    Examples:
         >>> from alinemol.utils.graph_utils import create_pyg_graphs, TMD
         >>> # Create PyG graphs from SMILES strings
         >>> smiles = ["CCO", "c1ccccc1"]
@@ -392,7 +392,7 @@ def pairwise_graph_distances(
         - Shows progress bars during computation
         - For large datasets, increasing n_jobs can significantly speed up computation
 
-    Example:
+    Examples:
         >>> from alinemol.utils.graph_utils import create_pyg_graphs, pairwise_graph_distances
         >>> import numpy as np
 

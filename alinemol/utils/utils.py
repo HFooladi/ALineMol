@@ -58,7 +58,7 @@ def init_featurizer(args: ConfigDict) -> ConfigDict:
         ValueError: If the node_featurizer_type is not in ['canonical', 'attentivefp']
         ValueError: If args does not contain the key 'model', 'atom_featurizer_type', 'bond_featurizer_type'
 
-    Example:
+    Examples:
         >>> from alinemol.utils.utils import init_featurizer
         >>> args = {
         ...    "model": "GCN",
@@ -124,7 +124,7 @@ def load_dataset(args: ConfigDict, df: pd.DataFrame) -> MoleculeCSVDataset:
     Raises:
         ValueError: If args does not contain the key 'smiles_column', 'task_names', 'result_path', 'num_workers'
 
-    Example:
+    Examples:
 
         >>> from alinemol.utils.utils import load_dataset
         >>> args = {
@@ -263,7 +263,7 @@ def split_dataset(args: ConfigDict, dataset: DatasetType) -> Tuple[DatasetType, 
     Raises:
         ValueError: If split method is invalid or split ratios are invalid
 
-    Example:
+    Examples:
         >>> from alinemol.utils.utils import split_dataset
         >>> args = {
         ...    "split": "scaffold_decompose",
@@ -534,7 +534,7 @@ def compute_ID_OOD(
     Returns:
         pd.DataFrame
 
-    Example:
+    Examples:
     ```
     from alinemol.utils.utils import compute_ID_OOD
     results = compute_ID_OOD(dataset_category="TDC", dataset_names="CYP2C19", split_type="scaffold", num_of_splits=10)
@@ -606,7 +606,7 @@ def compute_difference(results: pd.DataFrame, metrics: List[str] = ["accuracy", 
     Returns:
         pd.DataFrame
 
-    Example:
+    Examples:
         >>> import pandas as pd
         >>> from alinemol.utils.utils import compute_difference
         >>> results = pd.read_csv("results.csv")
@@ -634,7 +634,7 @@ def downsample_majority_class(df: pd.DataFrame, ratio: float = 1.5) -> pd.DataFr
         df (pd.DataFrame): Dataframe
         ratio (float): Ratio of majority to minority class
 
-    Example:
+    Examples:
         >>> import pandas as pd
         >>> from alinemol.utils.utils import downsample_majority_class
         >>> df = pd.DataFrame({'label': [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]})
@@ -692,7 +692,7 @@ def brier_score(y_true: TensorType, y_pred_prob: TensorType) -> float:
         y_true (np.array): True labels
         y_pred_prob (np.array): Predicted probabilities
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from alinemol.utils.utils import brier_score
         >>> y_true = np.array([0, 1, 0, 1])
@@ -712,7 +712,7 @@ def expected_calibration_error(y_true: TensorType, y_pred_prob: TensorType, n_bi
         y_pred_prob (np.array): Predicted probabilities
         n_bins (int): Number of bins
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from alinemol.utils.utils import expected_calibration_error
         >>> y_true = np.array([0, 1, 0, 1])
