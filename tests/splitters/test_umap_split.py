@@ -155,8 +155,8 @@ def test_get_umap_clusters(sample_data):
 def test_umap_split_reproducibility(sample_data):
     # Test that same random state gives same splits
     # n_neighbors must be less than n_samples (20)
-    splitter1 = UMAPSplit(n_clusters=3, n_splits=2, test_size=0.3, random_state=42, n_neighbors=5)
-    splitter2 = UMAPSplit(n_clusters=3, n_splits=2, test_size=0.3, random_state=42, n_neighbors=5)
+    splitter1 = UMAPSplit(n_clusters=3, n_splits=2, test_size=0.3, random_state=42, n_neighbors=5, n_jobs=1)
+    splitter2 = UMAPSplit(n_clusters=3, n_splits=2, test_size=0.3, random_state=42, n_neighbors=5, n_jobs=1)
 
     splits1 = list(splitter1.split(sample_data))
     splits2 = list(splitter2.split(sample_data))

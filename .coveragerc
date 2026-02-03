@@ -1,0 +1,27 @@
+[run]
+source = .
+omit = 
+    tests/*
+    setup.py
+    */__init__.py
+data_file = reports/coverage/.coverage
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+
+[html]
+directory = reports/coverage/html
+
+[xml]
+output = reports/coverage/coverage.xml
+
+[paths]
+source =
+    alinemol
+    */site-packages/alinemol
