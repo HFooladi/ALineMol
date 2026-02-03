@@ -28,7 +28,7 @@ dependencies = [
     "plotly",
     "scikit-learn",
     "statsmodels",
-    "torch>=1.13",
+    "torch>=1.13,<2.2",
     "dgl",
     "dgllife",
     "torch-geometric",
