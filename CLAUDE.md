@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+### Quick Reference (Makefile)
+```bash
+make test            # Run all tests via run_tests.py
+make test-fast       # Run fast tests only
+make test-coverage   # Run tests with coverage report
+make lint            # Ruff check with --fix
+make type-check      # Run mypy
+make docs-serve      # Serve documentation locally
+make clean           # Remove build artifacts
+make install-dev     # Install with dev+test dependencies
+```
+
 ### Testing
 ```bash
 # Run all tests
@@ -14,6 +26,13 @@ pytest --cov=alinemol --cov-report=term-missing
 
 # Run tests excluding slow ones
 pytest -m "not slow"
+
+# Using run_tests.py (supports test categories)
+python run_tests.py all          # All tests
+python run_tests.py unit         # Unit tests only
+python run_tests.py integration  # Integration tests only
+python run_tests.py fast         # Fast tests (excludes slow)
+python run_tests.py coverage     # Tests with coverage report
 ```
 
 ### Code Quality
@@ -124,6 +143,13 @@ for train_idx, test_idx in splitter.split(smiles_list):
     train = [smiles_list[i] for i in train_idx]
 ```
 
+**Split Analysis:**
+```python
+from alinemol.splitters import SplitAnalyzer
+analyzer = SplitAnalyzer(smiles_list, train_idx, test_idx)
+report = analyzer.generate_report()  # Returns SplitQualityReport
+```
+
 **alinemol/preprocessing/**: Data preprocessing and standardization
 - `standardizer.py`: SMILES standardization and molecular preprocessing pipeline
 
@@ -135,6 +161,7 @@ for train_idx, test_idx in splitter.split(smiles_list):
 - `plot_utils.py`: Visualization and plotting functions
 - `graph_utils.py`: Graph construction for molecular data
 - `logger_utils.py`: Logging configuration and utilities
+- `typing.py`: Custom type aliases (`ModelType`, `PathType`, `ConfigDict`, `DatasetType`)
 
 **alinemol/hyper/**: Hyperparameter optimization
 - `hyper.py`: Hyperparameter tuning utilities
@@ -175,6 +202,26 @@ python scripts/splitting.py -f data/molecules.csv -sp scaffold --save
 python scripts/splitting.py -f data/molecules.csv -sp all --save
 ```
 
+### Training and Inference Scripts
+
+```bash
+# GNN classification
+python scripts/clf_train_gnn.py
+python scripts/clf_inference_gnn.py
+
+# Classical ML classification
+python scripts/clf_train_ml.py
+python scripts/clf_inference_ml.py
+
+# Regression
+python scripts/regression_train.py
+python scripts/regression_inference.py
+
+# Analysis
+python scripts/analyze_splits.py
+python scripts/calculate_distance.py
+```
+
 ### Dataset Integration
 
 The framework integrates with multiple molecular datasets including:
@@ -189,3 +236,10 @@ The framework integrates with multiple molecular datasets including:
 - **ML**: XGBoost, LightGBM for classical ML
 - **DL**: PyTorch ecosystem for deep learning models
 - **Graph**: DGL for graph neural networks
+
+### Gotchas
+
+- Set `DGL_SKIP_GRAPHBOLT=1` when running tests (CI does this automatically)
+- Python 3.9, 3.10, and 3.11 are supported and tested in CI
+- Pre-commit hooks run ruff check and ruff format automatically
+- `alinemol/__init__.py` only exports `__version__`; import submodules directly (e.g., `from alinemol.splitters import get_splitter`)
