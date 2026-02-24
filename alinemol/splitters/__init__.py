@@ -11,7 +11,7 @@ Main API:
 
 Available Splitters:
     Structure-based: scaffold, scaffold_generic
-    Clustering-based: kmeans, perimeter, max_dissimilarity, umap, butina
+    Clustering-based: kmeans, perimeter, max_dissimilarity, umap, butina, scaffold_kmeans
     Property-based: molecular_weight, molecular_logp
     Similarity-based: hi, lo
     Information leakage: datasail
@@ -92,6 +92,9 @@ from alinemol.splitters.umap_split import UMAPSplit, get_umap_clusters
 # Butina clustering-based splitter
 from alinemol.splitters.butina_split import BUTINASplit, get_butina_clusters
 
+# Scaffold K-Means splitter
+from alinemol.splitters.scaffold_kmeans_split import ScaffoldKMeansSplit, get_scaffold_kmeans_clusters
+
 # Lo-Hi splitters for similarity-based splitting
 from alinemol.splitters.lohi import LoSplit, HiSplit
 
@@ -138,6 +141,9 @@ __all__: List[str] = [
     # Butina
     "BUTINASplit",
     "get_butina_clusters",
+    # Scaffold K-Means
+    "ScaffoldKMeansSplit",
+    "get_scaffold_kmeans_clusters",
     # Lo-Hi
     "LoSplit",
     "HiSplit",
