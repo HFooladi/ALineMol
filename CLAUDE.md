@@ -184,6 +184,14 @@ report = analyzer.generate_report()  # Returns SplitQualityReport
 - The framework emphasizes reproducibility through configurable parameters
 - Extensive logging is integrated throughout the codebase
 
+### Adding a New Splitter
+
+1. Create `alinemol/splitters/<name>_split.py`: subclass `GroupShuffleSplit`, use `@register_splitter("name", aliases=[...])` decorator, override `_iter_indices`, add standalone helper function (e.g., `get_<name>_clusters`)
+2. Update `alinemol/splitters/__init__.py`: add import and `__all__` entries
+3. Create `tests/splitters/test_<name>_split.py`: test init, split with SMILES, disjoint indices, factory access, alias access, helper function
+4. Mark tests that run actual splits with `@pytest.mark.slow`
+5. Reference `butina_split.py` and `test_butina_split.py` as canonical examples
+
 ### Splitting Script
 
 The `scripts/splitting.py` CLI tool supports all splitting strategies:
@@ -242,4 +250,5 @@ The framework integrates with multiple molecular datasets including:
 - Set `DGL_SKIP_GRAPHBOLT=1` when running tests (CI does this automatically)
 - Python 3.9, 3.10, and 3.11 are supported and tested in CI
 - Pre-commit hooks run ruff check and ruff format automatically
+- Pre-commit `ruff-format` hook may reformat files on first commit attempt, causing it to fail; re-stage and commit again (do NOT amend)
 - `alinemol/__init__.py` only exports `__version__`; import submodules directly (e.g., `from alinemol.splitters import get_splitter`)
