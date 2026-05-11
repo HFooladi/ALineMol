@@ -150,7 +150,8 @@ from alinemol.splitters import get_splitter, list_splitters, get_splitter_names
 print(get_splitter_names())
 # ['butina', 'datasail', 'hi', 'kmeans', 'lo', 'max_dissimilarity',
 #  'molecular_logp', 'molecular_weight', 'molecular_weight_reverse',
-#  'perimeter', 'random', 'scaffold', 'scaffold_generic', 'umap']
+#  'perimeter', 'random', 'scaffold', 'scaffold_generic',
+#  'scaffold_kmeans', 'umap']
 
 # Create a splitter via factory function
 splitter = get_splitter("scaffold", make_generic=True, n_splits=5, test_size=0.2)
@@ -222,7 +223,45 @@ kmeans_split = get_splitter("kmeans", n_clusters=10, metric="jaccard")
 
 # Butina clustering (Taylor-Butina algorithm)
 butina_split = get_splitter("butina", cutoff=0.65)
+
+# Scaffold extraction + k-means on scaffold ECFP fingerprints
+scaffold_kmeans_split = get_splitter("scaffold_kmeans", n_clusters=10, make_generic=True)
 ```
+
+### Split Quality Analysis
+
+`SplitAnalyzer` quantifies what a split actually produced: train↔test Tanimoto similarity
+distribution, scaffold overlap, property divergence, and size metrics. Useful for
+validating that an "OOD" splitter behaves more strictly than the random baseline.
+
+```python
+from alinemol.splitters import SplitAnalyzer, get_splitter
+
+analyzer = SplitAnalyzer(smiles_list)
+
+# Analyze a single split
+splitter = get_splitter("scaffold")
+train_idx, test_idx = next(splitter.split(smiles_list))
+report = analyzer.analyze_split(train_idx, test_idx, splitter_name="scaffold")
+print(f"Mean train-test similarity: {report.similarity_metrics.mean_sim:.3f}")
+
+# Compare multiple splitters in one DataFrame
+comparison = analyzer.compare_splitters(["scaffold", "kmeans", "random"])
+```
+
+For large datasets, point `SplitAnalyzer` at a precomputed Jaccard distance matrix to
+skip recomputing per-call similarity (the TDC datasets ship one as `Jaccard_distance.npy`):
+
+```python
+analyzer = SplitAnalyzer(
+    smiles_list,
+    precomputed_distance_matrix="datasets/TDC/CYP2C9/Jaccard_distance.npy",
+)
+```
+
+The SMILES list must be in the same order as the matrix (use `valid_canonical_smiles.txt`
+from the same dataset folder, or let `scripts/analyze_splits.py` auto-detect and validate
+the alignment).
 
 ### Command-Line Splitting Tool
 

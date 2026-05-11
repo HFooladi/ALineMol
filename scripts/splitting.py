@@ -3,49 +3,51 @@
 Molecular Splitting Script
 ===========================
 
-A production-ready command-line tool for splitting molecular datasets into train and test
-sets using various splitting strategies. Supports multiple methods including scaffold-based,
-clustering-based, property-based, and similarity-based approaches.
+A command-line tool for splitting molecular datasets into train and test sets using any
+splitter registered in the ``alinemol.splitters`` factory. Splitters appear here
+automatically — new splitters need only be registered with ``@register_splitter`` to
+become available via ``-sp <name>`` (and to show up under ``--list-splitters``).
 
-The script is designed to handle molecular data in SMILES format and generates reproducible
-train/test splits for evaluating machine learning models on out-of-distribution scenarios.
+Supported strategies include scaffold-based, clustering-based, property-based, and
+similarity-based approaches. Two registered splitters cannot be driven by this CLI and
+are explicitly skipped (see ``_SKIP_FROM_CLI``):
 
-Features:
----------
-- Multiple splitting strategies (scaffold, kmeans, molecular_weight, hi, etc.)
-- Run all splitters at once with `--splitter all`
-- Configuration file support (YAML/JSON) for reproducible experiments
-- Dry-run mode to preview operations without saving
-- Customizable output directory
+- ``lo``: requires a continuous ``values`` argument to ``split()``.
+- ``datasail``: requires the optional ``datasail`` package.
 
-Input File Format:
-------------------
-The input file should be a CSV or TSV file with at minimum a 'smiles' column.
-Optionally, include a 'label' column for class-balanced splitting.
+Internal split generation
+-------------------------
+For each request of ``--n_splits N``, the script asks the underlying splitter for up to
+``INTERNAL_N_SPLITS`` candidate splits and keeps the first ``N`` that pass the active-
+percentage tolerance (see ``--tolerance``). This is why splitters are instantiated with
+``n_splits=INTERNAL_N_SPLITS`` regardless of the user-supplied ``-ns`` value.
+
+Input File Format
+-----------------
+CSV/TSV with at minimum a ``smiles`` column. Add a ``label`` column to apply the active-
+percentage tolerance filter.
 
     smiles,label
     CCO,1
     CCCO,0
     ...
 
-Output Structure:
------------------
-When saving, the script creates the following structure:
+Output Structure
+----------------
+When saving, the script creates::
 
     {input_dir}/split/{splitter_name}/
         train_0.csv
         test_0.csv
-        train_1.csv
-        test_1.csv
         ...
         config.json
 
-Usage Examples:
----------------
+Usage Examples
+--------------
     # Basic scaffold splitting
     python scripts/splitting.py -f data/molecules.csv -sp scaffold --save
 
-    # Run all splitters at once
+    # Run all (CLI-supported) splitters at once
     python scripts/splitting.py -f data/molecules.csv -sp all --save
 
     # Use a config file
@@ -54,53 +56,47 @@ Usage Examples:
     # Dry run to preview without saving
     python scripts/splitting.py -f data/molecules.csv -sp kmeans --dry-run
 
-    # Custom output directory
-    python scripts/splitting.py -f data/molecules.csv -sp scaffold --save -o results/splits/
-
-    # List available splitters
+    # List available splitters (including those skipped from the CLI)
     python scripts/splitting.py --list-splitters
 
 Author: ALineMol Team
 """
 
+import inspect
 import json
 import logging
 import os
 import sys
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 import yaml
 from tqdm import tqdm
 
-# Import ALineMol splitters - using unified API
 from alinemol.splitters import (
-    ScaffoldSplit,
-    ScaffoldGenericSplit,
-    KMeansSplit,
-    MolecularWeightSplit,
-    MolecularWeightReverseSplit,
-    PerimeterSplit,
-    MaxDissimilaritySplit,
-    MolecularLogPSplit,
-    RandomSplit,
-    UMAPSplit,
-    HiSplit,
+    get_splitter,
+    get_splitter_names,
+    is_splitter_registered,
+    list_splitters,
 )
 from alinemol.splitters.splitting_configures import (
+    BUTINASplitConfig,
+    DataSAILSplitConfig,
+    HiSplitConfig,
     KMeansSplitConfig,
+    LoSplitConfig,
     MaxDissimilaritySplitConfig,
     MolecularLogPSplitConfig,
     MolecularWeightReverseSplitConfig,
     MolecularWeightSplitConfig,
     PerimeterSplitConfig,
+    RandomSplitConfig,
+    ScaffoldKMeansSplitConfig,
     ScaffoldSplitConfig,
     ScaffoldSplitGenericConfig,
-    RandomSplitConfig,
     UMapSplitConfig,
-    HiSplitConfig,
 )
 from alinemol.utils.logger_utils import Logger
 from alinemol.utils.utils import increment_path
@@ -123,28 +119,12 @@ DEFAULT_N_SPLITS = 10
 DEFAULT_N_JOBS = -1
 DEFAULT_TOLERANCE = 0.1
 DEFAULT_RANDOM_STATE = 42
-INTERNAL_N_SPLITS = 100
+INTERNAL_N_SPLITS = 100  # candidate splits requested from the underlying splitter
 
 # Supported file extensions
 SUPPORTED_EXTENSIONS = {".csv", ".txt"}
 
-# Dictionary mapping splitter names to their corresponding classes
-# Now using unified ALineMol wrappers instead of direct splito imports
-SPLITTER_CLASSES: Dict[str, Any] = {
-    "scaffold": ScaffoldSplit,
-    "scaffold_generic": ScaffoldGenericSplit,
-    "kmeans": KMeansSplit,
-    "molecular_weight": MolecularWeightSplit,
-    "molecular_weight_reverse": MolecularWeightReverseSplit,
-    "perimeter": PerimeterSplit,
-    "max_dissimilarity": MaxDissimilaritySplit,
-    "molecular_logp": MolecularLogPSplit,
-    "random": RandomSplit,
-    "umap": UMAPSplit,
-    "hi": HiSplit,
-}
-
-# Dictionary mapping splitter names to their configuration classes
+# Per-splitter default kwargs. Splitters that need no extra defaults can be omitted.
 SPLITTER_CONFIGS: Dict[str, Any] = {
     "scaffold": ScaffoldSplitConfig,
     "scaffold_generic": ScaffoldSplitGenericConfig,
@@ -156,13 +136,19 @@ SPLITTER_CONFIGS: Dict[str, Any] = {
     "molecular_logp": MolecularLogPSplitConfig,
     "random": RandomSplitConfig,
     "umap": UMapSplitConfig,
+    "butina": BUTINASplitConfig,
+    "scaffold_kmeans": ScaffoldKMeansSplitConfig,
     "hi": HiSplitConfig,
+    "lo": LoSplitConfig,
+    "datasail": DataSAILSplitConfig,
 }
 
-# Splitter descriptions for --list-splitters
+# Optional one-line description overrides. Splitters not listed here fall back to the
+# first line of their class docstring.
 SPLITTER_DESCRIPTIONS: Dict[str, str] = {
     "scaffold": "Bemis-Murcko scaffold-based splitting (specific scaffolds)",
     "scaffold_generic": "Bemis-Murcko scaffold-based splitting (generic scaffolds)",
+    "scaffold_kmeans": "Scaffold extraction + k-means on scaffold ECFP fingerprints",
     "kmeans": "K-means clustering on molecular fingerprints",
     "molecular_weight": "Split by molecular weight (test on larger molecules)",
     "molecular_weight_reverse": "Split by molecular weight (test on smaller molecules)",
@@ -171,40 +157,38 @@ SPLITTER_DESCRIPTIONS: Dict[str, str] = {
     "molecular_logp": "Split by lipophilicity (LogP)",
     "random": "Random splitting (baseline)",
     "umap": "UMAP dimensionality reduction + hierarchical clustering",
+    "butina": "Taylor-Butina clustering on Morgan fingerprints",
     "hi": "Hi-split: ensures low similarity between train/test sets",
 }
 
-# Splitter categories for different initialization patterns
-# Most splitters use unified API - SMILES passed to split() method
-SIMPLE_SPLITTERS = {
-    RandomSplit,
-    KMeansSplit,
-    MaxDissimilaritySplit,
-    PerimeterSplit,
-    UMAPSplit,
-    ScaffoldSplit,
-    ScaffoldGenericSplit,
-    MolecularWeightSplit,
-    MolecularWeightReverseSplit,
-    MolecularLogPSplit,
+# Splitters that are registered but cannot be driven by this CLI.
+_SKIP_FROM_CLI: Dict[str, str] = {
+    "lo": "requires a continuous `values` argument to split(); use the library API directly.",
+    "datasail": "requires the optional `datasail` package (pip install datasail).",
 }
-SPECIAL_SPLITTERS = {HiSplit}
 
-# Splitters that support n_jobs parameter
-SPLITTERS_WITH_N_JOBS = {
-    RandomSplit,
-    UMAPSplit,
-    ScaffoldSplit,
-    ScaffoldGenericSplit,
-    KMeansSplit,
-    MaxDissimilaritySplit,
-    PerimeterSplit,
-}
+
+def _splitter_accepts(name: str, kwarg: str) -> bool:
+    """Return True if the registered splitter's ``__init__`` accepts ``kwarg``."""
+    cls = list_splitters().get(name)
+    if cls is None:
+        return False
+    params = inspect.signature(cls.__init__).parameters
+    return kwarg in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
+def _get_description(name: str) -> str:
+    """Return a one-line description for a splitter, preferring overrides over docstrings."""
+    if name in SPLITTER_DESCRIPTIONS:
+        return SPLITTER_DESCRIPTIONS[name]
+    cls = list_splitters().get(name)
+    if cls is not None and cls.__doc__:
+        return cls.__doc__.strip().splitlines()[0]
+    return "No description available"
 
 
 def load_config_file(config_path: Union[str, Path]) -> Dict[str, Any]:
-    """
-    Load configuration from a YAML or JSON file.
+    """Load configuration from a YAML or JSON file.
 
     Args:
         config_path: Path to the configuration file (.yaml, .yml, or .json)
@@ -237,41 +221,46 @@ def load_config_file(config_path: Union[str, Path]) -> Dict[str, Any]:
 
 
 def print_available_splitters() -> None:
-    """Print a formatted list of available splitters with descriptions."""
+    """Print a formatted list of available splitters with descriptions.
+
+    Splitters are pulled dynamically from the registry. CLI-skipped splitters are
+    listed with a ``(skipped: <reason>)`` suffix so users know they exist but require
+    the library API.
+    """
     print("\n" + "=" * 70)
-    print("Available Splitting Strategies")
+    print("Available Splitting Strategies (from registry)")
     print("=" * 70 + "\n")
 
-    # Group splitters by category
-    categories = {
-        "Structure-Based": ["scaffold", "scaffold_generic"],
-        "Clustering-Based": ["kmeans", "perimeter", "max_dissimilarity", "umap"],
-        "Property-Based": ["molecular_weight", "molecular_weight_reverse", "molecular_logp"],
-        "Similarity-Based": ["hi"],
-        "Baseline": ["random"],
-    }
+    runnable: List[str] = []
+    skipped: List[str] = []
+    for name in get_splitter_names():
+        (skipped if name in _SKIP_FROM_CLI else runnable).append(name)
 
-    for category, splitters in categories.items():
-        print(f"{category}:")
+    print("CLI-runnable:")
+    print("-" * 40)
+    for name in runnable:
+        print(f"  {name:<25} {_get_description(name)}")
+
+    if skipped:
+        print("\nRegistered but skipped from CLI:")
         print("-" * 40)
-        for splitter in splitters:
-            desc = SPLITTER_DESCRIPTIONS.get(splitter, "No description available")
-            print(f"  {splitter:<25} {desc}")
-        print()
+        for name in skipped:
+            print(f"  {name:<25} {_get_description(name)}")
+            print(f"  {'':<25}   (skipped: {_SKIP_FROM_CLI[name]})")
 
-    print("=" * 70)
+    print("\n" + "=" * 70)
     print("\nUsage: python scripts/splitting.py -f <file> -sp <splitter> --save")
-    print("       python scripts/splitting.py -f <file> -sp all --save  (run all)")
+    print("       python scripts/splitting.py -f <file> -sp all --save  (run all CLI-runnable)")
     print()
 
 
 class MolecularSplitter:
-    """
-    A comprehensive molecular dataset splitting utility.
+    """A comprehensive molecular dataset splitting utility.
 
-    This class provides methods for splitting molecular datasets using various
-    strategies including scaffold-based, clustering-based, and property-based
-    approaches. It handles data loading, validation, splitting, and result saving.
+    Generates train/test splits using any splitter registered in the
+    ``alinemol.splitters`` factory. SMILES are passed to the splitter's
+    ``split()`` method; per-splitter default kwargs live in
+    ``alinemol.splitters.splitting_configures``.
 
     Attributes:
         config: Dictionary containing all configuration parameters
@@ -279,7 +268,7 @@ class MolecularSplitter:
         splitter_name: Name of the splitting strategy to use
         test_size: Fraction of data to use for testing (0-1)
         n_jobs: Number of parallel jobs (-1 for all CPUs)
-        n_splits: Number of train/test splits to generate
+        n_splits: Number of train/test splits to keep (after tolerance filter)
         tolerance: Maximum allowed difference in active percentages
         save: Whether to save split files to disk
         output_dir: Directory for saving output files
@@ -302,23 +291,7 @@ class MolecularSplitter:
     """
 
     def __init__(self, config: Dict[str, Any]):
-        """
-        Initialize the MolecularSplitter with configuration parameters.
-
-        Args:
-            config: Dictionary containing splitting configuration parameters.
-                Required keys:
-                    - file_path: Path to input file
-                    - splitter: Name of splitting strategy
-                    - test_size: Test set fraction
-                    - n_splits: Number of splits
-                    - n_jobs: Parallel jobs
-                    - tolerance: Active percentage tolerance
-                    - save: Whether to save files
-                Optional keys:
-                    - output_dir: Custom output directory
-                    - dry_run: Preview mode
-        """
+        """Initialize the MolecularSplitter with configuration parameters."""
         self.config = config
         self.file_path = Path(config["file_path"])
         self.splitter_name = config["splitter"]
@@ -330,7 +303,6 @@ class MolecularSplitter:
         self.output_dir = config.get("output_dir")
         self.dry_run = config.get("dry_run", False)
 
-        # Validate configuration
         self._validate_config()
 
     def _validate_config(self) -> None:
@@ -341,8 +313,16 @@ class MolecularSplitter:
         if self.file_path.suffix not in SUPPORTED_EXTENSIONS:
             raise ValueError(f"Unsupported file extension. Supported: {SUPPORTED_EXTENSIONS}")
 
-        if self.splitter_name not in SPLITTER_CLASSES:
-            raise ValueError(f"Unknown splitter: {self.splitter_name}. Available: {list(SPLITTER_CLASSES.keys())}")
+        if not is_splitter_registered(self.splitter_name):
+            raise ValueError(
+                f"Unknown splitter: '{self.splitter_name}'. "
+                f"Available: {sorted(get_splitter_names())}. Use --list-splitters."
+            )
+
+        if self.splitter_name in _SKIP_FROM_CLI:
+            raise ValueError(
+                f"Splitter '{self.splitter_name}' is not supported by this CLI: {_SKIP_FROM_CLI[self.splitter_name]}"
+            )
 
         if not 0 < self.test_size < 1:
             raise ValueError(f"test_size must be between 0 and 1, got: {self.test_size}")
@@ -351,19 +331,7 @@ class MolecularSplitter:
             raise ValueError(f"n_splits must be positive, got: {self.n_splits}")
 
     def load_data(self) -> pd.DataFrame:
-        """
-        Load molecular data from the input file.
-
-        Supports CSV (comma-separated) and TXT (tab-separated) formats.
-        The file must contain at minimum a 'smiles' column.
-
-        Returns:
-            DataFrame containing the molecular data
-
-        Raises:
-            ValueError: If the file format is unsupported or data is invalid
-            FileNotFoundError: If the file doesn't exist
-        """
+        """Load molecular data from the input file."""
         try:
             if self.file_path.suffix == ".csv":
                 df = pd.read_csv(self.file_path)
@@ -372,7 +340,6 @@ class MolecularSplitter:
             else:
                 raise ValueError(f"Unsupported file format: {self.file_path.suffix}")
 
-            # Validate required columns
             required_columns = ["smiles"]
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
@@ -386,49 +353,28 @@ class MolecularSplitter:
             raise
 
     def _create_splitter(self, smiles: List[str]) -> Any:
-        """
-        Create and configure the appropriate splitter instance.
+        """Create a splitter via the factory, filtering kwargs to those it accepts."""
+        # Per-splitter defaults (e.g. ``make_generic``, ``n_clusters``).
+        cfg = SPLITTER_CONFIGS.get(self.splitter_name, {})
+        hopts: Dict[str, Any] = dict(cfg() if callable(cfg) else cfg)
 
-        Args:
-            smiles: List of SMILES strings
-
-        Returns:
-            Configured splitter instance
-        """
-        method_class = SPLITTER_CLASSES[self.splitter_name]
-        config_class = SPLITTER_CONFIGS[self.splitter_name]
-
-        # Get configuration options
-        hopts = config_class() if callable(config_class) else config_class
-
-        # Build base kwargs - all new wrapper classes use unified API
-        # SMILES are passed to split() method, not constructor
-        base_kwargs = {
+        # Standard run-level kwargs only forwarded when the splitter actually accepts them.
+        standard: Dict[str, Any] = {
             "n_splits": INTERNAL_N_SPLITS,
             "test_size": self.test_size,
             "random_state": DEFAULT_RANDOM_STATE,
+            "n_jobs": self.n_jobs,
         }
+        for kw, value in standard.items():
+            if _splitter_accepts(self.splitter_name, kw):
+                hopts.setdefault(kw, value)
 
-        # Add n_jobs for splitters that support it
-        if method_class in SPLITTERS_WITH_N_JOBS:
-            base_kwargs["n_jobs"] = self.n_jobs
-
-        # Special handling for HiSplit which has different initialization
-        if method_class in SPECIAL_SPLITTERS:
-            splitter = method_class(**hopts)
-        else:
-            splitter = method_class(**base_kwargs, **hopts)
-
+        splitter = get_splitter(self.splitter_name, **hopts)
         logger.info(f"Initialized {self.splitter_name} splitter with configuration: {hopts}")
         return splitter
 
     def _setup_output_directories(self) -> Path:
-        """
-        Create necessary output directories for saving splits.
-
-        Returns:
-            Path to the splitter-specific output directory
-        """
+        """Create necessary output directories for saving splits."""
         if self.output_dir:
             base_path = Path(self.output_dir)
         else:
@@ -442,34 +388,14 @@ class MolecularSplitter:
         return splitter_path
 
     def _is_split_acceptable(self, train_active_pct: float, test_active_pct: float) -> bool:
-        """
-        Check if a split meets the tolerance criteria for active percentage difference.
-
-        Args:
-            train_active_pct: Percentage of actives in training set
-            test_active_pct: Percentage of actives in test set
-
-        Returns:
-            True if the split meets tolerance criteria
-        """
+        """Check if a split meets the tolerance criteria for active percentage difference."""
         active_diff = abs(train_active_pct - test_active_pct)
         return active_diff <= self.tolerance
 
     def _log_split_statistics(self, train_df: pd.DataFrame, test_df: pd.DataFrame, split_idx: int) -> Dict[str, Any]:
-        """
-        Log and return statistics for a data split.
+        """Log and return statistics for a data split."""
+        stats: Dict[str, Any] = {}
 
-        Args:
-            train_df: Training set DataFrame
-            test_df: Test set DataFrame
-            split_idx: Index of the current split
-
-        Returns:
-            Dictionary containing split statistics
-        """
-        stats = {}
-
-        # Calculate statistics if 'label' column exists
         if "label" in train_df.columns and "label" in test_df.columns:
             train_actives = int(train_df["label"].sum())
             test_actives = int(test_df["label"].sum())
@@ -500,31 +426,17 @@ class MolecularSplitter:
         return stats
 
     def run_splitting(self) -> Dict[str, Any]:
-        """
-        Execute the molecular splitting process.
+        """Execute the molecular splitting process.
 
         Generates train/test splits according to the configured strategy.
         If save=True and dry_run=False, writes split files to disk.
-
-        Returns:
-            Dictionary containing configuration and statistics for all splits
-
-        Example:
-            >>> splitter = MolecularSplitter(config)
-            >>> results = splitter.run_splitting()
-            >>> print(f"Generated {results.get('successful_splits', 0)} splits")
         """
-        # Load data
         df = self.load_data()
         smiles = df["smiles"].values.tolist()
 
-        # Create splitter
         splitter = self._create_splitter(smiles)
-
-        # Setup output directories
         output_path = self._setup_output_directories()
 
-        # Initialize results tracking
         results_config = self.config.copy()
         successful_splits = 0
 
@@ -540,19 +452,15 @@ class MolecularSplitter:
 
         logger.info(f"Starting splitting process with {self.splitter_name} splitter")
 
-        # Perform splits
         for train_indices, test_indices in tqdm(
             splitter.split(smiles), desc=f"Processing {self.splitter_name} splits", total=INTERNAL_N_SPLITS
         ):
-            # Create train/test subsets
             train_df = df.iloc[train_indices]
             test_df = df.iloc[test_indices]
 
-            # Calculate split statistics
             split_stats = self._log_split_statistics(train_df, test_df, successful_splits)
             results_config.update(split_stats)
 
-            # Check tolerance if labels are available
             split_acceptable = True
             if "label" in df.columns:
                 train_active_pct = split_stats[f"train_actives_percentage_{successful_splits}"]
@@ -560,7 +468,6 @@ class MolecularSplitter:
                 split_acceptable = self._is_split_acceptable(train_active_pct, test_active_pct)
 
             if split_acceptable:
-                # Save split files if requested
                 if self.save:
                     train_path = increment_path(output_path / f"train_{successful_splits}.csv")
                     test_path = increment_path(output_path / f"test_{successful_splits}.csv")
@@ -570,7 +477,6 @@ class MolecularSplitter:
 
                 successful_splits += 1
 
-                # Stop if we have enough splits
                 if successful_splits >= self.n_splits:
                     break
 
@@ -578,7 +484,6 @@ class MolecularSplitter:
         results_config["successful_splits"] = successful_splits
         results_config["output_path"] = str(output_path)
 
-        # Save configuration
         if self.save:
             config_path = output_path / "config.json"
             with open(config_path, "w") as f:
@@ -589,29 +494,22 @@ class MolecularSplitter:
 
 
 def run_all_splitters(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """
-    Run all available splitting strategies on the dataset.
+    """Run every CLI-runnable splitter in the registry on the dataset."""
+    all_results: Dict[str, Dict[str, Any]] = {}
+    failed_splitters: List[str] = []
 
-    Args:
-        config: Base configuration dictionary (splitter key will be overwritten)
-
-    Returns:
-        Dictionary mapping splitter names to their results
-
-    Example:
-        >>> config = {"file_path": "data/molecules.csv", "test_size": 0.2, ...}
-        >>> all_results = run_all_splitters(config)
-        >>> for name, results in all_results.items():
-        ...     print(f"{name}: {results.get('successful_splits', 0)} splits")
-    """
-    all_results = {}
-    failed_splitters = []
+    runnable = [name for name in get_splitter_names() if name not in _SKIP_FROM_CLI]
+    if _SKIP_FROM_CLI:
+        logger.info(
+            "Skipping (not supported by this CLI): "
+            + ", ".join(f"{n} ({_SKIP_FROM_CLI[n]})" for n in sorted(_SKIP_FROM_CLI))
+        )
 
     logger.info("=" * 60)
-    logger.info("Running ALL splitting strategies")
+    logger.info(f"Running ALL splitting strategies ({len(runnable)} total)")
     logger.info("=" * 60)
 
-    for splitter_name in SPLITTER_CLASSES.keys():
+    for splitter_name in runnable:
         logger.info(f"\n{'=' * 40}")
         logger.info(f"Running splitter: {splitter_name}")
         logger.info(f"{'=' * 40}")
@@ -631,18 +529,16 @@ def run_all_splitters(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             failed_splitters.append(splitter_name)
             all_results[splitter_name] = {"error": str(e)}
 
-    # Summary
     logger.info("\n" + "=" * 60)
     logger.info("SUMMARY: All Splitters")
     logger.info("=" * 60)
 
     successful = [name for name in all_results if "error" not in all_results[name]]
-    logger.info(f"Successful: {len(successful)}/{len(SPLITTER_CLASSES)}")
+    logger.info(f"Successful: {len(successful)}/{len(runnable)}")
 
     if failed_splitters:
         logger.warning(f"Failed splitters: {', '.join(failed_splitters)}")
 
-    # Save combined summary if saving is enabled
     if config.get("save") and not config.get("dry_run"):
         if config.get("output_dir"):
             summary_dir = Path(config["output_dir"])
@@ -660,23 +556,24 @@ def run_all_splitters(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return all_results
 
 
+def _validate_splitter_choice(name: str) -> str:
+    """argparse ``type=`` callable: accept any registered splitter name or ``all``."""
+    if name == "all" or is_splitter_registered(name):
+        return name
+    available = sorted(get_splitter_names())
+    raise ValueError(f"unknown splitter '{name}'. Available: {available + ['all']}. Use --list-splitters.")
+
+
 def parse_arguments() -> Namespace:
-    """
-    Parse and validate command line arguments.
-
-    Supports both direct CLI arguments and configuration file loading.
-    CLI arguments override config file values when both are provided.
-
-    Returns:
-        Parsed arguments namespace
-    """
+    """Parse and validate command line arguments."""
     parser = ArgumentParser(
         description="""
 Molecular Dataset Splitting Tool
 ================================
 
-Split molecular datasets into train/test sets using various OOD-aware strategies.
-Supports scaffold-based, clustering-based, property-based, and similarity-based methods.
+Split molecular datasets into train/test sets using any registered splitter.
+Splitters are pulled from the alinemol.splitters factory; ``--list-splitters``
+shows the current set (including ones skipped from the CLI).
 
 Input file must be CSV or TSV with a 'smiles' column (and optionally 'label').
         """,
@@ -687,7 +584,7 @@ EXAMPLES
   # Basic scaffold splitting (most common)
   python scripts/splitting.py -f molecules.csv -sp scaffold --save
 
-  # Run ALL splitting strategies at once
+  # Run ALL CLI-runnable splitting strategies at once
   python scripts/splitting.py -f molecules.csv -sp all --save
 
   # Use a configuration file
@@ -719,7 +616,6 @@ For more details, see: https://github.com/HFooladi/ALineMol
         """,
     )
 
-    # Configuration file option (highest priority when determining workflow)
     parser.add_argument(
         "-c",
         "--config",
@@ -728,12 +624,10 @@ For more details, see: https://github.com/HFooladi/ALineMol
         help="Path to YAML/JSON config file. CLI args override config values.",
     )
 
-    # List splitters option
     parser.add_argument(
         "--list-splitters", action="store_true", help="List all available splitting strategies and exit"
     )
 
-    # Main arguments
     parser.add_argument(
         "-f",
         "--file_path",
@@ -745,11 +639,10 @@ For more details, see: https://github.com/HFooladi/ALineMol
     parser.add_argument(
         "-sp",
         "--splitter",
-        type=str,
+        type=_validate_splitter_choice,
         default="scaffold",
-        choices=list(SPLITTER_CLASSES.keys()) + ["all"],
         metavar="METHOD",
-        help="Splitting strategy: scaffold, kmeans, hi, random, etc. Use 'all' to run all methods. (default: scaffold)",
+        help="Splitting strategy name (see --list-splitters) or 'all'. (default: scaffold)",
     )
 
     parser.add_argument(
@@ -776,7 +669,11 @@ For more details, see: https://github.com/HFooladi/ALineMol
         type=int,
         default=DEFAULT_N_SPLITS,
         metavar="N",
-        help=f"Number of splits to generate (default: {DEFAULT_N_SPLITS})",
+        help=(
+            f"Number of accepted splits to keep (default: {DEFAULT_N_SPLITS}). "
+            f"The script requests up to {INTERNAL_N_SPLITS} candidate splits and keeps "
+            "the first --n_splits that pass the active-percentage tolerance."
+        ),
     )
 
     parser.add_argument(
@@ -792,7 +689,6 @@ For more details, see: https://github.com/HFooladi/ALineMol
         "-o", "--output_dir", type=str, metavar="DIR", help="Custom output directory (default: {input_dir}/split/)"
     )
 
-    # Flags
     parser.add_argument("--save", action="store_true", help="Save split files and configuration to disk")
 
     parser.add_argument(
@@ -801,19 +697,15 @@ For more details, see: https://github.com/HFooladi/ALineMol
 
     args = parser.parse_args()
 
-    # Handle --list-splitters
     if args.list_splitters:
         print_available_splitters()
         sys.exit(0)
 
-    # Load config file if provided
-    config_values = {}
+    config_values: Dict[str, Any] = {}
     if args.config:
         config_values = load_config_file(args.config)
 
-    # Merge config file values with CLI arguments (CLI takes precedence)
-    # Only use config values for arguments not explicitly provided on CLI
-    cli_defaults = {
+    cli_defaults: Dict[str, Optional[Any]] = {
         "file_path": None,
         "splitter": "scaffold",
         "test_size": DEFAULT_TEST_SIZE,
@@ -829,11 +721,9 @@ For more details, see: https://github.com/HFooladi/ALineMol
         cli_value = getattr(args, key, None)
         config_value = config_values.get(key)
 
-        # Use CLI value if it's different from default, otherwise use config value
         if cli_value == default_value and config_value is not None:
             setattr(args, key, config_value)
 
-    # Validation
     if not args.file_path:
         parser.error("--file_path (-f) is required unless provided in config file")
 
@@ -846,35 +736,23 @@ For more details, see: https://github.com/HFooladi/ALineMol
     if args.n_splits <= 0:
         parser.error(f"n_splits must be positive, got: {args.n_splits}")
 
-    if args.splitter not in list(SPLITTER_CLASSES.keys()) + ["all"]:
+    if args.splitter != "all" and not is_splitter_registered(args.splitter):
         parser.error(f"Unknown splitter: {args.splitter}. Use --list-splitters to see available options.")
 
     return args
 
 
 def main() -> None:
-    """
-    Main entry point for the molecular splitting script.
-
-    Handles argument parsing, configuration loading, and orchestrates the
-    splitting process for single or all splitters.
-    """
+    """Main entry point for the molecular splitting script."""
     try:
-        # Parse command line arguments
         args = parse_arguments()
-
-        # Convert arguments to configuration dictionary
         config = vars(args)
-
-        # Remove config file path from the config dict (not needed by splitter)
         config.pop("config", None)
         config.pop("list_splitters", None)
 
-        # Handle "all" splitters option
         if config["splitter"] == "all":
             run_all_splitters(config)
         else:
-            # Initialize and run the molecular splitter
             splitter = MolecularSplitter(config)
             splitter.run_splitting()
 

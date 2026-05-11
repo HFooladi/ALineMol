@@ -418,6 +418,40 @@ class TestSplitAnalyzerLazyLoading:
         assert analyzer._properties is not None
 
 
+class TestSplitAnalyzerFingerprints:
+    """Tests for the dm.to_fp-based fingerprint computation."""
+
+    def test_compute_fingerprints_uses_datamol(self, sample_smiles):
+        """ECFP path routes through dm.to_fp with fpSize/radius (not the deprecated nBits=)."""
+        from unittest.mock import patch
+
+        analyzer = SplitAnalyzer(sample_smiles, fingerprint_type="ecfp", fingerprint_radius=2, fingerprint_nbits=2048)
+
+        with patch("datamol.to_fp", wraps=__import__("datamol").to_fp) as spy:
+            _ = analyzer.fingerprints
+
+        assert spy.call_count >= 1
+        # Inspect at least one call's kwargs
+        call = spy.call_args_list[0]
+        assert call.kwargs.get("fp_type") == "ecfp"
+        assert call.kwargs.get("radius") == 2
+        assert call.kwargs.get("fpSize") == 2048
+        assert "nBits" not in call.kwargs
+
+    def test_compute_fingerprints_invalid_smiles_handled(self):
+        """Invalid SMILES produce zero-vector rows sized to the actual FP dimensionality."""
+        smiles = ["CCO", "INVALID_SMILES", "CCN"]
+        analyzer = SplitAnalyzer(smiles, fingerprint_type="ecfp", fingerprint_nbits=2048)
+
+        fps = analyzer.fingerprints
+        assert fps.shape == (3, 2048)
+        # The invalid SMILES is at index 1 and should be all zeros.
+        assert np.all(fps[1] == 0)
+        # The valid ones should not be all zeros.
+        assert fps[0].sum() > 0
+        assert fps[2].sum() > 0
+
+
 class TestSplitAnalyzerAnalyzeSplit:
     """Tests for analyze_split method."""
 

@@ -471,39 +471,47 @@ class SplitAnalyzer:
         return self._mols
 
     def _compute_fingerprints(self) -> np.ndarray:
-        """Compute molecular fingerprints for all molecules."""
-        try:
-            from rdkit.Chem import AllChem
-        except ImportError:
-            raise ImportError("RDKit is required for fingerprint computation. Install with: pip install rdkit")
+        """Compute molecular fingerprints for all molecules via ``dm.to_fp``.
 
-        fps = []
+        Routes through the same datamol path used by ``BaseMolecularSplitter._convert_smiles_to_features``
+        so the codebase has a single fingerprinting implementation. ``dm.to_fp`` uses RDKit's
+        ``MorganGenerator`` under the hood, which superseded the deprecated
+        ``GetMorganFingerprintAsBitVect`` (and renamed ``nBits`` to ``fpSize``).
+        """
+        try:
+            import datamol as dm
+        except ImportError:
+            raise ImportError("datamol is required for fingerprint computation. Install with: pip install datamol")
+
+        fp_type = self.fingerprint_type.lower()
+        # Map "morgan" alias to datamol's "ecfp".
+        if fp_type == "morgan":
+            fp_type = "ecfp"
+
+        # MACCS is fixed-width (167); ignore radius/fpSize for that path.
+        is_maccs = fp_type == "maccs"
+        fp_kwargs: Dict[str, Any] = {"fp_type": fp_type}
+        if not is_maccs:
+            fp_kwargs["radius"] = self.fingerprint_radius
+            fp_kwargs["fpSize"] = self.fingerprint_nbits
+
         mols = self._get_mols()
 
-        for mol in mols:
-            if mol is not None:
-                if self.fingerprint_type.lower() in ["ecfp", "morgan"]:
-                    fp = AllChem.GetMorganFingerprintAsBitVect(
-                        mol, radius=self.fingerprint_radius, nBits=self.fingerprint_nbits
-                    )
-                elif self.fingerprint_type.lower() == "fcfp":
-                    fp = AllChem.GetMorganFingerprintAsBitVect(
-                        mol, radius=self.fingerprint_radius, nBits=self.fingerprint_nbits, useFeatures=True
-                    )
-                elif self.fingerprint_type.lower() == "maccs":
-                    from rdkit.Chem import MACCSkeys
+        def _to_fp(mol):
+            if mol is None:
+                return None
+            return np.asarray(dm.to_fp(mol, **fp_kwargs))
 
-                    fp = MACCSkeys.GenMACCSKeys(mol)
-                else:
-                    # Default to ECFP
-                    fp = AllChem.GetMorganFingerprintAsBitVect(
-                        mol, radius=self.fingerprint_radius, nBits=self.fingerprint_nbits
-                    )
-                fps.append(np.array(fp))
-            else:
-                # Invalid molecule - use zero vector
-                fps.append(np.zeros(self.fingerprint_nbits))
+        results = dm.utils.parallelized(_to_fp, mols, n_jobs=self.n_jobs)
 
+        # Resolve the fingerprint dimensionality from the first valid result.
+        # Falls back to fingerprint_nbits (or 167 for MACCS) if every mol is invalid.
+        fp_dim: Optional[int] = next((r.shape[0] for r in results if r is not None), None)
+        if fp_dim is None:
+            fp_dim = 167 if is_maccs else self.fingerprint_nbits
+
+        zero_vec = np.zeros(fp_dim)
+        fps = [r if r is not None else zero_vec for r in results]
         return np.array(fps)
 
     def _compute_scaffolds(self) -> List[Optional[str]]:

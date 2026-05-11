@@ -233,8 +233,26 @@ class MolecularLogPSplit(BaseShuffleSplit):
 
 @register_splitter("random", aliases=["random_split"])
 class RandomSplit(ShuffleSplit):
-    """
-    Splits the dataset randomly.
+    """Uniform random train/test splitter (in-distribution baseline).
+
+    Thin wrapper around ``sklearn.model_selection.ShuffleSplit`` that accepts SMILES
+    in ``split()`` and is registered in the factory under the name ``"random"``.
+    Useful as an ID baseline against the OOD-style splitters in this package.
+
+    Args:
+        n_splits: Number of re-shuffling & splitting iterations.
+        test_size: Proportion (float) or absolute count (int) of test samples.
+        train_size: Proportion (float) or absolute count (int) of train samples.
+        random_state: Random seed for reproducibility.
+        n_jobs: Accepted for API symmetry; ignored (random sampling is fast and serial).
+
+    Examples:
+        >>> from alinemol.splitters import RandomSplit
+        >>> splitter = RandomSplit(n_splits=3, test_size=0.2, random_state=0)
+        >>> smiles = ["CCO", "c1ccccc1", "CCN", "CCCC", "CC(C)C"] * 10
+        >>> for train_idx, test_idx in splitter.split(smiles):
+        ...     print(len(train_idx), len(test_idx))
+        ...     break
     """
 
     def __init__(

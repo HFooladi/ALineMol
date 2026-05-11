@@ -64,7 +64,12 @@ class ScaffoldKMeansSplit(GroupShuffleSplit):
         y: Optional[np.ndarray] = None,
         groups: Optional[np.ndarray] = None,
     ):
-        """Generate (train, test) indices."""
+        """Generate (train, test) indices via scaffold extraction + k-means on scaffold ECFP.
+
+        Extracts a Bemis-Murcko scaffold per molecule, computes ECFP fingerprints over the
+        unique scaffolds, clusters those with k-means, and uses each molecule's
+        scaffold-cluster label as the group passed to GroupShuffleSplit.
+        """
         if X is None:
             raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
 

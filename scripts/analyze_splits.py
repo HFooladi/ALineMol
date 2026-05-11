@@ -60,7 +60,7 @@ import pandas as pd
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_PATH)
 
-from alinemol.splitters import get_splitter_names  # noqa: E402
+from alinemol.splitters import get_splitter, get_splitter_names  # noqa: E402
 from alinemol.splitters.analyzer import SplitAnalyzer, SplitQualityReport  # noqa: E402
 from alinemol.utils.logger_utils import Logger  # noqa: E402
 
@@ -143,9 +143,15 @@ def get_splitters_to_analyze(splitter_arg: List[str]) -> List[str]:
     available = get_splitter_names()
 
     if "all" in splitter_arg:
-        # Exclude problematic splitters that may be slow or have dependencies
-        exclude = {"datasail", "datasail_group"}  # These may require extra dependencies
-        return [s for s in available if s not in exclude]
+        exclude = {"datasail", "datasail_group"}
+        kept = [s for s in available if s not in exclude]
+        present_excludes = sorted(exclude & set(available))
+        if present_excludes:
+            logger.info(
+                f"Excluding {present_excludes} from 'all' (require optional datasail package). "
+                "Pass them explicitly to override."
+            )
+        return kept
 
     # Validate requested splitters
     invalid = set(splitter_arg) - set(available)
@@ -533,7 +539,11 @@ Examples:
         "--splitters",
         nargs="+",
         default=["scaffold", "random"],
-        help="Splitters to analyze (or 'all' for all available)",
+        help=(
+            "Splitters to analyze (or 'all' for all available). "
+            "'all' excludes datasail/datasail_group, which require the optional datasail package; "
+            "pass them by name to override."
+        ),
     )
 
     parser.add_argument(
@@ -687,13 +697,6 @@ def main() -> None:
         generate_visualizations(results, smiles, output_dir / "plots", splitter_names)
 
     logger.info("Analysis complete!")
-
-
-# Import get_splitter at module level for visualization
-try:
-    from alinemol.splitters import get_splitter
-except ImportError:
-    get_splitter = None
 
 
 if __name__ == "__main__":

@@ -178,6 +178,10 @@ class BaseMolecularSplitter(BaseCrossValidator, ABC):
         # kwarg was removed in recent RDKit releases).
         if fp_type == "ecfp" and "radius" not in kwargs:
             kwargs["radius"] = 2
+        # Splitter clustering uses 1024-bit ECFP by default to preserve the cluster
+        # boundaries of the published splits. SplitAnalyzer separately defaults to 2048
+        # bits to match the precomputed Jaccard_distance.npy matrices and the paper's
+        # similarity-metric setup. Keep the two defaults distinct on purpose.
         if fp_type == "ecfp" and "fpSize" not in kwargs and "nBits" not in kwargs:
             kwargs["fpSize"] = 1024
         # Translate legacy `nBits` callers to the current name.

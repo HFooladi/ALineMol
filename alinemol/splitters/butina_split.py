@@ -55,7 +55,13 @@ class BUTINASplit(GroupShuffleSplit):
         y: Optional[np.ndarray] = None,
         groups: Optional[np.ndarray] = None,
     ):
-        """Generate (train, test) indices"""
+        """Generate (train, test) indices using Butina clustering as the group assignment.
+
+        SMILES inputs are clustered directly via Morgan fingerprints + Taylor-Butina
+        (see ``get_butina_clusters``). Precomputed feature inputs fall back to KMeans
+        on the features, since Butina requires fingerprints/distances. Prefer passing
+        SMILES.
+        """
         if X is None:
             raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
 

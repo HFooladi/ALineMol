@@ -1,7 +1,10 @@
-# Description: This file contains the configuration for the splitters.
-# It is imported by splitting.py and used to configure the splitters.
-# The configuration is set in the dictionary variables.
-# The splitting.py script uses these configurations to split the molecules.
+"""Per-splitter default kwargs consumed by ``scripts/splitting.py``.
+
+Each ``*Config`` dict is merged into the splitter's constructor kwargs, after
+filtering through the splitter's signature. Adding a new splitter? Add a
+config dict here (use an empty ``{}`` if no defaults beyond the standard
+``n_splits``/``test_size``/``random_state``).
+"""
 
 from alinemol.utils.typing import ConfigDict
 
@@ -21,8 +24,6 @@ PerimeterSplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidean"}
 
 MaxDissimilaritySplitConfig: ConfigDict = {"n_clusters": 10, "metric": "euclidean"}
 
-MoodSplitConfig: ConfigDict = {}
-
 MolecularLogPSplitConfig: ConfigDict = {"generalize_to_larger": True}
 
 UMapSplitConfig: ConfigDict = {
@@ -34,6 +35,17 @@ UMapSplitConfig: ConfigDict = {
     "linkage": "ward",
 }
 
+BUTINASplitConfig: ConfigDict = {
+    "n_clusters": 10,
+    "cutoff": 0.65,
+    "metric": "euclidean",
+}
+
+ScaffoldKMeansSplitConfig: ConfigDict = {
+    "n_clusters": 10,
+    "make_generic": False,
+}
+
 HiSplitConfig: ConfigDict = {
     "similarity_threshold": 0.4,
     "train_min_frac": 0.70,
@@ -43,11 +55,18 @@ HiSplitConfig: ConfigDict = {
     "max_mip_gap": 0.1,
 }
 
-DataSailSplitConfig: ConfigDict = {
-    "similarity_threshold": 0.4,
-    "train_min_frac": 0.70,
-    "test_min_frac": 0.15,
-    "coarsening_threshold": None,
-    "verbose": True,
-    "max_mip_gap": 0.1,
+# LoSplit cannot be driven by ``scripts/splitting.py`` because its ``split()`` API
+# requires a continuous ``values`` argument. This config is kept for downstream
+# callers using the library API directly.
+LoSplitConfig: ConfigDict = {
+    "threshold": 0.4,
+    "min_cluster_size": 5,
+    "max_clusters": 50,
+    "std_threshold": 0.60,
+}
+
+DataSAILSplitConfig: ConfigDict = {
+    "technique": "C",
+    "cluster_method": "ECFP",
+    "delta": 0.1,
 }

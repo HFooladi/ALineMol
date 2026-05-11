@@ -77,7 +77,12 @@ class UMAPSplit(GroupShuffleSplit):
         y: Optional[np.ndarray] = None,
         groups: Optional[np.ndarray] = None,
     ):
-        """Generate (train, test) indices"""
+        """Generate (train, test) indices using UMAP + AgglomerativeClustering as the group assignment.
+
+        SMILES inputs are converted to default features (ECFP) and then embedded with UMAP;
+        the embedding is clustered with AgglomerativeClustering and the resulting labels are
+        passed as ``groups`` to the underlying GroupShuffleSplit.
+        """
         if X is None:
             raise ValueError(f"{self.__class__.__name__} requires X to be provided.")
 

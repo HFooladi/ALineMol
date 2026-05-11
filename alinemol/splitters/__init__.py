@@ -12,7 +12,7 @@ Main API:
 Available Splitters:
     Structure-based: scaffold, scaffold_generic
     Clustering-based: kmeans, perimeter, max_dissimilarity, umap, butina, scaffold_kmeans
-    Property-based: molecular_weight, molecular_logp
+    Property-based: molecular_weight, molecular_weight_reverse, molecular_logp
     Similarity-based: hi, lo
     Information leakage: datasail
     Baseline: random

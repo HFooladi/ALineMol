@@ -145,9 +145,18 @@ for train_idx, test_idx in splitter.split(smiles_list):
 
 **Split Analysis:**
 ```python
-from alinemol.splitters import SplitAnalyzer
-analyzer = SplitAnalyzer(smiles_list, train_idx, test_idx)
-report = analyzer.generate_report()  # Returns SplitQualityReport
+from alinemol.splitters import SplitAnalyzer, get_splitter
+
+analyzer = SplitAnalyzer(smiles_list)
+splitter = get_splitter("scaffold")
+train_idx, test_idx = next(splitter.split(smiles_list))
+report = analyzer.analyze_split(train_idx, test_idx, splitter_name="scaffold")
+
+# Optional: reuse a precomputed Jaccard distance matrix to skip per-call recomputation.
+analyzer = SplitAnalyzer(
+    smiles_list,
+    precomputed_distance_matrix="datasets/TDC/CYP2C9/Jaccard_distance.npy",
+)
 ```
 
 **alinemol/preprocessing/**: Data preprocessing and standardization
@@ -186,11 +195,14 @@ report = analyzer.generate_report()  # Returns SplitQualityReport
 
 ### Adding a New Splitter
 
-1. Create `alinemol/splitters/<name>_split.py`: subclass `GroupShuffleSplit`, use `@register_splitter("name", aliases=[...])` decorator, override `_iter_indices`, add standalone helper function (e.g., `get_<name>_clusters`)
-2. Update `alinemol/splitters/__init__.py`: add import and `__all__` entries
-3. Create `tests/splitters/test_<name>_split.py`: test init, split with SMILES, disjoint indices, factory access, alias access, helper function
-4. Mark tests that run actual splits with `@pytest.mark.slow`
-5. Reference `butina_split.py` and `test_butina_split.py` as canonical examples
+1. Pick the right base class:
+   - For pure SMILES → fingerprint clustering or property-based splitters: subclass `BaseMolecularSplitter` and implement `_iter_indices`. Canonical example: `wrappers.py:KMeansSplit`.
+   - For group-based splitters that need `GroupShuffleSplit` semantics (cluster labels → group shuffle): subclass `GroupShuffleSplit`, compute group labels inside `_iter_indices`, then `yield from super()._iter_indices(X, y, groups)`. Canonical example: `butina_split.py`.
+2. Decorate with `@register_splitter("name", aliases=[...])` so the factory and `scripts/splitting.py` pick it up automatically.
+3. Update `alinemol/splitters/__init__.py`: add import and `__all__` entries.
+4. Add per-splitter default kwargs to `splitting_configures.py` if the splitter has non-trivial defaults.
+5. Create `tests/splitters/test_<name>_split.py`: test init, split with SMILES, disjoint indices, factory access, alias access, helper function.
+6. Mark tests that run actual splits with `@pytest.mark.slow`.
 
 ### Splitting Script
 
