@@ -173,11 +173,16 @@ class BaseMolecularSplitter(BaseCrossValidator, ABC):
                 "datamol is required for SMILES to fingerprint conversion. Install it with: pip install datamol"
             )
 
-        # Set default fingerprint parameters for ECFP4
+        # Set default fingerprint parameters for ECFP4. datamol routes to
+        # rdkit's MorganGenerator which uses `fpSize` (the older `nBits`
+        # kwarg was removed in recent RDKit releases).
         if fp_type == "ecfp" and "radius" not in kwargs:
             kwargs["radius"] = 2
-        if fp_type == "ecfp" and "nBits" not in kwargs:
-            kwargs["nBits"] = 1024
+        if fp_type == "ecfp" and "fpSize" not in kwargs and "nBits" not in kwargs:
+            kwargs["fpSize"] = 1024
+        # Translate legacy `nBits` callers to the current name.
+        if "nBits" in kwargs and "fpSize" not in kwargs:
+            kwargs["fpSize"] = kwargs.pop("nBits")
 
         def _to_fp(smi: str) -> np.ndarray:
             mol = dm.to_mol(smi)

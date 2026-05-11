@@ -683,6 +683,104 @@ class TestPropertyDistributionComputation:
             assert np.isclose(prop.mean_diff, expected_diff)
 
 
+class TestSplitAnalyzerPrecomputedDistance:
+    """Tests for the optional precomputed_distance_matrix feature."""
+
+    def test_accepts_ndarray(self, sample_smiles):
+        n = len(sample_smiles)
+        # Random symmetric distance matrix in [0, 1]
+        rng = np.random.default_rng(0)
+        d = rng.random((n, n))
+        d = (d + d.T) / 2
+        np.fill_diagonal(d, 0.0)
+
+        analyzer = SplitAnalyzer(sample_smiles, precomputed_distance_matrix=d)
+
+        assert analyzer._precomputed_similarity is not None
+        assert analyzer._precomputed_similarity.shape == (n, n)
+        np.testing.assert_allclose(analyzer._precomputed_similarity, 1.0 - d)
+
+    def test_accepts_path(self, sample_smiles, tmp_path):
+        n = len(sample_smiles)
+        d = np.zeros((n, n), dtype=np.float64)
+        path = tmp_path / "Jaccard_distance.npy"
+        np.save(path, d)
+
+        analyzer = SplitAnalyzer(sample_smiles, precomputed_distance_matrix=str(path))
+
+        assert analyzer._precomputed_similarity is not None
+        assert analyzer._precomputed_similarity.shape == (n, n)
+        # similarity = 1 - 0 = 1 everywhere
+        np.testing.assert_allclose(analyzer._precomputed_similarity, 1.0)
+
+    def test_shape_mismatch_raises(self, sample_smiles):
+        n = len(sample_smiles)
+        bad = np.zeros((n + 1, n))
+        with pytest.raises(ValueError, match="expected"):
+            SplitAnalyzer(sample_smiles, precomputed_distance_matrix=bad)
+
+    def test_bad_type_raises(self, sample_smiles):
+        with pytest.raises(TypeError):
+            SplitAnalyzer(sample_smiles, precomputed_distance_matrix=12345)
+
+    def test_out_of_range_warns(self, sample_smiles):
+        n = len(sample_smiles)
+        d = np.full((n, n), 2.0)  # values way above 1
+        with pytest.warns(UserWarning, match="outside"):
+            SplitAnalyzer(sample_smiles, precomputed_distance_matrix=d)
+
+    def test_matches_fingerprint_path(self, sample_smiles, train_test_indices):
+        """The precomputed path must produce identical SimilarityMetrics to
+        the fingerprint path when the matrix is derived from the same FPs."""
+        train_idx, test_idx = train_test_indices
+
+        # Build analyzer #1 using the fingerprint path
+        a_fp = SplitAnalyzer(sample_smiles)
+        fps = a_fp.fingerprints  # forces fingerprint computation
+
+        # Build the matching Jaccard distance matrix from those same fingerprints
+        n = len(sample_smiles)
+        sim = np.zeros((n, n), dtype=np.float64)
+        for i in range(n):
+            inter = np.sum(np.logical_and(fps, fps[i]), axis=1)
+            union = np.sum(np.logical_or(fps, fps[i]), axis=1)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                sim[i] = np.where(union > 0, inter / union, 0.0)
+        dist = 1.0 - sim
+
+        a_pre = SplitAnalyzer(sample_smiles, precomputed_distance_matrix=dist)
+
+        m_fp = a_fp._compute_similarity_metrics(train_idx, test_idx)
+        m_pre = a_pre._compute_similarity_metrics(train_idx, test_idx)
+
+        assert m_fp is not None and m_pre is not None
+        for field_name in (
+            "min_sim",
+            "max_sim",
+            "mean_sim",
+            "median_sim",
+            "std_sim",
+            "percentile_5",
+            "percentile_25",
+            "percentile_75",
+            "percentile_95",
+        ):
+            np.testing.assert_allclose(
+                getattr(m_fp, field_name),
+                getattr(m_pre, field_name),
+                atol=1e-12,
+                err_msg=f"{field_name} differs between fingerprint and precomputed paths",
+            )
+
+    def test_empty_split_returns_none(self, sample_smiles):
+        n = len(sample_smiles)
+        d = np.zeros((n, n))
+        analyzer = SplitAnalyzer(sample_smiles, precomputed_distance_matrix=d)
+
+        assert analyzer._compute_similarity_metrics(np.array([], dtype=int), np.array([0, 1])) is None
+        assert analyzer._compute_similarity_metrics(np.array([0, 1]), np.array([], dtype=int)) is None
+
+
 @pytest.mark.slow
 class TestSlowSplitters:
     """Tests for slower splitters (marked as slow)."""

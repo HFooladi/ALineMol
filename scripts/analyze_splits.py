@@ -51,8 +51,9 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 # Repository path configuration
@@ -154,6 +155,82 @@ def get_splitters_to_analyze(splitter_arg: List[str]) -> List[str]:
     return splitter_arg
 
 
+def resolve_precomputed_distance(
+    smiles: List[str],
+    input_file: Path,
+    explicit_path: Optional[str],
+    disabled: bool,
+) -> Tuple[Optional[Path], List[str]]:
+    """Resolve a precomputed Jaccard distance matrix to pass to SplitAnalyzer.
+
+    Auto-detects ``<input_file_dir>/Jaccard_distance.npy`` (plus the companion
+    ``valid_canonical_smiles.txt``) and validates that the SMILES order matches
+    the input CSV. If alignment can be verified, returns the matrix path and
+    the SMILES list to use (the canonical list, which is what indexes the
+    matrix). Otherwise returns ``(None, smiles)`` and analysis falls back to
+    the fingerprint path.
+
+    Args:
+        smiles: SMILES from the input CSV, in CSV row order.
+        input_file: Path to the input CSV (its parent dir is searched).
+        explicit_path: User-supplied ``--distance-matrix`` path, if any.
+        disabled: When True, skip auto-detection entirely.
+
+    Returns:
+        Tuple of (matrix_path_or_None, smiles_to_use). When the matrix is
+        usable, ``smiles_to_use`` is the canonical SMILES from
+        ``valid_canonical_smiles.txt`` (same content as the CSV when aligned).
+    """
+    if disabled:
+        return None, smiles
+
+    if explicit_path:
+        matrix_path = Path(explicit_path)
+        if not matrix_path.exists():
+            logger.warning(f"--distance-matrix path does not exist: {matrix_path}; falling back to fingerprints")
+            return None, smiles
+    else:
+        candidate = input_file.parent / "Jaccard_distance.npy"
+        if not candidate.exists():
+            return None, smiles
+        matrix_path = candidate
+        logger.info(f"Auto-detected precomputed Jaccard distance matrix at {matrix_path}")
+
+    # Validate SMILES alignment via the canonical SMILES file if present.
+    canonical_path = matrix_path.parent / "valid_canonical_smiles.txt"
+    if canonical_path.exists():
+        with open(canonical_path) as f:
+            canonical_smiles = [line.strip() for line in f if line.strip()]
+        if canonical_smiles != smiles:
+            if len(canonical_smiles) != len(smiles):
+                logger.warning(
+                    f"SMILES count mismatch: CSV has {len(smiles)}, "
+                    f"{canonical_path.name} has {len(canonical_smiles)}; "
+                    "skipping precomputed matrix."
+                )
+                return None, smiles
+            logger.warning(
+                f"SMILES order in CSV differs from {canonical_path.name}; "
+                "using the canonical order so the precomputed matrix aligns. "
+                "Labels are dropped because the row order changes."
+            )
+            return matrix_path, canonical_smiles
+        return matrix_path, smiles
+
+    # No canonical file: validate just the size and trust the caller.
+    try:
+        shape = np.load(matrix_path, mmap_mode="r").shape
+    except Exception as e:
+        logger.warning(f"Failed to read shape of {matrix_path}: {e}; falling back to fingerprints")
+        return None, smiles
+    if shape != (len(smiles), len(smiles)):
+        logger.warning(
+            f"Precomputed matrix shape {shape} does not match SMILES count {len(smiles)}; skipping precomputed matrix."
+        )
+        return None, smiles
+    return matrix_path, smiles
+
+
 def run_analysis(
     smiles: List[str],
     splitter_names: List[str],
@@ -161,6 +238,7 @@ def run_analysis(
     test_size: float = DEFAULT_TEST_SIZE,
     labels: Optional[List[int]] = None,
     fingerprint_type: str = "ecfp",
+    precomputed_distance_matrix: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
     Run split quality analysis on the dataset.
@@ -172,15 +250,23 @@ def run_analysis(
         test_size: Fraction of data for test set.
         labels: Optional labels for balance metrics.
         fingerprint_type: Fingerprint type for similarity computation.
+        precomputed_distance_matrix: Optional path to a .npy Jaccard distance
+            matrix aligned with ``smiles``. When provided, similarity metrics
+            are sliced from it instead of computed from fingerprints.
 
     Returns:
         Dictionary containing comparison DataFrame and individual reports.
     """
     logger.info(f"Initializing analyzer with {len(smiles)} molecules")
+    if precomputed_distance_matrix is not None:
+        logger.info(f"Using precomputed distance matrix: {precomputed_distance_matrix}")
     analyzer = SplitAnalyzer(
         smiles,
         fingerprint_type=fingerprint_type,
         n_jobs=1,  # Use single thread for stability
+        precomputed_distance_matrix=(
+            str(precomputed_distance_matrix) if precomputed_distance_matrix is not None else None
+        ),
     )
 
     all_reports: List[SplitQualityReport] = []
@@ -506,6 +592,22 @@ Examples:
         help="Column name for labels (default: 'label')",
     )
 
+    parser.add_argument(
+        "--distance-matrix",
+        type=str,
+        default=None,
+        help=(
+            "Path to a precomputed Jaccard distance .npy file (NxN, aligned with the input "
+            "SMILES). If omitted, the script auto-detects <input_dir>/Jaccard_distance.npy."
+        ),
+    )
+
+    parser.add_argument(
+        "--no-distance-matrix",
+        action="store_true",
+        help="Disable auto-detection of a precomputed distance matrix.",
+    )
+
     return parser.parse_args()
 
 
@@ -538,6 +640,20 @@ def main() -> None:
         labels = df[args.label_column].tolist()
         logger.info(f"Using labels from column '{args.label_column}'")
 
+    # Resolve precomputed distance matrix (auto-detect unless disabled). If
+    # alignment requires reordering to the canonical SMILES, drop labels —
+    # they were indexed against the original CSV row order.
+    original_smiles = smiles
+    matrix_path, smiles = resolve_precomputed_distance(
+        smiles=smiles,
+        input_file=file_path,
+        explicit_path=args.distance_matrix,
+        disabled=args.no_distance_matrix,
+    )
+    if matrix_path is not None and smiles is not original_smiles and labels is not None:
+        logger.warning("Dropping labels: SMILES were reordered to match the precomputed matrix.")
+        labels = None
+
     # Resolve splitters
     splitter_names = get_splitters_to_analyze(args.splitters)
     logger.info(f"Analyzing splitters: {', '.join(splitter_names)}")
@@ -550,6 +666,7 @@ def main() -> None:
         test_size=args.test_size,
         labels=labels,
         fingerprint_type=args.fingerprint,
+        precomputed_distance_matrix=matrix_path,
     )
 
     # Print summary

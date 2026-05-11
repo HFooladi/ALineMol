@@ -25,7 +25,9 @@ Example:
     >>> print(comparison)  # DataFrame with aggregated metrics
 """
 
+import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -317,6 +319,21 @@ class SplitAnalyzer:
         compute_properties: List of properties to compute. Default includes
             MW, LogP, TPSA, HBD, HBA.
         n_jobs: Number of parallel jobs. Default: 1.
+        precomputed_distance_matrix: Optional precomputed pairwise Jaccard
+            distance matrix of shape ``(n_molecules, n_molecules)``, supplied
+            either as an ``np.ndarray`` or as a path to a ``.npy`` file. When
+            provided, similarity metrics use ``similarity = 1 - distance``
+            sliced from this matrix instead of recomputing fingerprints —
+            a large speed-up for repeated analyses on the same dataset.
+
+            Caveats:
+              * The matrix rows/cols must be indexed in the same order as
+                ``smiles``; the caller is responsible for alignment.
+              * Only the train/test similarity path uses it. Scaffold and
+                property metrics still derive from the SMILES via RDKit.
+              * ``fingerprint_type``/``fingerprint_radius``/``fingerprint_nbits``
+                are ignored when this matrix is supplied — the matrix encodes
+                whatever fingerprint was used at generation time.
 
     Attributes:
         smiles: The input SMILES strings.
@@ -332,6 +349,13 @@ class SplitAnalyzer:
         >>> # Compare multiple splitters
         >>> comparison = analyzer.compare_splitters(["scaffold", "kmeans", "random"])
         >>> print(comparison)
+        >>>
+        >>> # Reuse a precomputed Jaccard distance matrix to avoid recomputing
+        >>> # fingerprint-based similarity on every call:
+        >>> analyzer = SplitAnalyzer(
+        ...     smiles,
+        ...     precomputed_distance_matrix="datasets/TDC/CYP2C9/Jaccard_distance.npy",
+        ... )
     """
 
     # Default properties to compute
@@ -345,6 +369,7 @@ class SplitAnalyzer:
         fingerprint_nbits: int = 2048,
         compute_properties: Optional[List[str]] = None,
         n_jobs: int = 1,
+        precomputed_distance_matrix: Optional[Union[np.ndarray, str, Path]] = None,
     ):
         self.smiles = list(smiles)
         self.n_molecules = len(smiles)
@@ -359,6 +384,53 @@ class SplitAnalyzer:
         self._scaffolds: Optional[List[Optional[str]]] = None
         self._properties: Optional[pd.DataFrame] = None
         self._mols: Optional[List] = None
+
+        # Optional precomputed similarity matrix (= 1 - distance)
+        self._precomputed_similarity: Optional[np.ndarray] = (
+            self._load_precomputed_distance(precomputed_distance_matrix)
+            if precomputed_distance_matrix is not None
+            else None
+        )
+
+    def _load_precomputed_distance(self, source: Union[np.ndarray, str, Path]) -> np.ndarray:
+        """Load and validate a precomputed pairwise distance matrix.
+
+        Accepts either a numpy array or a path to a ``.npy`` file. The matrix
+        must be square of side ``n_molecules`` with values in roughly ``[0, 1]``
+        (Jaccard distance). Returns the corresponding similarity matrix
+        ``1 - distance``.
+        """
+        if isinstance(source, (str, Path)):
+            distance = np.load(str(source), mmap_mode="r")
+        elif isinstance(source, np.ndarray):
+            distance = source
+        else:
+            raise TypeError(
+                "precomputed_distance_matrix must be an np.ndarray or a path "
+                f"to a .npy file, got {type(source).__name__}"
+            )
+
+        expected_shape = (self.n_molecules, self.n_molecules)
+        if distance.shape != expected_shape:
+            raise ValueError(
+                f"precomputed_distance_matrix has shape {distance.shape}, "
+                f"expected {expected_shape} to match the SMILES list"
+            )
+
+        # Materialize from the mmap view and compute similarity once.
+        distance = np.asarray(distance, dtype=np.float64)
+
+        d_min = float(distance.min())
+        d_max = float(distance.max())
+        if d_min < -1e-6 or d_max > 1.0 + 1e-6:
+            warnings.warn(
+                "precomputed_distance_matrix has values outside [0, 1] "
+                f"(min={d_min:.4f}, max={d_max:.4f}); "
+                "expected Jaccard distance. Proceeding with similarity = 1 - distance.",
+                stacklevel=2,
+            )
+
+        return 1.0 - distance
 
     @property
     def fingerprints(self) -> np.ndarray:
@@ -500,30 +572,41 @@ class SplitAnalyzer:
         Compute similarity metrics between train and test sets.
 
         For each test molecule, finds the maximum Tanimoto similarity to
-        any training molecule.
+        any training molecule. When a precomputed distance matrix was passed
+        to ``__init__``, the similarity values are sliced from it (avoiding
+        the inner fingerprint loop); otherwise they are computed from the
+        fingerprints on the fly.
         """
         if len(test_idx) == 0 or len(train_idx) == 0:
             return None
 
-        train_fps = self.fingerprints[train_idx]
-        test_fps = self.fingerprints[test_idx]
+        train_idx = np.asarray(train_idx)
+        test_idx = np.asarray(test_idx)
 
-        # Compute max similarity for each test molecule to training set
-        max_similarities = []
+        if self._precomputed_similarity is not None:
+            # Slice the test x train similarity block from the precomputed matrix.
+            block = self._precomputed_similarity[np.ix_(test_idx, train_idx)]
+            max_similarities = np.asarray(block).max(axis=1)
+        else:
+            train_fps = self.fingerprints[train_idx]
+            test_fps = self.fingerprints[test_idx]
 
-        for test_fp in test_fps:
-            # Tanimoto similarity
-            intersections = np.sum(np.logical_and(train_fps, test_fp), axis=1)
-            unions = np.sum(np.logical_or(train_fps, test_fp), axis=1)
+            # Compute max similarity for each test molecule to training set
+            max_similarities = []
 
-            # Avoid division by zero
-            with np.errstate(divide="ignore", invalid="ignore"):
-                similarities = np.where(unions > 0, intersections / unions, 0.0)
+            for test_fp in test_fps:
+                # Tanimoto similarity
+                intersections = np.sum(np.logical_and(train_fps, test_fp), axis=1)
+                unions = np.sum(np.logical_or(train_fps, test_fp), axis=1)
 
-            max_sim = np.max(similarities) if len(similarities) > 0 else 0.0
-            max_similarities.append(max_sim)
+                # Avoid division by zero
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    similarities = np.where(unions > 0, intersections / unions, 0.0)
 
-        max_similarities = np.array(max_similarities)
+                max_sim = np.max(similarities) if len(similarities) > 0 else 0.0
+                max_similarities.append(max_sim)
+
+            max_similarities = np.array(max_similarities)
 
         return SimilarityMetrics(
             min_sim=float(np.min(max_similarities)),
@@ -730,9 +813,29 @@ class SplitAnalyzer:
             >>> reports = analyzer.analyze_splitter("scaffold", n_splits=5)
             >>> mean_sim = np.mean([r.similarity_metrics.mean_sim for r in reports])
         """
-        from alinemol.splitters import get_splitter
+        import inspect as _inspect
 
-        splitter = get_splitter(splitter_name, n_splits=n_splits, test_size=test_size, **splitter_kwargs)
+        from alinemol.splitters import get_splitter
+        from alinemol.splitters.factory import _SPLITTER_ALIASES, _SPLITTER_REGISTRY
+
+        # Some splitters (e.g. HiSplit) don't accept `test_size`, and LoSplit
+        # accepts neither `n_splits` nor `test_size`. Inspect the constructor
+        # and only forward the convention kwargs it actually takes.
+        resolved = _SPLITTER_ALIASES.get(splitter_name.lower().strip().replace("-", "_"), splitter_name)
+        target_cls = _SPLITTER_REGISTRY.get(resolved)
+        kw = dict(splitter_kwargs)
+        if target_cls is not None:
+            params = _inspect.signature(target_cls.__init__).parameters
+            accepts_var_kw = any(p.kind == _inspect.Parameter.VAR_KEYWORD for p in params.values())
+            if accepts_var_kw or "n_splits" in params:
+                kw.setdefault("n_splits", n_splits)
+            if accepts_var_kw or "test_size" in params:
+                kw.setdefault("test_size", test_size)
+        else:
+            kw.setdefault("n_splits", n_splits)
+            kw.setdefault("test_size", test_size)
+
+        splitter = get_splitter(splitter_name, **kw)
 
         reports = []
         for idx, (train_idx, test_idx) in enumerate(splitter.split(self.smiles)):
