@@ -83,6 +83,8 @@ lint.ignore = [
 ]
 line-length = 120
 target-version = "py39"
+extend-exclude = ["*.ipynb"]
+force-exclude = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = [
