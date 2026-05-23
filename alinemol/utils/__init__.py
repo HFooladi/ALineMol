@@ -8,6 +8,10 @@ POT, etc.) still imports cleanly. Users who need those symbols on a lean
 install should import them from their submodule directly, e.g.::
 
     from alinemol.utils.utils import load_model
+
+Catch ``(ImportError, OSError)`` rather than just ``ImportError`` because
+DGL raises ``FileNotFoundError`` (an OSError subclass) at import time when
+its native graphbolt .so doesn't match the installed torch version.
 """
 
 # Light submodules: no heavy dependencies, always importable.
@@ -24,7 +28,7 @@ try:
         rescale,
         compare_rankings,
     )
-except ImportError:
+except (ImportError, OSError):
     pass
 
 # split_utils requires astartes (extra: [ml]).
@@ -35,7 +39,7 @@ try:
         split_molecules_train_test,
         split_molecules_train_val_test,
     )
-except ImportError:
+except (ImportError, OSError):
     pass
 
 # utils.utils requires torch/dgl/dgllife (extra: [gnn]).
@@ -53,5 +57,5 @@ try:
         predict,
         split_dataset,
     )
-except ImportError:
+except (ImportError, OSError):
     pass

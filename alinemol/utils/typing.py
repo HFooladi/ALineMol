@@ -9,7 +9,8 @@ try:
     from dgl.data.utils import Subset as _Subset
 
     DatasetSubset = _Subset
-except ImportError:
+except (ImportError, OSError):
+    # OSError catches FileNotFoundError from a torch/DGL graphbolt mismatch.
     DatasetSubset = Any  # GNN-only type; gracefully falls back without dgl installed
 
 
