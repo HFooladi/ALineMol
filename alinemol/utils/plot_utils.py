@@ -63,8 +63,17 @@ sns.set_style("whitegrid", rc=rcparams)
 sns.set_palette("Set2")
 sns.set_context("paper", font_scale=1.5)
 
-# Load the configuration file (wich contains datasets, models, and splitting)
-CFG = yaml.safe_load(open(os.path.join(DATASET_PATH, "config.yml"), "r"))
+# Load the configuration file (which contains datasets, models, and splitting).
+# The config lives in the repo root (`datasets/config.yml`) and is not shipped
+# with the installed package, so a pip install (e.g. on Colab) won't find it.
+# Fall back to empty lists when missing — the constants below are only consumed
+# by downstream model-evaluation plots, not by the splitter API.
+_CFG_PATH = os.path.join(DATASET_PATH, "config.yml")
+try:
+    with open(_CFG_PATH, "r") as _f:
+        CFG = yaml.safe_load(_f)
+except FileNotFoundError:
+    CFG = {"models": {"ML": [], "GNN": {"scratch": [], "pretrained": []}}, "datasets": {"TDC": []}, "splitting": []}
 
 ML_MODELS: List = CFG["models"]["ML"]
 GNN_MODELS: List = CFG["models"]["GNN"]["scratch"]
