@@ -7,7 +7,6 @@ from loguru import logger
 from sklearn.model_selection import BaseShuffleSplit, ShuffleSplit
 from sklearn.model_selection._split import _validate_shuffle_split  # noqa W0212
 from sklearn.utils.validation import _num_samples  # noqa W0212
-from dgl.data.utils import Subset
 from sklearn.model_selection import StratifiedShuffleSplit
 
 from alinemol.utils.typing import LabeledDataset, DatasetSplit, KFoldSplit, RandomStateType, SMILESList
@@ -42,6 +41,8 @@ def stratified_split_dataset(
         list of length 3
             Subsets for training, validation and test.
     """
+    from dgl.data.utils import Subset
+
     if frac_list is None:
         frac_list = [0.8, 0.1, 0.1]
     frac_list = np.asarray(frac_list)
@@ -356,6 +357,7 @@ class StratifiedRandomSplit(object):
                 Each tuple contains (train_set, val_set) where train_set and val_set
                 are Subset objects of the original dataset.
         """
+        from dgl.data.utils import Subset
         from sklearn.model_selection import StratifiedKFold
 
         # Validate dataset has labels attribute

@@ -4,7 +4,13 @@ Custom type definitions for the ALineMol codebase.
 
 from typing import Dict, List, Tuple, Union, Optional, Any, Callable, TypeVar, Protocol
 import numpy as np
-from dgl.data.utils import Subset
+
+try:
+    from dgl.data.utils import Subset as _Subset
+
+    DatasetSubset = _Subset
+except ImportError:
+    DatasetSubset = Any  # GNN-only type; gracefully falls back without dgl installed
 
 
 # Define a type for datasets that have a labels attribute
@@ -17,9 +23,6 @@ class LabeledDataset(Protocol):
 
     def __getitem__(self, idx: int) -> Any: ...
 
-
-# Type for dataset subsets
-DatasetSubset = Subset
 
 # Type for a list of dataset subsets (train, val, test)
 DatasetSplit = List[DatasetSubset]
