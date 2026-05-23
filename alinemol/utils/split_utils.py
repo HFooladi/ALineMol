@@ -11,9 +11,9 @@ import datamol as dm  # for molecule processing
 import numpy as np  # for numerical operations
 import pandas as pd  # for data manipulation
 import rdkit  # for molecule processing
+from rdkit import Chem as _rdkit_Chem  # noqa: F401 — submodule binding needed for `rdkit.Chem.Mol` annotations
 from sklearn.model_selection import train_test_split  # for splitting the dataset
 from sklearn.model_selection import StratifiedShuffleSplit  # for stratified splitting
-from astartes.molecules import train_test_split_molecules, train_val_test_split_molecules
 from scipy.spatial import distance
 from tqdm import tqdm
 
@@ -170,6 +170,8 @@ def split_molecules_train_test(
     X = np.array(mol_df["smiles"])
     y = np.array(mol_df["label"])
 
+    from astartes.molecules import train_test_split_molecules
+
     hopts = {"shuffle": True}
     assert sampler in AVAILABLE_SPLITTERS, f"Sampler must be one of {AVAILABLE_SPLITTERS}"
     hopts.update(hopts)
@@ -226,6 +228,8 @@ def split_molecules_train_val_test(
     y = np.array(mol_df["label"])
 
     test_size = 1 - train_size - val_size
+
+    from astartes.molecules import train_val_test_split_molecules
 
     hopts = {"shuffle": True}
     hopts.update(hopts)
