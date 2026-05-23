@@ -19,27 +19,23 @@ classifiers = [
     "Operating System :: OS Independent",
     "License :: OSI Approved :: MIT License",
 ]
+# Core dependencies — what's needed to import alinemol.splitters and run the
+# Split Quality Analyzer. Heavy ML/GNN packages are split into optional extras
+# so that splitter-only consumers (e.g. the Colab quick-start notebook) get a
+# lean, conflict-free install on modern Python + Colab.
 dependencies = [
-    "numpy<2",
+    "numpy",
     "pandas",
     "scipy",
     "matplotlib",
     "seaborn",
     "plotly",
     "scikit-learn",
-    "statsmodels",
-    "torch>=1.13,<2.2",
-    "dgl",
-    "dgllife",
-    "torch-geometric",
     "networkx",
-    "POT",
     "joblib-progress",
     "rdkit",
     "datamol",
-    "astartes",
     "splito",
-    "datasail",
     "umap-learn",
     "mip",
     "tqdm",
@@ -50,6 +46,29 @@ dependencies = [
 readme = "README.md"
 
 [project.optional-dependencies]
+# GNN training stack (torch + DGL/DGL-LifeSci + PyG). Required by alinemol.models
+# and alinemol.utils.utils, the training scripts, and the GNN-flavoured notebooks.
+gnn = [
+    "torch>=1.13",
+    "dgl",
+    "dgllife",
+    "torch-geometric",
+]
+# Auxiliary ML/statistics dependencies used by graph_utils, metric_utils, and
+# split_utils. Independent of the GNN stack.
+ml = [
+    "statsmodels",
+    "POT",
+    "astartes",
+]
+# DataSAIL splitter — optional and historically flaky to install.
+datasail = [
+    "datasail",
+]
+# Convenience: everything outside the dev/test tooling.
+all = [
+    "alinemol[gnn,ml,datasail]",
+]
 test = [
   "pytest",
   "pytest-cov",

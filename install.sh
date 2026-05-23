@@ -50,9 +50,11 @@ uv venv --python "$PYTHON_VERSION"
 # Activate venv
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies. [all] pulls in the optional GNN/ML/datasail extras so
+# the legacy full-feature install path is preserved; splitter-only users can
+# instead do `pip install alinemol` to get the lean core.
 echo "Installing dependencies..."
-uv pip install -e ".[dev,test]" \
+uv pip install -e ".[all,dev,test]" \
     -f "$PYTORCH_INDEX" \
     -f https://data.dgl.ai/wheels/repo.html
 

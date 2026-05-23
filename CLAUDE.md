@@ -50,21 +50,22 @@ mypy alinemol/
 ### Building and Installation
 
 ```bash
-# Using uv (recommended)
+# Splitter-only (lean) — no torch/DGL
 uv pip install -e .
 
-# Using uv with test dependencies
-uv pip install -e ".[test]"
+# Full feature set (GNNs + ML utilities + datasail)
+uv pip install -e ".[all]"
 
-# Using uv with development dependencies
-uv pip install -e ".[dev,test]"
-
-# Using pip (alternative)
-pip install -e ".[dev,test]"
+# Full feature set + dev/test tooling
+uv pip install -e ".[all,dev,test]"
 
 # Build documentation
 mkdocs serve
 ```
+
+Available extras: `[gnn]` (torch/dgl/dgllife/torch-geometric), `[ml]`
+(statsmodels/POT/astartes), `[datasail]` (datasail), `[all]` (all of the
+above), `[dev]` (ruff/pre-commit/mypy), `[test]` (pytest/pytest-cov).
 
 ### Environment Setup
 
@@ -91,10 +92,10 @@ uv venv --python 3.11
 source .venv/bin/activate
 
 # CPU PyTorch
-uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
+uv pip install -e ".[all,dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
 
 # Or CUDA 12.1 PyTorch
-uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
+uv pip install -e ".[all,dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
 ```
 
 #### Using conda

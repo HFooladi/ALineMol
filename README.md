@@ -61,10 +61,10 @@ uv venv --python 3.11
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # CPU-only installation
-uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
+uv pip install -e ".[all,dev,test]" -f https://download.pytorch.org/whl/cpu -f https://data.dgl.ai/wheels/repo.html
 
 # Or CUDA 12.1 installation
-uv pip install -e ".[dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
+uv pip install -e ".[all,dev,test]" -f https://download.pytorch.org/whl/cu121 -f https://data.dgl.ai/wheels/repo.html
 ```
 
 #### Option 2: Using conda
@@ -81,6 +81,22 @@ conda activate alinemol
 # Install ALineMol package
 pip install --no-deps -e .
 ```
+
+#### Optional extras
+
+The default install (`pip install alinemol`) is lean — only the splitter
+API and `SplitAnalyzer`. Pull in heavier components on demand:
+
+| Extra | Pulls in | When you need it |
+|---|---|---|
+| `[gnn]` | torch, dgl, dgllife, torch-geometric | Training/inference with GNN models |
+| `[ml]` | statsmodels, POT, astartes | `alinemol.utils.utils`, OT-based graph utilities, `astartes`-backed splitters |
+| `[datasail]` | datasail | The `datasail` splitter |
+| `[all]` | gnn + ml + datasail | Everything (used by `install.sh`) |
+| `[dev]` | ruff, pre-commit, mypy | Contributing |
+| `[test]` | pytest, pytest-cov | Running the test suite |
+
+Example: `pip install "alinemol[gnn]"` for splitters + GNN training only.
 
 ## Quick Start
 
