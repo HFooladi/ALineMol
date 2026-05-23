@@ -28,15 +28,21 @@ DATASET_PATH = os.path.join(REPO_PATH, "datasets")
 
 
 # Set the plotting style
-# Set matplotlib parameters
+# Set matplotlib parameters.
+# LaTeX is opt-in: enabling `text.usetex` at import time breaks any environment
+# without a system LaTeX install (e.g. Colab). Set ALINEMOL_USE_LATEX=1 in the
+# environment to turn it back on for paper-quality figures.
+_USE_LATEX = os.environ.get("ALINEMOL_USE_LATEX", "0") == "1"
 rcparams = {
     # LaTeX setup
     "pgf.texsystem": "pdflatex",
-    "text.usetex": True,
+    "text.usetex": _USE_LATEX,
     "pgf.rcfonts": False,
-    # Font settings
-    "font.family": "serif",
-    "font.serif": ["Computer Modern Roman"],
+    # Font settings — Computer Modern Roman ships only with LaTeX, so falling
+    # back to matplotlib's default serif stack when LaTeX is off keeps Colab
+    # output clean (no findfont warnings).
+    "font.family": "serif" if _USE_LATEX else matplotlib.rcParams["font.family"],
+    "font.serif": ["Computer Modern Roman"] if _USE_LATEX else matplotlib.rcParams["font.serif"],
     "font.size": 14,
     # Figure settings
     "figure.dpi": 600,  # Higher DPI for better quality
@@ -212,7 +218,7 @@ def plot_ID_OOD_sns(data: pd.DataFrame, dataset_category="TDC", dataset_name="CY
     sns.set_theme(
         style="whitegrid",
         rc={
-            "text.usetex": True,
+            "text.usetex": _USE_LATEX,
             "pgf.rcfonts": False,
             "font.serif": "Computer Modern Roman",
             "font.family": "serif",
