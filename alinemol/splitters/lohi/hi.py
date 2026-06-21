@@ -12,8 +12,8 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
 import mip
 
-from sklearn.model_selection import BaseShuffleSplit
 from alinemol.utils.typing import SMILESList
+from alinemol.splitters.base import BaseMolecularSplitter
 from alinemol.splitters.factory import register_splitter
 
 
@@ -618,7 +618,7 @@ def hi_k_fold_split(
 
 
 @register_splitter("hi", aliases=["hi_split", "hisplit"])
-class HiSplit(BaseShuffleSplit):
+class HiSplit(BaseMolecularSplitter):
     def __init__(
         self,
         similarity_threshold: float = 0.4,
@@ -628,6 +628,9 @@ class HiSplit(BaseShuffleSplit):
         verbose: bool = True,
         max_mip_gap: float = 0.1,
         n_splits: int = 1,
+        test_size: Optional[Union[float, int]] = None,
+        train_size: Optional[Union[float, int]] = None,
+        random_state: Optional[int] = None,
     ):
         """
         A splitter that creates train/test splits with no molecules in the test set having
@@ -654,9 +657,14 @@ class HiSplit(BaseShuffleSplit):
                 For example, setting it to 0.5 yields a faster but less optimal solution, while 0.01 aims for a more
                 optimal solution, potentially at the cost of more computation time.
             n_splits: Number of splits to generate (default 1, as this is deterministic).
+            test_size: Accepted for API symmetry with the other splitters. The Hi
+                partition is governed by ``train_min_frac``/``test_min_frac`` (the
+                similarity-cut constraints), so this value is not used.
+            train_size: Accepted for API symmetry; see ``test_size``. Not used.
+            random_state: Accepted for API symmetry with the other splitters. This
+                splitter is deterministic, so the value is ignored.
         """
-        self.n_splits = n_splits
-        self._smiles: Optional[List[str]] = None
+        super().__init__(n_splits=n_splits, test_size=test_size, train_size=train_size, random_state=random_state)
         self.similarity_threshold = similarity_threshold
         self.train_min_frac = train_min_frac
         self.test_min_frac = test_min_frac
@@ -686,13 +694,9 @@ class HiSplit(BaseShuffleSplit):
 
         Raises:
             ValueError: If X is not a list of SMILES strings and no SMILES list was
-                provided during initialization.
+                set via set_smiles().
         """
-        requires_smiles = X is None or not all(isinstance(x, str) for x in X)
-        if self._smiles is None and requires_smiles:
-            raise ValueError("If the input is not a list of SMILES, you need to provide the SMILES to the constructor.")
-
-        smiles = self._smiles if requires_smiles else X
+        smiles = self._resolve_smiles(X)
 
         # Use the existing hi_train_test_split function
         partitions = hi_train_test_split(
@@ -711,39 +715,6 @@ class HiSplit(BaseShuffleSplit):
         # Yield for each split (typically just once for this deterministic splitter)
         for i in range(self.n_splits):
             yield train_indices, test_indices
-
-    def split(self, smiles: List[str]) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
-        """
-        Split the dataset into train and test sets such that no molecule in the test
-        has ECFP4 Tanimoto similarity to the train > similarity_threshold.
-
-        Args:
-            smiles: List of SMILES strings representing molecules
-
-        Returns:
-            Tuple containing:
-                - List[int]: Indices of training molecules
-                - List[int]: Indices of test molecules
-
-        Examples:
-            >>> from alinemol.splitters.lohi import HiSplit
-            >>> splitter = HiSplit()
-            >>> for train_indices, test_indices in splitter.split(smiles):
-            ...     print(train_indices)
-            ...     print(test_indices)
-            ...     break  # Just show the first split
-        """
-        partitions = hi_train_test_split(
-            smiles=smiles,
-            similarity_threshold=self.similarity_threshold,
-            train_min_frac=self.train_min_frac,
-            test_min_frac=self.test_min_frac,
-            coarsening_threshold=self.coarsening_threshold,
-            verbose=self.verbose,
-            max_mip_gap=self.max_mip_gap,
-        )
-
-        yield np.array(partitions[0]), np.array(partitions[1])  # train_indices, test_indices
 
     def k_fold_split(self, smiles: List[str], k: int = 3, fold_min_frac: Optional[float] = None) -> List[List[int]]:
         """

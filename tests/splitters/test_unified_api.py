@@ -50,7 +50,12 @@ SLOW_SPLITTERS = [
     "perimeter",
     "umap",
     "butina",
+    "hi",
 ]
+
+# NOTE: "lo" is intentionally excluded from the generic lists above. The Lo splitter
+# requires continuous activity values passed via y, so it cannot be exercised by the
+# harness here (which calls split(smiles) with no y). It is covered in test_lohi.py.
 
 
 class TestUnifiedSplitAPI:

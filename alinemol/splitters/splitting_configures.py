@@ -55,9 +55,11 @@ HiSplitConfig: ConfigDict = {
     "max_mip_gap": 0.1,
 }
 
-# LoSplit cannot be driven by ``scripts/splitting.py`` because its ``split()`` API
-# requires a continuous ``values`` argument. This config is kept for downstream
-# callers using the library API directly.
+# LoSplit now follows the unified ``split(X, y, groups)`` contract (values are
+# passed via ``y``). It still cannot be driven by ``scripts/splitting.py`` unless
+# that script supplies a continuous label/values column to pass as ``y`` — the Lo
+# algorithm needs continuous activity values, not binary labels. This config is
+# kept for downstream callers using the library API directly.
 LoSplitConfig: ConfigDict = {
     "threshold": 0.4,
     "min_cluster_size": 5,

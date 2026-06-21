@@ -180,6 +180,8 @@ class TestRegisteredSplitters:
             "random",
             "umap",
             "butina",
+            "hi",
+            "lo",
         ],
     )
     def test_splitter_instantiable(self, splitter_name):

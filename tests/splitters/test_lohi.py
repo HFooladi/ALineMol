@@ -185,28 +185,34 @@ def test_lo_splitter_initialization_custom():
 
 
 def test_lo_splitter_split(test_smiles, test_values):
-    """Test LoSplitter split functionality."""
-    splitter = LoSplit(threshold=0.4, min_cluster_size=3, max_clusters=5, std_threshold=0.5)
+    """Test LoSplitter split functionality via the unified split(X, y) API."""
+    splitter = LoSplit(threshold=0.4, min_cluster_size=3, max_clusters=5, std_threshold=0.5, verbose=0)
 
-    train_indices, clusters_indices = splitter.split(test_smiles, test_values, verbose=0)
+    train_indices, test_indices = next(splitter.split(test_smiles, test_values))
+    clusters_indices = splitter.test_clusters_
 
-    # Check that we get the expected return types
-    assert isinstance(train_indices, list)
+    # Unified API: split() yields (train_idx, test_idx) numpy arrays
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
+    # The per-cluster structure is preserved on the attribute
     assert isinstance(clusters_indices, list)
 
-    # Check that all indices are valid
-    all_train_indices = set(train_indices)
+    # Check that all train indices are valid
+    all_train_indices = set(train_indices.tolist())
     assert all(0 <= idx < len(test_smiles) for idx in all_train_indices)
 
     # Check clusters
     all_cluster_indices = set()
     for cluster in clusters_indices:
         assert isinstance(cluster, (list, np.ndarray))
-        cluster_set = set(cluster)
+        cluster_set = set(np.asarray(cluster).tolist())
         assert all(0 <= idx < len(test_smiles) for idx in cluster_set)
         # Check no overlap between clusters
         assert cluster_set.isdisjoint(all_cluster_indices)
         all_cluster_indices.update(cluster_set)
+
+    # The flattened test set is the union of the clusters
+    assert set(test_indices.tolist()) == all_cluster_indices
 
     # Check no overlap between train and test clusters
     assert all_train_indices.isdisjoint(all_cluster_indices)
@@ -224,19 +230,22 @@ def test_lo_splitter_split_small_dataset(small_test_data):
         min_cluster_size=2,
         max_clusters=3,
         std_threshold=0.1,  # Low threshold to allow clusters
+        verbose=0,
     )
 
-    train_indices, clusters_indices = splitter.split(smiles, values, verbose=0)
+    train_indices, test_indices = next(splitter.split(smiles, values))
+    clusters_indices = splitter.test_clusters_
 
     # Basic checks
-    assert isinstance(train_indices, list)
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
     assert isinstance(clusters_indices, list)
     assert len(train_indices) > 0
 
     # Check indices are valid
-    all_indices = set(train_indices)
+    all_indices = set(train_indices.tolist())
     for cluster in clusters_indices:
-        all_indices.update(cluster)
+        all_indices.update(np.asarray(cluster).tolist())
     assert all(0 <= idx < len(smiles) for idx in all_indices)
 
 
@@ -250,13 +259,24 @@ def test_lo_splitter_no_clusters_found():
         min_cluster_size=2,
         max_clusters=5,
         std_threshold=0.5,  # High threshold, no clusters will meet this
+        verbose=0,
     )
 
-    train_indices, clusters_indices = splitter.split(smiles, values, verbose=0)
+    train_indices, test_indices = next(splitter.split(smiles, values))
+    clusters_indices = splitter.test_clusters_
 
     # Should return all molecules in training set and no clusters
     assert len(train_indices) == len(smiles)
     assert len(clusters_indices) == 0
+    assert len(test_indices) == 0
+
+
+def test_lo_splitter_requires_values():
+    """LoSplit needs continuous values via y; omitting them should raise."""
+    splitter = LoSplit(verbose=0)
+
+    with pytest.raises(ValueError):
+        next(splitter.split(["CCO", "CC(=O)O", "c1ccccc1"]))
 
 
 def test_lo_splitter_high_similarity_threshold(small_test_data):
@@ -268,73 +288,82 @@ def test_lo_splitter_high_similarity_threshold(small_test_data):
         min_cluster_size=2,
         max_clusters=5,
         std_threshold=0.1,
+        verbose=0,
     )
 
-    train_indices, clusters_indices = splitter.split(smiles, values, verbose=0)
+    train_indices, test_indices = next(splitter.split(smiles, values))
+    clusters_indices = splitter.test_clusters_
 
     # With high threshold, fewer molecules will be considered similar
-    assert isinstance(train_indices, list)
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
     assert isinstance(clusters_indices, list)
     assert len(train_indices) > 0
 
 
 def test_lo_splitter_empty_input():
     """Test LoSplitter with empty input."""
-    splitter = LoSplit()
+    splitter = LoSplit(verbose=0)
 
     with pytest.raises(Exception):  # Should raise some kind of error
-        splitter.split([], [])
+        next(splitter.split([], []))
 
 
 def test_lo_splitter_mismatched_input_lengths():
     """Test LoSplitter with mismatched SMILES and values lengths."""
-    splitter = LoSplit()
+    splitter = LoSplit(verbose=0)
 
     with pytest.raises(Exception):  # Should raise some kind of error
-        splitter.split(["CCO", "CC(=O)O"], [1.0])  # Different lengths
+        next(splitter.split(["CCO", "CC(=O)O"], [1.0]))  # Different lengths
 
 
 def test_lo_splitter_single_molecule():
     """Test LoSplitter with single molecule."""
-    splitter = LoSplit(min_cluster_size=1)
+    splitter = LoSplit(min_cluster_size=1, verbose=0)
 
     # Single molecule should go to training set
-    train_indices, clusters_indices = splitter.split(["CCO"], [1.0], verbose=0)
+    train_indices, test_indices = next(splitter.split(["CCO"], [1.0]))
+    clusters_indices = splitter.test_clusters_
 
     assert len(train_indices) == 1
     assert train_indices[0] == 0
     assert len(clusters_indices) == 0
+    assert len(test_indices) == 0
 
 
 def test_lo_splitter_numpy_input(small_test_data):
     """Test LoSplitter with numpy array inputs."""
     smiles, values = small_test_data
 
-    splitter = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
+    splitter = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1, verbose=0)
 
     # Convert to numpy arrays
     smiles_array = np.array(smiles)
     values_array = np.array(values)
 
-    train_indices, clusters_indices = splitter.split(smiles_array, values_array, verbose=0)
+    train_indices, test_indices = next(splitter.split(smiles_array, values_array))
+    clusters_indices = splitter.test_clusters_
 
     # Should work the same as with lists
-    assert isinstance(train_indices, list)
+    assert isinstance(train_indices, np.ndarray)
+    assert isinstance(test_indices, np.ndarray)
     assert isinstance(clusters_indices, list)
     assert len(train_indices) > 0
 
 
 def test_lo_splitter_different_n_jobs(small_test_data):
-    """Test LoSplitter with different n_jobs settings."""
+    """Test LoSplitter with different n_jobs settings (now a constructor arg)."""
     smiles, values = small_test_data
 
-    splitter = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1)
+    # n_jobs=1
+    splitter_1 = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1, n_jobs=1, verbose=0)
+    train_indices_1, _ = next(splitter_1.split(smiles, values))
+    clusters_indices_1 = splitter_1.test_clusters_
 
-    # Test with n_jobs=1
-    train_indices_1, clusters_indices_1 = splitter.split(smiles, values, n_jobs=1, verbose=0)
-
-    # Test with n_jobs=-1 (all processors)
-    train_indices_all, clusters_indices_all = splitter.split(smiles, values, n_jobs=-1, verbose=0)
+    # n_jobs=-1 (all processors)
+    splitter_all = LoSplit(threshold=0.4, min_cluster_size=2, max_clusters=3, std_threshold=0.1, n_jobs=-1, verbose=0)
+    train_indices_all, _ = next(splitter_all.split(smiles, values))
+    clusters_indices_all = splitter_all.test_clusters_
 
     # Results should be the same regardless of n_jobs
     assert len(train_indices_1) == len(train_indices_all)

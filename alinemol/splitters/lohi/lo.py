@@ -10,19 +10,26 @@ from tqdm import tqdm
 import datamol as dm
 import functools
 from loguru import logger
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional, Any, Iterator, Union
 
+from alinemol.splitters.base import BaseMolecularSplitter
 from alinemol.splitters.factory import register_splitter
 
 
 @register_splitter("lo", aliases=["lo_split", "losplit"])
-class LoSplit:
+class LoSplit(BaseMolecularSplitter):
     def __init__(
         self,
         threshold: float = 0.4,
         min_cluster_size: int = 5,
         max_clusters: int = 50,
         std_threshold: float = 0.60,
+        n_jobs: int = -1,
+        verbose: int = 1,
+        n_splits: int = 1,
+        test_size: Optional[Union[float, int]] = None,
+        train_size: Optional[Union[float, int]] = None,
+        random_state: Optional[int] = None,
     ):
         """
         A splitter that prepares data for training ML models for Lead Optimization or to guide
@@ -39,44 +46,83 @@ class LoSplit:
             std_threshold: the lower bound of the acceptable standard deviation for a cluster's values. It should be greater than the measurement noise.
                 For ChEMBL-like data set it to 0.60 for logKi and 0.70 for logIC50.
                 Set it lower if you have a high-quality dataset.
+            n_jobs: number of parallel jobs to run, -1 means use all processors.
+            verbose: set to 0 to turn off the progress bar.
+            n_splits: Number of splits to generate (default 1, as this is deterministic).
+            test_size: Accepted for API symmetry with the other splitters. The Lo
+                test set size is governed by the clustering parameters
+                (``max_clusters``/``min_cluster_size``), so this value is not used.
+            train_size: Accepted for API symmetry; see ``test_size``. Not used.
+            random_state: Accepted for API symmetry with the other splitters. This
+                splitter is deterministic, so the value is ignored.
 
         For more information, see a tutorial in the docs and Steshin 2023, Lo-Hi: Practical ML Drug Discovery Benchmark.
         """
+        super().__init__(n_splits=n_splits, test_size=test_size, train_size=train_size, random_state=random_state)
         self.threshold = threshold
         self.min_cluster_size = min_cluster_size
         self.max_clusters = max_clusters
         self.std_threshold = std_threshold
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        # Populated by _iter_indices: list of per-cluster index arrays that make up
+        # the test set (flattened into the yielded test_idx). The Lo splitter's
+        # test set is a union of lead-optimization analog clusters; this attribute
+        # preserves that cluster structure for callers who need it.
+        self.test_clusters_: Optional[List[np.ndarray]] = None
 
-    def split(
-        self, smiles: List[str], values: List[float], n_jobs: int = -1, verbose: int = 1
-    ) -> Tuple[List[int], List[List[int]]]:
+    def _iter_indices(
+        self,
+        X: Union[List[str], np.ndarray],
+        y: Optional[Union[List[float], np.ndarray]] = None,
+        groups: Optional[np.ndarray] = None,
+    ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         """
-        Split the dataset into test clusters and train.
+        Generate indices to split data into training and test sets.
 
         Args:
-            smiles: list of SMILES strings representing molecules
-            values: list of their continuous activity values
-            n_jobs: number of parallel jobs to run, -1 means use all processors
-            verbose: set to 0 to turn off progressbar
+            X: list of SMILES strings representing molecules (or set via set_smiles()).
+            y: continuous activity values, one per molecule. Required — the Lo
+                algorithm needs continuous values (not binary labels) to score
+                cluster activity variation.
+            groups: Not used, present for API consistency.
 
-        Returns:
-            train_idx: list of indices for training set
-            clusters_idx: list of lists containing indices for each cluster
+        Yields:
+            train_indices: numpy array of indices for the training set.
+            test_indices: numpy array of indices for the test set (union of the
+                selected analog clusters; the per-cluster lists are also stored on
+                ``self.test_clusters_``).
+
+        Raises:
+            ValueError: If no SMILES are available, or if ``y`` (continuous activity
+                values) is not provided.
         """
+        smiles = self._resolve_smiles(X)
+        if y is None:
+            raise ValueError("LoSplit requires continuous activity values passed via y.")
+
         # Convert inputs to numpy arrays if needed
-        if not isinstance(smiles, np.ndarray):
-            smiles = np.array(smiles)
-        if not isinstance(values, np.ndarray):
-            values = np.array(values)
+        smiles = np.asarray(smiles)
+        values = np.asarray(y)
 
         # Get clusters and training indices
-        train_idx, clusters_idx, central_nodes = self._select_distinct_clusters(smiles, values, n_jobs, verbose)
+        train_idx, clusters_idx, central_nodes = self._select_distinct_clusters(
+            smiles, values, self.n_jobs, self.verbose
+        )
         train_idx = list(train_idx) + central_nodes
 
         if not clusters_idx:
             logger.warning("No clusters were found. Was your std_threshold too constrained?")
 
-        return train_idx, clusters_idx
+        self.test_clusters_ = clusters_idx
+        train_indices = np.asarray(train_idx)
+        if clusters_idx:
+            test_indices = np.concatenate([np.asarray(c) for c in clusters_idx])
+        else:
+            test_indices = np.array([], dtype=int)
+
+        for _ in range(self.n_splits):
+            yield train_indices, test_indices
 
     def _select_distinct_clusters(
         self, smiles: np.ndarray, values: np.ndarray, n_jobs: int, verbose: int
