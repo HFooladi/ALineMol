@@ -1,0 +1,59 @@
+/*
+  ALineMol documentation theme overrides.
+
+  For the full list of Material for MkDocs color variables, see
+  https://github.com/squidfunk/mkdocs-material/blob/master/src/templates/assets/stylesheets/main/_colors.scss
+*/
+
+:root {
+  --alinemol-primary: hsla(262, 52%, 47%, 1);   /* deep purple */
+  --alinemol-secondary: hsla(231, 48%, 48%, 1); /* indigo */
+  --alinemol-deep: hsla(262, 60%, 22%, 1);      /* darker purple for footer */
+}
+
+/* Gradient header (both light and dark scheme). */
+.md-header {
+  background-image: linear-gradient(
+    to right,
+    var(--alinemol-primary),
+    var(--alinemol-secondary)
+  );
+}
+
+/* Gradient footer. */
+.md-footer {
+  background-image: linear-gradient(
+    to right,
+    var(--alinemol-deep),
+    var(--alinemol-primary)
+  );
+}
+
+/* Sticky tabs bar: soft tint in light mode, transparent in dark mode. */
+[data-md-color-scheme="default"] .md-tabs {
+  background-image: linear-gradient(to right, #f4f2fb, #e7defb);
+  color: var(--alinemol-deep);
+}
+
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: transparent;
+}
+
+/* Feature grid cards: subtle lift on hover. */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > :is(.card) {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > :is(.card):hover {
+  border-color: var(--alinemol-secondary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Remove the `In`/`Out` prompt gutters in rendered Jupyter notebooks. */
+.md-container .jp-Cell-outputWrapper .jp-OutputPrompt.jp-OutputArea-prompt,
+.md-container .jp-Cell-inputWrapper .jp-InputPrompt.jp-InputArea-prompt {
+  display: none !important;
+}
