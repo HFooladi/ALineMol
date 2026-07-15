@@ -320,8 +320,8 @@ def collate_molgraphs(
 
     Args:
         data (list of 4-tuples): Each tuple is for a single datapoint, consisting of
-        a SMILES, a DGLGraph, all-task labels and a binary
-        mask indicating the existence of labels.
+            a SMILES, a DGLGraph, all-task labels and a binary
+            mask indicating the existence of labels.
 
     Returns:
         smiles (list): List of smiles
@@ -368,12 +368,14 @@ def collate_molgraphs_unlabeled(data: List[Tuple[str, dgl.DGLGraph]]) -> Tuple[L
 
 
 def load_model(exp_configure: ConfigDict) -> ModelType:
-    """
+    """Build a model from an experiment configuration.
+
     Args:
-        exp_configure (dict)
+        exp_configure (dict): Experiment configuration mapping (model name and
+            its hyperparameters).
 
     Returns:
-        dgllife.model
+        dgllife.model: The instantiated model.
     """
     if exp_configure["model"] == "GCN":
         from dgllife.model import GCNPredictor
@@ -490,7 +492,7 @@ def predict(args: ConfigDict, model: ModelType, bg: dgl.DGLGraph) -> torch.Tenso
     Predict the output of the models for the input batch graphs.
 
     Args:
-        args (dict)
+        args (dict): Runtime configuration (e.g. device and node/edge feature keys).
         model (nn.Module): The model to predict
         bg (DGLGraph): The input batch graphs
 

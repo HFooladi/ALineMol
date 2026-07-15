@@ -190,11 +190,11 @@ class Meter:
     * ``roc auc score``
 
     Args:
-        mean : torch.float32 tensor of shape (T) or None.
+        mean: torch.float32 tensor of shape (T) or None.
             Mean of existing training labels across tasks if not ``None``. ``T`` for the
             number of tasks. Default to ``None`` and we assume no label normalization has been
             performed.
-        std : torch.float32 tensor of shape (T)
+        std: torch.float32 tensor of shape (T)
             Std of existing training labels across tasks if not ``None``. Default to ``None``
             and we assume no label normalization has been performed.
 
@@ -238,12 +238,12 @@ class Meter:
         """Update for the result of an iteration
 
         Args:
-            y_pred : float32 tensor
+            y_pred: float32 tensor
                 Predicted labels with shape ``(B, T)``,
                 ``B`` for number of graphs in the batch and ``T`` for the number of tasks
-            y_true : float32 tensor
+            y_true: float32 tensor
                 Ground truth labels with shape ``(B, T)``
-            mask : None or float32 tensor
+            mask: None or float32 tensor
                 Binary mask indicating the existence of ground truth labels with
                 shape ``(B, T)``. If None, we assume that all labels exist and create
                 a one-tensor for placeholder.
@@ -262,13 +262,13 @@ class Meter:
         we need to undo the normalization on the predicted labels.
 
         Returns:
-            mask : float32 tensor
+            mask: float32 tensor
                 Binary mask indicating the existence of ground
                 truth labels with shape (B, T), B for batch size
                 and T for the number of tasks
-            y_pred : float32 tensor
+            y_pred: float32 tensor
                 Predicted labels with shape (B, T)
-            y_true : float32 tensor
+            y_true: float32 tensor
                 Ground truth labels with shape (B, T)
         """
         mask = torch.cat(self.mask, dim=0)
@@ -287,9 +287,9 @@ class Meter:
         """Finalize the scores to return.
 
         Args:
-            scores : list of float
+            scores: list of float
                 Scores for all tasks.
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
@@ -313,10 +313,10 @@ class Meter:
         """Evaluate for multi-label prediction.
 
         Args:
-            score_func : callable
+            score_func: callable
                 A score function that takes task-specific ground truth and predicted labels as
                 input and return a float as the score. The labels are in the form of 1D tensor.
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
@@ -341,7 +341,7 @@ class Meter:
         """Compute squared Pearson correlation coefficient.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
@@ -360,7 +360,7 @@ class Meter:
         """Compute mean absolute error.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
@@ -379,7 +379,7 @@ class Meter:
         """Compute root mean square error.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
@@ -401,7 +401,7 @@ class Meter:
         simply ignore this task and print a warning message.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks.
             threshold (float): threshold for binary classification.
 
@@ -438,7 +438,7 @@ class Meter:
         simply ignore this task and print a warning message.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks.
 
         Returns:
@@ -474,7 +474,7 @@ class Meter:
         simply ignore this task and print a warning message.
 
         Args:
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks.
 
         Returns:
@@ -504,7 +504,7 @@ class Meter:
         """Compute metric based on metric name.
 
         Args:
-            metric_name : str
+            metric_name: str
 
                 * ``'r2'``: compute squared Pearson correlation coefficient
                 * ``'mae'``: compute mean absolute error
@@ -512,7 +512,7 @@ class Meter:
                 * ``'roc_auc_score'``: compute roc-auc score
                 * ``'pr_auc_score'``: compute pr-auc score
 
-            reduction : 'none' or 'mean' or 'sum'
+            reduction: 'none' or 'mean' or 'sum'
                 Controls the form of scores for all tasks
 
         Returns:
