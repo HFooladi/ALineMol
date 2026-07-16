@@ -6,7 +6,7 @@ from torch_geometric.utils import degree
 from torch_scatter import scatter
 from typing import Dict, List, Optional
 
-from models.layers import MLP, AtomEncoder, BondEncoder, FragEncoder, InterMessage
+from alinemol.models.layers import MLP, AtomEncoder, BondEncoder, FragEncoder, InterMessage
 
 
 class FragGNN(torch.nn.Module):

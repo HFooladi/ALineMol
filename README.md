@@ -4,6 +4,7 @@
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
 [![JCIM](https://img.shields.io/badge/JCIM-2025-blue)](https://doi.org/10.1021/acs.jcim.5c00475)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/colab_splitter_quickstart.ipynb)
+[![Documentation](https://img.shields.io/badge/docs-online-brightgreen)](https://hfooladi.github.io/ALineMol/)
 
 <p align="center">
   <img src="assets/banner/alinemol_banner.png" alt="ALineMol Banner" style="max-width:100%;">
@@ -367,18 +368,20 @@ If you find ALineMol useful in your research, please cite the following paper:
 
 ## Documentation
 
-- 📖 [Full Documentation](docs/)
-- 📝 [API Reference](docs/api/)
-- 🎓 [Tutorials](docs/tutorials/)
-- 📊 [Paper](https://doi.org/10.1021/acs.jcim.5c00475)
+📖 **[hfooladi.github.io/ALineMol](https://hfooladi.github.io/ALineMol/)** — full documentation, hosted online.
+
+- [Getting Started](https://hfooladi.github.io/ALineMol/getting-started/installation.html)
+- [User Guide](https://hfooladi.github.io/ALineMol/guide/ood-evaluation.html)
+- [Tutorials](https://hfooladi.github.io/ALineMol/tutorials/)
+- [API Reference](https://hfooladi.github.io/ALineMol/api/splitters.html)
+- [Paper](https://doi.org/10.1021/acs.jcim.5c00475)
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
-- Reporting bugs
-- Suggesting enhancements  
-- Submitting pull requests
-- Code style guidelines
+We welcome contributions! See the [Development guide](https://hfooladi.github.io/ALineMol/development.html) for how to set up your environment, run the tests, and build the docs. In short:
+- Reporting bugs and suggesting enhancements via [issues](https://github.com/HFooladi/ALineMol/issues)
+- Submitting pull requests against `main`
+- Following the `ruff` code-style and pre-commit hooks
 
 ## License
 

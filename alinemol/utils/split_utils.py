@@ -154,12 +154,12 @@ def split_molecules_train_test(
 
 
     Args:
-        df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
+        mol_df (pd.DataFrame): Dataframe of molecules. It must have two columns: 'smiles' and 'label'.
         sampler (str): Sampler to use.
             Options: random, scaffold, kmeans, dbscan, sphere_exclusion, optisim.
         train_size (float): Size of the train set.
         random_state (int): Random state for reproducibility.
-        hops (dict): Hyperparameters for the sampler.
+        hopts (dict): Hyperparameters for the sampler.
 
     Returns:
         tuple: Tuple containing the train and test sets.
@@ -210,13 +210,13 @@ def split_molecules_train_val_test(
 
 
     Args:
-        df (pd.DataFrame): Dataframe of moleucles. It must have two columns: 'smiles' and 'label'.
+        mol_df (pd.DataFrame): Dataframe of molecules. It must have two columns: 'smiles' and 'label'.
         sampler (str): Sampler to use.
             Options: RandomSplit, ScaffoldSplit, KMeansSplit, DBScanSplit, SphereExclusionSplit, OptiSimSplit.
         train_size (float): Size of the train set.
         val_size (float): Size of the validation set.
         random_state (int): Random state for reproducibility.
-        hops (dict): Hyperparameters for the sampler.
+        hopts (dict): Hyperparameters for the sampler.
 
     Returns:
         tuple: Tuple containing the train and test sets.

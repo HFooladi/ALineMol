@@ -81,6 +81,23 @@ dev = [
   "pre-commit",
   "mypy",
 ]
+# Documentation site (MkDocs + Material + mkdocstrings + mkdocs-jupyter + mike).
+# Note: building the API pages imports the package, so also install ".[all]"
+# (or run ./install.sh) so the documented modules are importable.
+docs = [
+  "mkdocs",
+  "mkdocs-material>=9",
+  "mkdocs-material-extensions",
+  "mkdocstrings",
+  "mkdocstrings-python",
+  "mkdocs-jupyter",
+  "mkdocs-git-revision-date-localized-plugin",
+  "mike>=2",
+  "markdown-include",
+  "mdx_truly_sane_lists",
+  "nbconvert",
+  "pymdown-extensions",
+]
 
 [project.urls]
 homepage = "https://github.com/HFooladi/ALineMol"

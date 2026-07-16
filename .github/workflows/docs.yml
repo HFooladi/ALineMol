@@ -1,0 +1,66 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'alinemol/**'
+      - '.github/workflows/docs.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Needed to push the built site to the gh-pages branch.
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    env:
+      # Avoid DGL GraphBolt import errors when mkdocstrings imports the package.
+      DGL_SKIP_GRAPHBOLT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so mike can read/update the gh-pages branch.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install package (CPU) + docs dependencies
+        run: |
+          # mkdocstrings imports alinemol.utils/models, which need the runtime
+          # stack — install the full CPU environment, then the docs tooling.
+          PYTHON_VERSION=3.11 ./install.sh cpu
+          source .venv/bin/activate
+          uv pip install -e ".[docs]"
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy latest docs (push to main / manual)
+        if: github.event_name != 'release'
+        run: |
+          source .venv/bin/activate
+          mike deploy --push --update-aliases latest
+          mike set-default --push latest
+
+      - name: Deploy released docs (release published)
+        if: github.event_name == 'release'
+        run: |
+          source .venv/bin/activate
+          VERSION="${{ github.event.release.tag_name }}"
+          mike deploy --push --update-aliases "$VERSION" stable
+          mike set-default --push stable

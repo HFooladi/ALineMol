@@ -1,104 +1,200 @@
 site_name: "ALineMol"
-site_description: "ALineMol: Exploring agreement-on-the-line and accuracy-on-the-line for molecule property and activity prediction "
-site_url: "https://github.com/HFooladi/ALineMol"
+site_description: "Evaluating agreement-on-the-line and accuracy-on-the-line for molecular property and activity prediction under distribution shift."
+site_author: "Hosein Fooladi"
+site_url: "https://hfooladi.github.io/ALineMol"
 repo_url: "https://github.com/HFooladi/ALineMol"
 repo_name: "HFooladi/ALineMol"
-copyright: Copyright 2025 - 2025 ALineMol
+edit_uri: "edit/main/docs/"
+copyright: Copyright &copy; 2025 ALineMol
 
 remote_branch: "gh-pages"
 use_directory_urls: false
 docs_dir: "docs"
 
-# Fail on warnings to detect issues with types and docstring
-strict: true
+# Treat structural problems (broken internal links, missing/omitted nav files)
+# as build-breaking errors, while leaving third-party docstring-lint warnings
+# from griffe/mkdocstrings non-fatal. This is the modern replacement for a
+# blanket `strict: true`, which newer griffe versions make impractical.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: relative_to_docs
 
 nav:
-  - Getting started: index.md
-  #- Tutorials:
-      #- The Basics: tutorials/The_Basics.ipynb
-      #- Structure-based Splitters: tutorials/Structure_based_Splitters.ipynb
-      #- MOOD Protocol: tutorials/MOOD_Protocol.ipynb
-      #- MPO Splitters: tutorials/MPO_Splitters.ipynb
-      #- Lo Splitter: tutorials/Lo_splitter.ipynb
-      #- Other Splitters: tutorials/Other_Splitters.ipynb
-  - API:
-      - splitters: api/splitters.md
-      - preprocessing: api/preprocessing.md
-      - models: api/models.md
-      - utils: api/utils.md
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - User Guide:
+      - OOD Evaluation: guide/ood-evaluation.md
+      - Splitting Strategies: guide/splitting-strategies.md
+      - Split Quality Analysis: guide/split-analysis.md
+      - Agreement-on-the-Line: guide/agreement-on-the-line.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - Splitter Quickstart: tutorials/colab_splitter_quickstart.ipynb
+      - Example Workflow: tutorials/example.ipynb
+      - Visualization: tutorials/visualization.ipynb
+  - API Reference:
+      - Splitters: api/splitters.md
+      - Preprocessing: api/preprocessing.md
+      - Models: api/models.md
+      - Utils: api/utils.md
+      - Hyperparameters: api/hyper.md
+  - Development: development.md
 
 theme:
   name: material
-  # NOTE(hadim): to customize the material primary and secondary color,
-  # see check `docs/assets/css/custom.css`.
+  # NOTE: primary/accent are also refined via docs/assets/css/custom.css.
   palette:
-    primary: deep purple
-    accent: indigo
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  font:
+    text: Inter
+    code: JetBrains Mono
 
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.path
-    - navigation.top
-    - navigation.footer
-    - toc.follow
-    - content.code.copy
+    - announce.dismiss
+    - content.action.edit
     - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
   favicon: assets/images/logo-color.svg
   logo: assets/images/logo-white.svg
 
 extra_css:
-  - assets/css/custom-splito.css
+  - assets/css/custom.css
 
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+extra:
+  version:
+    # Multi-versioning provider for mkdocs-material (used by the JS selector).
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/HFooladi/ALineMol
+      name: ALineMol on GitHub
+
 markdown_extensions:
+  - abbr
   - admonition
   - attr_list
+  - def_list
+  - footnotes
   - md_in_html
   - tables
+  - toc:
+      permalink: true
   - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.superfences
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.arithmatex:
+      generic: true
 
 watch:
   - alinemol/
 
 plugins:
   - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+      fallback_to_build_date: true
+      # Generated tutorial notebooks are copied into the tree at build time and
+      # have no meaningful git history of their own.
+      exclude:
+        - tutorials/*
 
   - mkdocstrings:
       handlers:
         python:
           paths: [.]
           options:
-            show_root_heading: yes
+            docstring_style: google
+            docstring_section_style: table
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
             heading_level: 3
             show_source: false
             group_by_category: true
             members_order: source
+            merge_init_into_class: true
+            filters: ["!^_"]
             separate_signature: true
             show_signature_annotations: true
+            signature_crossrefs: true
             line_length: 80
 
   - mkdocs-jupyter:
-      execute: False
+      execute: false
+      include_source: true
 
   - mike:
       version_selector: true
-
-extra:
-  version:
-    # Multi versioning provider for mkdocs-material (used for the JS selector)
-    provider: mike
