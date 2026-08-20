@@ -77,7 +77,10 @@ test = [
   "pytest-cov",
 ]
 dev = [
-  "ruff",
+  # Pinned: ruff's default rule set and formatter style change between
+  # minor releases, so an unpinned ruff silently redefines what CI enforces.
+  # Keep this in sync with the rev in .pre-commit-config.yaml.
+  "ruff==0.16.3",
   "pre-commit",
   "mypy",
 ]
@@ -117,12 +120,19 @@ packages = ["alinemol"]
 only-packages = true
 
 [tool.ruff]
+# State the enforced rule set explicitly. Without this, the scope is whatever
+# the installed ruff calls "default" — which grew from 59 rules in 0.14 to 413
+# in 0.16, turning a routine version bump into 839 new errors.
+lint.select = ["E4", "E7", "E9", "F"]
 lint.ignore = [
     "E501",  # Never enforce `E501` (line length violations).
 ]
 line-length = 120
 target-version = "py39"
-extend-exclude = ["*.ipynb"]
+# ruff 0.16 began formatting Python inside Markdown code blocks. The docs
+# examples are authored multi-line for readability, and line-length=120 is a
+# code setting, not a prose one — keep the formatter off .md and .ipynb.
+extend-exclude = ["*.ipynb", "*.md"]
 force-exclude = true
 
 [tool.ruff.lint.per-file-ignores]

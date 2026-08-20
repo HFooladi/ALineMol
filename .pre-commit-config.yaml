@@ -1,8 +1,8 @@
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.9  # This should match your pyproject.toml version
+    rev: v0.16.3  # Keep in sync with the ruff pin in pyproject.toml [dev]
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args: [--fix]
     -   id: ruff-format
 -   repo: https://github.com/kynan/nbstripout
