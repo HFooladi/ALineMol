@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg)](https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml)
 [![JCIM](https://img.shields.io/badge/JCIM-2025-blue)](https://doi.org/10.1021/acs.jcim.5c00475)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/colab_splitter_quickstart.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/exploratory/colab_splitter_quickstart.ipynb)
 [![Documentation](https://img.shields.io/badge/docs-online-brightgreen)](https://hfooladi.github.io/ALineMol/)
 
 <p align="center">

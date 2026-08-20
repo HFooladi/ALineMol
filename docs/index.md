@@ -12,7 +12,7 @@ hide:
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <a href="https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HFooladi/ALineMol/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://doi.org/10.1021/acs.jcim.5c00475"><img alt="JCIM 2025" src="https://img.shields.io/badge/JCIM-2025-blue"></a>
-  <a href="https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/colab_splitter_quickstart.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"></a>
+  <a href="https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/exploratory/colab_splitter_quickstart.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"></a>
 </p>
 
 <p align="center" style="font-size: 1.15rem;">

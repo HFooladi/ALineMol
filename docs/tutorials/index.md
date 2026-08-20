@@ -35,5 +35,5 @@ Each renders inline here and can be opened directly in Google Colab.
 
 !!! tip "Run in Colab"
     The Splitter Quickstart is available directly on
-    [Google Colab](https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/colab_splitter_quickstart.ipynb)
+    [Google Colab](https://colab.research.google.com/github/HFooladi/ALineMol/blob/main/notebooks/exploratory/colab_splitter_quickstart.ipynb)
     — no local install required.

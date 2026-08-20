@@ -50,6 +50,15 @@ and scripts in the repository. Start from the
 [`alinemol.utils`](../api/utils.md) for the plotting and metric helpers
 (`plot_ID_OOD`, `compute_linear_fit`, `eval_roc_auc`, `compare_rankings`).
 
+!!! info "Reproducing the published results"
+    The notebooks that generate every figure and table in the paper live in
+    [`notebooks/paper/`](https://github.com/HFooladi/ALineMol/tree/main/notebooks/paper).
+    Its
+    [README](https://github.com/HFooladi/ALineMol/blob/main/notebooks/paper/README.md)
+    documents the full pipeline — datasets, splitting, training, inference —
+    that produces the notebooks' inputs, which are too large to ship in the
+    repository.
+
 ## Citation
 
 The full methodology and findings are described in the accompanying paper:
