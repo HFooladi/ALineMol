@@ -62,6 +62,7 @@ sys.path.insert(0, REPO_PATH)
 
 from alinemol.splitters import get_splitter, get_splitter_names  # noqa: E402
 from alinemol.splitters.analyzer import SplitAnalyzer, SplitQualityReport  # noqa: E402
+from alinemol.utils.frozen import assert_not_frozen, default_output_dir  # noqa: E402
 from alinemol.utils.logger_utils import Logger  # noqa: E402
 
 # Configure logging
@@ -686,7 +687,9 @@ def main() -> None:
     if args.output_dir:
         output_dir = Path(args.output_dir)
     else:
-        output_dir = file_path.parent / "split_analysis"
+        output_dir = default_output_dir(file_path, "split_analysis", fallback=file_path.parent / "split_analysis")
+    if args.save_report or args.visualize:
+        assert_not_frozen(output_dir, what="split analysis")
 
     # Save report if requested
     if args.save_report:

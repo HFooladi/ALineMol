@@ -18,6 +18,7 @@ from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import ScaffoldSplitter, SMILESToBigraph
 from sklearn.metrics import brier_score_loss
 
+from alinemol.utils.frozen import assert_not_frozen
 from alinemol.utils.metric_utils import eval_acc, eval_pr_auc, eval_roc_auc
 
 # Type aliases for common types
@@ -198,6 +199,7 @@ def mkdir_p(path: PathType) -> None:
     Args:
         path (str): Folder to create
     """
+    assert_not_frozen(path, what="results directory")
     try:
         os.makedirs(path)
         print("Created directory {}".format(path))
@@ -683,7 +685,9 @@ def concatanate_results(
             )
         )
     results = pd.concat(results)
-    results.to_csv(os.path.join("classification_results", dataset_category, dataset_names, "results.csv"), index=False)
+    output_path = os.path.join("classification_results", dataset_category, dataset_names, "results.csv")
+    assert_not_frozen(output_path, what="aggregated results")
+    results.to_csv(output_path, index=False)
     return results
 
 

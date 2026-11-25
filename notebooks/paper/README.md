@@ -94,6 +94,11 @@ bash run_inference.sh
 
 ## ⚠️ These notebooks overwrite their output
 
+> **The published outputs are now frozen.** `assets/figures/`, `assets/tables/`, `datasets/` and
+> `classification_results/` are hashed and read-only (see [`provenance/README.md`](../../provenance/README.md)),
+> so a cell that tries to save over them fails with a permission error instead of replacing the
+> published file. To regenerate a figure, save it somewhere else (e.g. `runs/figures/`).
+
 `01` and `02` write straight into `assets/figures/` and `assets/tables/`,
 replacing whatever is already there. If you have figures you care about, back
 up `assets/` before re-running.

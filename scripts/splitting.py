@@ -98,8 +98,8 @@ from alinemol.splitters.splitting_configures import (
     ScaffoldSplitGenericConfig,
     UMapSplitConfig,
 )
+from alinemol.utils.frozen import assert_not_frozen, default_output_dir
 from alinemol.utils.logger_utils import Logger
-from alinemol.utils.utils import increment_path
 
 # Repository path configuration
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -302,6 +302,7 @@ class MolecularSplitter:
         self.save = config["save"]
         self.output_dir = config.get("output_dir")
         self.dry_run = config.get("dry_run", False)
+        self.overwrite = config.get("overwrite", False)
 
         self._validate_config()
 
@@ -374,16 +375,23 @@ class MolecularSplitter:
         return splitter
 
     def _setup_output_directories(self) -> Path:
-        """Create necessary output directories for saving splits."""
-        if self.output_dir:
-            base_path = Path(self.output_dir)
-        else:
-            base_path = self.file_path.parent / "split"
+        """Resolve (and, when saving, create) the output directory for this splitter.
 
-        base_path.mkdir(parents=True, exist_ok=True)
+        Splits derived from frozen published data default to ``runs/splits/<dataset>/``
+        instead of next to the input, and an explicit output directory inside a frozen
+        tree is refused.
+        """
+        splitter_path = _resolve_base_output_dir(self.file_path, self.output_dir) / self.splitter_name
+        assert_not_frozen(splitter_path, what=f"{self.splitter_name} splits")
 
-        splitter_path = base_path / self.splitter_name
-        splitter_path.mkdir(parents=True, exist_ok=True)
+        if self.save and not self.dry_run:
+            existing = sorted(p.name for p in splitter_path.glob("*.csv")) if splitter_path.is_dir() else []
+            if existing and not self.overwrite:
+                raise FileExistsError(
+                    f"{splitter_path} already contains split files ({existing[0]}, ...). "
+                    "Choose another --output_dir or pass --overwrite."
+                )
+            splitter_path.mkdir(parents=True, exist_ok=True)
 
         return splitter_path
 
@@ -469,8 +477,8 @@ class MolecularSplitter:
 
             if split_acceptable:
                 if self.save:
-                    train_path = increment_path(output_path / f"train_{successful_splits}.csv")
-                    test_path = increment_path(output_path / f"test_{successful_splits}.csv")
+                    train_path = output_path / f"train_{successful_splits}.csv"
+                    test_path = output_path / f"test_{successful_splits}.csv"
 
                     train_df.to_csv(train_path, index=False)
                     test_df.to_csv(test_path, index=False)
@@ -491,6 +499,13 @@ class MolecularSplitter:
             logger.info(f"Configuration saved to {config_path}")
 
         return results_config
+
+
+def _resolve_base_output_dir(file_path: Path, output_dir: Optional[str]) -> Path:
+    """Base directory that holds one sub-folder per splitter."""
+    if output_dir:
+        return Path(output_dir)
+    return default_output_dir(file_path, "splits", fallback=Path(file_path).parent / "split")
 
 
 def run_all_splitters(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -540,11 +555,8 @@ def run_all_splitters(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         logger.warning(f"Failed splitters: {', '.join(failed_splitters)}")
 
     if config.get("save") and not config.get("dry_run"):
-        if config.get("output_dir"):
-            summary_dir = Path(config["output_dir"])
-        else:
-            summary_dir = Path(config["file_path"]).parent / "split"
-
+        summary_dir = _resolve_base_output_dir(Path(config["file_path"]), config.get("output_dir"))
+        assert_not_frozen(summary_dir, what="splitters summary")
         summary_dir.mkdir(parents=True, exist_ok=True)
         summary_path = summary_dir / "all_splitters_summary.json"
 
@@ -686,10 +698,20 @@ For more details, see: https://github.com/HFooladi/ALineMol
     )
 
     parser.add_argument(
-        "-o", "--output_dir", type=str, metavar="DIR", help="Custom output directory (default: {input_dir}/split/)"
+        "-o",
+        "--output_dir",
+        type=str,
+        metavar="DIR",
+        help="Custom output directory (default: {input_dir}/split/, or runs/splits/{dataset}/ for frozen data)",
     )
 
     parser.add_argument("--save", action="store_true", help="Save split files and configuration to disk")
+
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow --save to replace split files that already exist in the output directory",
+    )
 
     parser.add_argument(
         "--dry-run", action="store_true", dest="dry_run", help="Preview operations without saving any files"
@@ -715,6 +737,7 @@ For more details, see: https://github.com/HFooladi/ALineMol
         "output_dir": None,
         "save": False,
         "dry_run": False,
+        "overwrite": False,
     }
 
     for key, default_value in cli_defaults.items():

@@ -258,6 +258,21 @@ The framework integrates with multiple molecular datasets including:
 - **DL**: PyTorch ecosystem for deep learning models
 - **Graph**: DGL for graph neural networks
 
+### Published data is frozen
+
+The data in this checkout is the data the paper was published with. It is hashed
+(`provenance/paper-v1/`, in git) and locked read-only with a `.frozen` marker at the root of
+`datasets/`, `classification_results/`, `classification_inference_results/`, `assets/figures/`
+and `assets/tables/`. See `provenance/README.md`.
+
+- Never write into those trees and never run `data_freeze.py unlock` unless the user explicitly asks.
+- New outputs go under `runs/` (git-ignored). `scripts/splitting.py --save` on a published dataset
+  already defaults to `runs/splits/<dataset>/<splitter>/`; pass `-p`/`-ip` under `runs/` for training
+  and inference.
+- Code that writes files must call `alinemol.utils.frozen.assert_not_frozen(path)` first.
+- Check integrity with `make verify-data` (quick) or `python scripts/data_freeze.py verify --full`.
+- Non-paper figures live in `assets/exploratory/` (see its README), made by `scripts/exploratory/`.
+
 ### Gotchas
 
 - Set `DGL_SKIP_GRAPHBOLT=1` when running tests (CI does this automatically)

@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from alinemol.utils.frozen import assert_not_frozen
 from alinemol.utils.graph_utils import create_pyg_graphs, pairwise_graph_distances
 from alinemol.utils.logger_utils import Logger
 
@@ -143,6 +144,9 @@ def validate_input_arguments(args: Namespace) -> None:
 
     # Validate output directory exists
     output_path = Path(args.output_path)
+    assert_not_frozen(output_path, what="distance matrix")
+    if output_path.exists():
+        raise FileExistsError(f"Output file already exists, refusing to overwrite: {output_path}")
     if not output_path.parent.exists():
         raise FileNotFoundError(f"Output directory not found: {output_path.parent}")
 

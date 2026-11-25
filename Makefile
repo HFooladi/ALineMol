@@ -1,6 +1,6 @@
 # Makefile for Alinemol project
 
-.PHONY: help test test-unit test-integration test-fast test-coverage install install-dev install-test lint format type-check clean docs docs-serve docs-build docs-clean docs-deploy
+.PHONY: help verify-data test test-unit test-integration test-fast test-coverage install install-dev install-test lint format type-check clean docs docs-serve docs-build docs-clean docs-deploy
 
 # Default target
 help:
@@ -22,6 +22,9 @@ help:
 	@echo "  docs-build     - Build static documentation"
 	@echo "  docs-clean     - Clean documentation artifacts"
 	@echo "  docs-deploy    - Deploy documentation to GitHub Pages"
+	@echo ""
+	@echo "Data:"
+	@echo "  verify-data    - Check the frozen published data against its manifest (quick)"
 	@echo ""
 	@echo "Type checking:"
 	@echo "  type-check     - Run type checking with mypy"
@@ -108,3 +111,7 @@ clean:
 	rm -rf .mkdocs_cache/
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+# Published data integrity (see provenance/README.md)
+verify-data:
+	python scripts/data_freeze.py verify
