@@ -29,6 +29,7 @@ import numpy as np
 DEFAULT_FINGERPRINT = {"fp_type": "ecfp", "radius": 2, "fpSize": 2048}  # ECFP4, as in the paper
 
 ArrayOrPath = Union[np.ndarray, str, Path]
+IndexArray = Union[Sequence[int], np.ndarray]
 
 
 def compute_fingerprints(
@@ -76,8 +77,8 @@ def _k_smallest(block: np.ndarray, k: int) -> np.ndarray:
 
 
 def nearest_train_distances(
-    train_idx: Sequence[int],
-    test_idx: Sequence[int],
+    train_idx: IndexArray,
+    test_idx: IndexArray,
     *,
     smiles: Optional[Sequence[str]] = None,
     fingerprints: Optional[np.ndarray] = None,

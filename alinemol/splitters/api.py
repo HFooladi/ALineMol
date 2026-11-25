@@ -153,7 +153,7 @@ class SplitResult:
             if i < len(self.reports):
                 entry["report"] = self.reports[i].to_dict()
             splits.append(entry)
-        return _jsonable(
+        payload: Dict[str, Any] = _jsonable(
             {
                 "schema_version": self.schema_version,
                 "alinemol_version": self.version,
@@ -166,6 +166,7 @@ class SplitResult:
                 "splits": splits,
             }
         )
+        return payload
 
     def to_json(self, include_indices: bool = True, indent: Optional[int] = 2) -> str:
         return json.dumps(self.to_dict(include_indices=include_indices), indent=indent)

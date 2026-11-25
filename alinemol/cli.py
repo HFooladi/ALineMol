@@ -162,8 +162,8 @@ def cmd_split(args: argparse.Namespace) -> int:
                 print(f"note [{name}]: {warning}")
         for name, path in saved.items():
             print(f"saved [{name}]: {path}")
-        for name, error in comparison.errors.items():
-            print(f"FAILED [{name}]: {error}", file=sys.stderr)
+        for name, message in comparison.errors.items():
+            print(f"FAILED [{name}]: {message}", file=sys.stderr)
     return 1 if comparison.errors else 0
 
 
