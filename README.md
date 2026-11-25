@@ -83,9 +83,18 @@ conda activate alinemol
 pip install --no-deps -e .
 ```
 
+#### Option 3: As a dependency of another project
+
+To use the splitters and shift measures from another project (no clone needed, no torch):
+
+```bash
+pip install "git+https://github.com/HFooladi/ALineMol.git"
+alinemol list
+```
+
 #### Optional extras
 
-The default install (`pip install alinemol`) is lean — only the splitter
+The default install is lean — only the splitter
 API and `SplitAnalyzer`. Pull in heavier components on demand:
 
 | Extra | Pulls in | When you need it |
@@ -97,40 +106,41 @@ API and `SplitAnalyzer`. Pull in heavier components on demand:
 | `[dev]` | ruff, pre-commit, mypy | Contributing |
 | `[test]` | pytest, pytest-cov | Running the test suite |
 
-Example: `pip install "alinemol[gnn]"` for splitters + GNN training only.
+Example: `pip install "alinemol[gnn] @ git+https://github.com/HFooladi/ALineMol.git"` for splitters + GNN training only.
 
 ## Quick Start
 
-### Basic Usage
+### Split a dataset and measure the shift
 
 ```python
 import pandas as pd
-from alinemol.preprocessing import standardization_pipeline
-from alinemol.splitters import ScaffoldSplit, MolecularWeightSplit
-from alinemol.utils import compute_similarities
+from alinemol.splitters import split_and_analyze, compare_splits
 
-# Load and preprocess data
-df = pd.read_csv("your_dataset.csv")  # Columns: 'smiles', 'label'
-df_clean = standardization_pipeline(df)
+df = pd.read_csv("your_dataset.csv")  # columns: 'smiles', 'label'
+smiles, labels = df["smiles"].tolist(), df["label"].to_numpy()
 
-# Create different types of splits
-scaffold_splitter = ScaffoldSplit(test_size=0.2)
-weight_splitter = MolecularWeightSplit(test_size=0.2, generalize_to_larger=True)
+# One splitter: 5 scaffold splits plus train/test shift measures
+result = split_and_analyze(smiles, "scaffold", labels, n_splits=5, test_size=0.2)
+train_idx, test_idx = result.splits[0]
+train_data, test_data = df.iloc[train_idx], df.iloc[test_idx]
+print(result.summary())    # sizes, distance to nearest training molecules, scaffold overlap
+print(result.warnings)     # e.g. realised test size far from the request
 
-# Evaluate different splitting strategies
-for train_idx, test_idx in scaffold_splitter.split(df_clean['smiles']):
-    train_data = df_clean.iloc[train_idx]
-    test_data = df_clean.iloc[test_idx]
-    
-    # Compute molecular similarities
-    similarities = compute_similarities(
-        train_data['smiles'], 
-        test_data['smiles'],
-        fingerprint='ecfp',
-        fprints_hopts={'radius': 2, 'fpSize': 1024}
-    )
-    print(f"Average train-test similarity: {similarities.mean():.3f}")
+# Several splitters side by side
+comparison = compare_splits(smiles, ["random", "scaffold", "kmeans", "molecular_weight"], labels)
+print(comparison.to_frame())
 ```
+
+The same from the shell:
+
+```bash
+alinemol list
+alinemol split -f your_dataset.csv -s scaffold -s kmeans
+alinemol split -f your_dataset.csv -s all -o runs/splits/your_dataset --json
+```
+
+Agents and scripts: see [`alinemol/splitters/AGENT_GUIDE.md`](alinemol/splitters/AGENT_GUIDE.md)
+(or run `alinemol guide`).
 
 ### Comprehensive Evaluation Pipeline
 

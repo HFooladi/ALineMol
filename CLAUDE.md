@@ -127,6 +127,9 @@ ALineMol is a comprehensive framework for evaluating machine learning models on 
 - `lohi/`: Hi/Lo similarity-based splitting strategies
 - `datasail/`: DataSAIL integration for advanced splitting
 - `splitting_configures.py`: Configuration management for split parameters
+- `api.py`: `split_and_analyze()`, `compare_splits()`, `SplitResult` (one-call interface, JSON output)
+- `shift.py`: `nearest_train_distances()` — the single train/test distance definition used everywhere
+- `analyzer.py` / `analyzer_plots.py`: `SplitAnalyzer` quality reports and plots
 
 **Splitters Unified API:**
 ```python
@@ -143,6 +146,19 @@ splitter = ScaffoldSplit(make_generic=True)
 for train_idx, test_idx in splitter.split(smiles_list):
     train = [smiles_list[i] for i in train_idx]
 ```
+
+**One-call split + shift measurement (preferred entry point):**
+```python
+from alinemol.splitters import split_and_analyze, compare_splits, describe_splitters
+
+result = split_and_analyze(smiles, "scaffold", labels, n_splits=5, test_size=0.2)  # seeded (42) by default
+train_idx, test_idx = result.splits[0]
+result.summary(); result.warnings; result.to_json(); result.save("runs/splits/x/scaffold", data=df)
+compare_splits(smiles, ["random", "scaffold", "kmeans"]).to_frame()
+describe_splitters()   # machine-readable registry: family, test-size behaviour, parameters
+```
+Shell: `alinemol list|split|analyze|guide` (`alinemol/cli.py`). Agent-facing guide:
+`alinemol/splitters/AGENT_GUIDE.md` (shipped in the wheel, printed by `alinemol guide`).
 
 **Split Analysis:**
 ```python
@@ -199,7 +215,7 @@ analyzer = SplitAnalyzer(
 1. Pick the right base class:
    - For pure SMILES → fingerprint clustering or property-based splitters: subclass `BaseMolecularSplitter` and implement `_iter_indices`. Canonical example: `wrappers.py:KMeansSplit`.
    - For group-based splitters that need `GroupShuffleSplit` semantics (cluster labels → group shuffle): subclass `GroupShuffleSplit`, compute group labels inside `_iter_indices`, then `yield from super()._iter_indices(X, y, groups)`. Canonical example: `butina_split.py`.
-2. Decorate with `@register_splitter("name", aliases=[...])` so the factory and `scripts/splitting.py` pick it up automatically.
+2. Decorate with `@register_splitter("name", aliases=[...], family=..., test_size="exact"|"approximate"|"ignored", deterministic=..., needs_labels=..., requires=...)` so the factory, `describe_splitters()`, the `alinemol` command and `scripts/splitting.py` pick it up automatically.
 3. Update `alinemol/splitters/__init__.py`: add import and `__all__` entries.
 4. Add per-splitter default kwargs to `splitting_configures.py` if the splitter has non-trivial defaults.
 5. Create `tests/splitters/test_<name>_split.py`: test init, split with SMILES, disjoint indices, factory access, alias access, helper function.
@@ -279,4 +295,5 @@ and `assets/tables/`. See `provenance/README.md`.
 - Python 3.9, 3.10, and 3.11 are supported and tested in CI
 - Pre-commit hooks run ruff check and ruff format automatically
 - Pre-commit `ruff-format` hook may reformat files on first commit attempt, causing it to fail; re-stage and commit again (do NOT amend)
+- `alinemol.utils` re-exports are lazy and `import alinemol.splitters` must not load torch/DGL/matplotlib (`tests/splitters/test_light_import.py` enforces it); keep heavy imports inside functions
 - `alinemol/__init__.py` only exports `__version__`; import submodules directly (e.g., `from alinemol.splitters import get_splitter`)

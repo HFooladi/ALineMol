@@ -617,7 +617,7 @@ def hi_k_fold_split(
     return partitions
 
 
-@register_splitter("hi", aliases=["hi_split", "hisplit"])
+@register_splitter("hi", aliases=["hi_split", "hisplit"], family="similarity", test_size="ignored", deterministic=True)
 class HiSplit(BaseMolecularSplitter):
     def __init__(
         self,

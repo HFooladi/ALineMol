@@ -78,7 +78,9 @@ def stratified_split_dataset(
     ]
 
 
-@register_splitter("molecular_logp", aliases=["logp", "molecular-logp"])
+@register_splitter(
+    "molecular_logp", aliases=["logp", "molecular-logp"], family="property", test_size="exact", deterministic=True
+)
 class MolecularLogPSplit(BaseShuffleSplit):
     """
     Split a molecular dataset by sorting molecules according to their LogP values.
@@ -232,7 +234,7 @@ class MolecularLogPSplit(BaseShuffleSplit):
                 yield sorted_idx[n_test:], sorted_idx[:n_test]
 
 
-@register_splitter("random", aliases=["random_split"])
+@register_splitter("random", aliases=["random_split"], family="random", test_size="exact")
 class RandomSplit(ShuffleSplit):
     """Uniform random train/test splitter (in-distribution baseline).
 

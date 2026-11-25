@@ -10,7 +10,7 @@ from alinemol.utils.split_utils import convert_to_default_feats_if_smiles
 from alinemol.splitters.factory import register_splitter
 
 
-@register_splitter("butina", aliases=["taylor_butina", "butina_cluster"])
+@register_splitter("butina", aliases=["taylor_butina", "butina_cluster"], family="clustering")
 class BUTINASplit(GroupShuffleSplit):
     """Group-based split that uses the BUTINA clustering in the input space for splitting.
     From "BUTINA: A New Method for the Clustering of Chemical Compounds"

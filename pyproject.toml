@@ -102,6 +102,9 @@ docs = [
   "pymdown-extensions",
 ]
 
+[project.scripts]
+alinemol = "alinemol.cli:main"
+
 [project.urls]
 homepage = "https://github.com/HFooladi/ALineMol"
 bug_tracker = "https://github.com/HFooladi/ALineMol/issues"

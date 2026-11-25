@@ -241,10 +241,15 @@ class SplitQualityReport:
     similarity_metrics: Optional[SimilarityMetrics] = None
     scaffold_metrics: Optional[ScaffoldMetrics] = None
     property_distributions: List[PropertyDistribution] = field(default_factory=list)
+    nearest_similarities: Optional[np.ndarray] = field(default=None, repr=False, compare=False)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, include_per_molecule: bool = False) -> Dict[str, Any]:
         """
         Convert the entire report to a nested dictionary.
+
+        Args:
+            include_per_molecule: Also include ``nearest_similarities`` (one value per
+                test molecule, in ``test_idx`` order) as a list.
 
         Returns:
             Dictionary representation suitable for JSON serialization.
@@ -263,6 +268,9 @@ class SplitQualityReport:
 
         if self.property_distributions:
             result["property_distributions"] = [p.to_dict() for p in self.property_distributions]
+
+        if include_per_molecule and self.nearest_similarities is not None:
+            result["nearest_similarities"] = [float(v) for v in self.nearest_similarities]
 
         return result
 
@@ -575,6 +583,24 @@ class SplitAnalyzer:
 
         return pd.DataFrame(data)
 
+    def nearest_train_similarities(self, train_idx: ArrayLike, test_idx: ArrayLike) -> np.ndarray:
+        """
+        Tanimoto similarity of every test molecule to its nearest training molecule.
+
+        Returns one value per entry of ``test_idx`` (``1 - nearest-neighbour distance``).
+        Uses the precomputed distance matrix when one was given, otherwise the fingerprints.
+        See :func:`alinemol.splitters.shift.nearest_train_distances` for k > 1.
+        """
+        from alinemol.splitters.shift import nearest_train_distances
+
+        train_idx = np.asarray(train_idx)
+        test_idx = np.asarray(test_idx)
+        if self._precomputed_similarity is not None:
+            block = self._precomputed_similarity[np.ix_(test_idx, train_idx)]
+            return np.asarray(block).max(axis=1)
+        distances = nearest_train_distances(train_idx, test_idx, fingerprints=self.fingerprints, k=1)
+        return 1.0 - distances[:, 0]
+
     def _compute_similarity_metrics(self, train_idx: np.ndarray, test_idx: np.ndarray) -> Optional[SimilarityMetrics]:
         """
         Compute similarity metrics between train and test sets.
@@ -591,30 +617,8 @@ class SplitAnalyzer:
         train_idx = np.asarray(train_idx)
         test_idx = np.asarray(test_idx)
 
-        if self._precomputed_similarity is not None:
-            # Slice the test x train similarity block from the precomputed matrix.
-            block = self._precomputed_similarity[np.ix_(test_idx, train_idx)]
-            max_similarities = np.asarray(block).max(axis=1)
-        else:
-            train_fps = self.fingerprints[train_idx]
-            test_fps = self.fingerprints[test_idx]
-
-            # Compute max similarity for each test molecule to training set
-            max_similarities = []
-
-            for test_fp in test_fps:
-                # Tanimoto similarity
-                intersections = np.sum(np.logical_and(train_fps, test_fp), axis=1)
-                unions = np.sum(np.logical_or(train_fps, test_fp), axis=1)
-
-                # Avoid division by zero
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    similarities = np.where(unions > 0, intersections / unions, 0.0)
-
-                max_sim = np.max(similarities) if len(similarities) > 0 else 0.0
-                max_similarities.append(max_sim)
-
-            max_similarities = np.array(max_similarities)
+        max_similarities = self.nearest_train_similarities(train_idx, test_idx)
+        self._last_nearest_similarities = max_similarities
 
         return SimilarityMetrics(
             min_sim=float(np.min(max_similarities)),
@@ -776,8 +780,11 @@ class SplitAnalyzer:
 
         # Optionally compute other metrics
         similarity_metrics = None
+        nearest_similarities = None
         if compute_similarity:
             similarity_metrics = self._compute_similarity_metrics(train_idx, test_idx)
+            if similarity_metrics is not None:
+                nearest_similarities = self._last_nearest_similarities
 
         scaffold_metrics = None
         if compute_scaffolds:
@@ -794,6 +801,7 @@ class SplitAnalyzer:
             similarity_metrics=similarity_metrics,
             scaffold_metrics=scaffold_metrics,
             property_distributions=property_distributions,
+            nearest_similarities=nearest_similarities,
         )
 
     def analyze_splitter(

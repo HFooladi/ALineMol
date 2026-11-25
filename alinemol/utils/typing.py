@@ -2,16 +2,15 @@
 Custom type definitions for the ALineMol codebase.
 """
 
-from typing import Dict, List, Tuple, Union, Optional, Any, Callable, TypeVar, Protocol
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union, Optional, Any, Callable, TypeVar, Protocol
 import numpy as np
 
-try:
-    from dgl.data.utils import Subset as _Subset
-
-    DatasetSubset = _Subset
-except (ImportError, OSError):
-    # OSError catches FileNotFoundError from a torch/DGL graphbolt mismatch.
-    DatasetSubset = Any  # GNN-only type; gracefully falls back without dgl installed
+if TYPE_CHECKING:
+    from dgl.data.utils import Subset as DatasetSubset
+else:
+    # Importing dgl (and with it torch) costs seconds and is only needed by type
+    # checkers, so at runtime this GNN-only type is just ``Any``.
+    DatasetSubset = Any
 
 
 # Define a type for datasets that have a labels attribute

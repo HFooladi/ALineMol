@@ -60,7 +60,7 @@ import pandas as pd
 REPO_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_PATH)
 
-from alinemol.splitters import get_splitter, get_splitter_names  # noqa: E402
+from alinemol.splitters import describe_splitters, get_splitter, get_splitter_names  # noqa: E402
 from alinemol.splitters.analyzer import SplitAnalyzer, SplitQualityReport  # noqa: E402
 from alinemol.utils.frozen import assert_not_frozen, default_output_dir  # noqa: E402
 from alinemol.utils.logger_utils import Logger  # noqa: E402
@@ -82,15 +82,17 @@ def list_available_splitters() -> None:
 
     splitters = get_splitter_names()
 
-    # Group by category
-    categories = {
-        "Structure-Based": ["scaffold", "scaffold_generic"],
-        "Clustering-Based": ["kmeans", "perimeter", "max_dissimilarity", "umap", "butina"],
-        "Property-Based": ["molecular_weight", "molecular_weight_reverse", "molecular_logp"],
-        "Similarity-Based": ["hi", "lo"],
-        "Information Leakage": ["datasail", "datasail_group"],
-        "Baseline": ["random", "stratified_random"],
+    # Group by family, straight from the registry so the list cannot go stale
+    titles = {
+        "random": "Baseline",
+        "scaffold": "Structure-Based",
+        "clustering": "Clustering-Based",
+        "property": "Property-Based",
+        "similarity": "Similarity-Based",
     }
+    categories: Dict[str, List[str]] = {}
+    for info in describe_splitters():
+        categories.setdefault(titles.get(info["family"], "Other"), []).append(info["name"])
 
     for category, names in categories.items():
         available = [n for n in names if n in splitters]

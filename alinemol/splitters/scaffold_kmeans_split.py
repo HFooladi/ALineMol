@@ -10,7 +10,7 @@ from alinemol.splitters.factory import register_splitter
 from alinemol.utils.split_utils import get_scaffold
 
 
-@register_splitter("scaffold_kmeans", aliases=["scaffold-kmeans", "scaffold_k_means"])
+@register_splitter("scaffold_kmeans", aliases=["scaffold-kmeans", "scaffold_k_means"], family="clustering")
 class ScaffoldKMeansSplit(GroupShuffleSplit):
     """Group-based split that extracts Bemis-Murcko scaffolds, clusters them
     with k-means on ECFP fingerprints, and assigns each molecule to its

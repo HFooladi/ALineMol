@@ -15,7 +15,11 @@ from alinemol.splitters.base import BaseMolecularSplitter
 from alinemol.splitters.factory import register_splitter
 
 
-@register_splitter("datasail", aliases=["data_sail", "data-sail"])
+# Short technique names accepted for convenience -> DataSAIL's own names
+_TECHNIQUE_ALIASES = {"C": "C1e", "I": "I1e"}
+
+
+@register_splitter("datasail", aliases=["data_sail", "data-sail"], family="similarity", requires="datasail")
 class DataSAILSplit(BaseMolecularSplitter):
     """
     DataSAIL-based splitter for molecular datasets.
@@ -31,8 +35,8 @@ class DataSAILSplit(BaseMolecularSplitter):
     Args:
         technique: Splitting technique. Options:
             - "R": Random splitting (baseline)
-            - "I": Identity-based splitting (exact duplicates)
-            - "C": Cluster-based splitting (default, recommended)
+            - "I" / "I1e": Identity-based splitting (exact duplicates)
+            - "C" / "C1e": Cluster-based splitting (default, recommended)
         cluster_method: Clustering method when technique="C".
             Options: "ECFP" (default), "Murcko", etc.
         n_splits: Number of splits to generate. Default 1.
@@ -96,44 +100,46 @@ class DataSAILSplit(BaseMolecularSplitter):
 
         # Prepare data for DataSAIL - expects dict mapping IDs to SMILES
         mol_data = {f"mol_{i}": smi for i, smi in enumerate(smiles)}
+        technique = _TECHNIQUE_ALIASES.get(self.technique, self.technique)
+        clustered = technique.startswith("C")
 
-        for _ in range(self.n_splits):
-            # Call DataSAIL
-            try:
-                splits = datasail(
-                    techniques=[self.technique],
-                    splits=[train_frac, test_frac],
-                    e_type="M",  # Molecular data
-                    e_data=mol_data,
-                    e_strat=self.cluster_method if self.technique == "C" else None,
-                    delta=self.delta,
-                    verbose=0,
-                )
-            except Exception as e:
-                raise RuntimeError(f"DataSAIL splitting failed: {e}")
+        try:
+            result = datasail(
+                techniques=[technique],
+                splits=[train_frac, test_frac],
+                names=["train", "test"],
+                runs=self.n_splits,
+                e_type="M",  # molecular data
+                e_data=mol_data,
+                e_sim=self.cluster_method.lower() if clustered and self.cluster_method else None,
+                delta=self.delta,
+                verbose="E",
+            )
+        except Exception as e:
+            raise RuntimeError(f"DataSAIL splitting failed: {e}") from e
 
-            # Extract indices from results
+        # datasail() returns three dicts (e-entities, f-entities, interactions), each mapping
+        # technique -> list with one {id: split name} dict per run.
+        e_splits = result[0] if isinstance(result, tuple) else result
+        runs = (e_splits or {}).get(technique)
+        if not runs:
+            raise RuntimeError(
+                f"DataSAIL returned no assignment for technique '{technique}'. Refusing to fall back to a random split."
+            )
+
+        for assignments in runs:
             train_indices = []
             test_indices = []
-
-            # DataSAIL returns dict with technique as key
-            if self.technique in splits:
-                assignments = splits[self.technique]
-                for mol_id, split_idx in assignments.items():
-                    idx = int(mol_id.split("_")[1])
-                    if split_idx == 0:
-                        train_indices.append(idx)
-                    else:
-                        test_indices.append(idx)
-            else:
-                # Fallback: random split if DataSAIL fails
-                rng = np.random.default_rng(self.random_state)
-                indices = rng.permutation(n_samples)
-                n_test = int(n_samples * test_frac)
-                test_indices = indices[:n_test].tolist()
-                train_indices = indices[n_test:].tolist()
-
-            yield np.array(train_indices), np.array(test_indices)
+            for mol_id, split_name in assignments.items():
+                idx = int(mol_id.split("_")[1])
+                if split_name == "train":
+                    train_indices.append(idx)
+                elif split_name == "test":
+                    test_indices.append(idx)
+                # anything else (e.g. "not selected") was dropped by DataSAIL
+            if not train_indices or not test_indices:
+                raise RuntimeError(f"DataSAIL produced an empty train or test set for technique '{technique}'.")
+            yield np.array(sorted(train_indices), dtype=int), np.array(sorted(test_indices), dtype=int)
 
     def get_n_splits(
         self,

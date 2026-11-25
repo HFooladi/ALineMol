@@ -81,23 +81,7 @@ from alinemol.splitters import (
     is_splitter_registered,
     list_splitters,
 )
-from alinemol.splitters.splitting_configures import (
-    BUTINASplitConfig,
-    DataSAILSplitConfig,
-    HiSplitConfig,
-    KMeansSplitConfig,
-    LoSplitConfig,
-    MaxDissimilaritySplitConfig,
-    MolecularLogPSplitConfig,
-    MolecularWeightReverseSplitConfig,
-    MolecularWeightSplitConfig,
-    PerimeterSplitConfig,
-    RandomSplitConfig,
-    ScaffoldKMeansSplitConfig,
-    ScaffoldSplitConfig,
-    ScaffoldSplitGenericConfig,
-    UMapSplitConfig,
-)
+from alinemol.splitters.splitting_configures import PAPER_SPLITTER_CONFIGS
 from alinemol.utils.frozen import assert_not_frozen, default_output_dir
 from alinemol.utils.logger_utils import Logger
 
@@ -124,24 +108,8 @@ INTERNAL_N_SPLITS = 100  # candidate splits requested from the underlying splitt
 # Supported file extensions
 SUPPORTED_EXTENSIONS = {".csv", ".txt"}
 
-# Per-splitter default kwargs. Splitters that need no extra defaults can be omitted.
-SPLITTER_CONFIGS: Dict[str, Any] = {
-    "scaffold": ScaffoldSplitConfig,
-    "scaffold_generic": ScaffoldSplitGenericConfig,
-    "kmeans": KMeansSplitConfig,
-    "molecular_weight": MolecularWeightSplitConfig,
-    "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
-    "perimeter": PerimeterSplitConfig,
-    "max_dissimilarity": MaxDissimilaritySplitConfig,
-    "molecular_logp": MolecularLogPSplitConfig,
-    "random": RandomSplitConfig,
-    "umap": UMapSplitConfig,
-    "butina": BUTINASplitConfig,
-    "scaffold_kmeans": ScaffoldKMeansSplitConfig,
-    "hi": HiSplitConfig,
-    "lo": LoSplitConfig,
-    "datasail": DataSAILSplitConfig,
-}
+# Per-splitter default kwargs: the settings used for the published splits.
+SPLITTER_CONFIGS: Dict[str, Any] = dict(PAPER_SPLITTER_CONFIGS)
 
 # Optional one-line description overrides. Splitters not listed here fall back to the
 # first line of their class docstring.

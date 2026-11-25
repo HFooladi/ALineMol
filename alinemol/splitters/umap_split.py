@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from numpy.random import RandomState
 from typing import Callable, Union, Optional, List, Tuple
@@ -9,7 +11,7 @@ from alinemol.utils.split_utils import convert_to_default_feats_if_smiles
 from alinemol.splitters.factory import register_splitter
 
 
-@register_splitter("umap", aliases=["umap_cluster", "umap_split"])
+@register_splitter("umap", aliases=["umap_cluster", "umap_split"], family="clustering")
 class UMAPSplit(GroupShuffleSplit):
     """Group-based split that uses the UMAP clustering in the input space for splitting.
 
@@ -142,9 +144,13 @@ def get_umap_clusters(
     if isinstance(X, list):
         X = np.stack(X)
 
+    n_samples = len(X)
+    if n_clusters > n_samples:
+        raise ValueError(f"n_clusters={n_clusters} is larger than the number of molecules ({n_samples}).")
+
     reducer = UMAP(
         n_components=n_components,
-        n_neighbors=n_neighbors,
+        n_neighbors=min(n_neighbors, max(2, n_samples - 1)),
         min_dist=min_dist,
         random_state=random_state,
         metric=umap_metric,
@@ -152,9 +158,24 @@ def get_umap_clusters(
         **kwargs,
     )
     embedding = reducer.fit_transform(X)
+
+    # UMAP drops points that have no neighbour within the metric's maximum distance
+    # (e.g. a molecule sharing no fingerprint bit with any other) and returns NaN
+    # coordinates for them. Cluster the embedded points and keep the isolated ones
+    # together in one extra group, instead of crashing in the clustering step.
+    embedded = np.isfinite(embedding).all(axis=1)
+    indices = np.full(n_samples, n_clusters, dtype=int)
+    n_embedded = int(embedded.sum())
+    if n_embedded < n_samples:
+        warnings.warn(
+            f"UMAP could not embed {n_samples - n_embedded} of {n_samples} molecules (no neighbours); "
+            f"they are kept together as one extra cluster.",
+            stacklevel=2,
+        )
+    if n_embedded < n_clusters:
+        raise ValueError(f"Only {n_embedded} molecules could be embedded by UMAP, fewer than n_clusters={n_clusters}.")
     model = AgglomerativeClustering(n_clusters=n_clusters, linkage=linkage)
-    model.fit_predict(embedding)
-    indices = model.labels_
+    indices[embedded] = model.fit_predict(embedding[embedded])
     if return_embedding:
         return indices, embedding
     else:

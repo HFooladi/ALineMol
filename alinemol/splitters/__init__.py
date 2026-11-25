@@ -59,6 +59,9 @@ from alinemol.splitters.base import BaseMolecularSplitter
 
 # Factory and registry
 from alinemol.splitters.factory import (
+    describe_splitters,
+    resolve_splitter_name,
+    splitter_params,
     get_splitter,
     list_splitters,
     get_splitter_names,
@@ -112,7 +115,33 @@ from alinemol.splitters.analyzer import (
 )
 
 
+# One-call interface and shift measures
+from alinemol.splitters.shift import compute_fingerprints, nearest_train_distances, summarize_distances
+from alinemol.splitters.api import (
+    SplitComparison,
+    SplitResult,
+    compare_splits,
+    load_splits,
+    select_splits,
+    split_and_analyze,
+)
+
 __all__: List[str] = [
+    # One-call interface
+    "split_and_analyze",
+    "compare_splits",
+    "select_splits",
+    "load_splits",
+    "SplitResult",
+    "SplitComparison",
+    # Shift measures
+    "nearest_train_distances",
+    "summarize_distances",
+    "compute_fingerprints",
+    # Registry metadata
+    "describe_splitters",
+    "resolve_splitter_name",
+    "splitter_params",
     # Base class
     "BaseMolecularSplitter",
     # Factory and registry

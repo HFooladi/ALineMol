@@ -284,9 +284,6 @@ class BaseMolecularSplitter(BaseCrossValidator, ABC):
 
     def __repr__(self) -> str:
         """Return string representation of the splitter."""
-        params = [
-            f"n_splits={self.n_splits}",
-            f"test_size={self.test_size}",
-            f"random_state={self.random_state}",
-        ]
-        return f"{self.__class__.__name__}({', '.join(params)})"
+        from alinemol.splitters.factory import _splitter_repr
+
+        return _splitter_repr(self)

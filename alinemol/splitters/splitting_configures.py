@@ -6,6 +6,8 @@ config dict here (use an empty ``{}`` if no defaults beyond the standard
 ``n_splits``/``test_size``/``random_state``).
 """
 
+from typing import Dict
+
 from alinemol.utils.typing import ConfigDict
 
 RandomSplitConfig: ConfigDict = {}
@@ -71,4 +73,25 @@ DataSAILSplitConfig: ConfigDict = {
     "technique": "C",
     "cluster_method": "ECFP",
     "delta": 0.1,
+}
+
+# Per-splitter keyword arguments used for the published splits, keyed by registry name.
+# ``split_and_analyze(..., preset="paper")`` and ``scripts/splitting.py`` apply these on
+# top of the class defaults (which differ for a few splitters, e.g. UMAP n_clusters).
+PAPER_SPLITTER_CONFIGS: Dict[str, ConfigDict] = {
+    "random": RandomSplitConfig,
+    "scaffold": ScaffoldSplitConfig,
+    "scaffold_generic": ScaffoldSplitGenericConfig,
+    "molecular_weight": MolecularWeightSplitConfig,
+    "molecular_weight_reverse": MolecularWeightReverseSplitConfig,
+    "kmeans": KMeansSplitConfig,
+    "perimeter": PerimeterSplitConfig,
+    "max_dissimilarity": MaxDissimilaritySplitConfig,
+    "molecular_logp": MolecularLogPSplitConfig,
+    "umap": UMapSplitConfig,
+    "butina": BUTINASplitConfig,
+    "scaffold_kmeans": ScaffoldKMeansSplitConfig,
+    "hi": HiSplitConfig,
+    "lo": LoSplitConfig,
+    "datasail": DataSAILSplitConfig,
 }

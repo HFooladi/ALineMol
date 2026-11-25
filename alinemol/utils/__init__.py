@@ -1,61 +1,74 @@
 """ALineMol utilities.
 
-Re-exports symbols from submodules so legacy ``from alinemol.utils import X``
-style imports continue to work for users with the full install. Heavy
-submodules whose dependencies live in optional extras are imported under
-try/except so a splitter-only install (no torch, dgl, astartes, statsmodels,
-POT, etc.) still imports cleanly. Users who need those symbols on a lean
-install should import them from their submodule directly, e.g.::
+Re-exports symbols from submodules so legacy ``from alinemol.utils import X`` style
+imports keep working. The re-exports are *lazy*: a submodule is only imported when one
+of its names is first accessed. That keeps ``import alinemol.splitters`` (which needs
+``alinemol.utils.split_utils`` and ``alinemol.utils.frozen``) from loading matplotlib,
+torch or DGL, and lets a splitter-only install work without those packages.
 
-    from alinemol.utils.utils import load_model
+Heavy submodules and the extras they need:
 
-Catch ``(ImportError, OSError)`` rather than just ``ImportError`` because
-DGL raises ``FileNotFoundError`` (an OSError subclass) at import time when
-its native graphbolt .so doesn't match the installed torch version.
+- ``metric_utils``: torch (``[gnn]``) + statsmodels (``[ml]``)
+- ``utils``: torch / dgl / dgllife (``[gnn]``)
+- ``split_utils.split_molecules_*``: astartes (``[ml]``)
 """
 
-# Light submodules: no heavy dependencies, always importable.
-from alinemol.utils.plot_utils import plot_ID_OOD, plot_ID_OOD_sns, visualize_chemspace
+from importlib import import_module
+from typing import Any, List
 
-# metric_utils requires torch (extra: [gnn]) + statsmodels (extra: [ml]).
-try:
-    from alinemol.utils.metric_utils import (
-        Meter,
-        compute_linear_fit,
-        eval_acc,
-        eval_pr_auc,
-        eval_roc_auc,
-        rescale,
-        compare_rankings,
-    )
-except (ImportError, OSError):
-    pass
+_LAZY = {
+    "plot_utils": ["plot_ID_OOD", "plot_ID_OOD_sns", "visualize_chemspace"],
+    "metric_utils": [
+        "Meter",
+        "compute_linear_fit",
+        "eval_acc",
+        "eval_pr_auc",
+        "eval_roc_auc",
+        "rescale",
+        "compare_rankings",
+    ],
+    "split_utils": [
+        "compute_similarities",
+        "featurize",
+        "split_molecules_train_test",
+        "split_molecules_train_val_test",
+    ],
+    "utils": [
+        "collate_molgraphs",
+        "collate_molgraphs_unlabeled",
+        "get_configure",
+        "init_featurizer",
+        "init_inference_trial_path",
+        "init_trial_path",
+        "load_dataset",
+        "load_model",
+        "mkdir_p",
+        "predict",
+        "split_dataset",
+    ],
+    "frozen": ["FrozenDataError", "assert_not_frozen", "is_frozen"],
+}
+_NAME_TO_MODULE = {name: module for module, names in _LAZY.items() for name in names}
 
-# split_utils requires astartes (extra: [ml]).
-try:
-    from alinemol.utils.split_utils import (
-        compute_similarities,
-        featurize,
-        split_molecules_train_test,
-        split_molecules_train_val_test,
-    )
-except (ImportError, OSError):
-    pass
+__all__ = sorted(_NAME_TO_MODULE)
 
-# utils.utils requires torch/dgl/dgllife (extra: [gnn]).
-try:
-    from alinemol.utils.utils import (
-        collate_molgraphs,
-        collate_molgraphs_unlabeled,
-        get_configure,
-        init_featurizer,
-        init_inference_trial_path,
-        init_trial_path,
-        load_dataset,
-        load_model,
-        mkdir_p,
-        predict,
-        split_dataset,
-    )
-except (ImportError, OSError):
-    pass
+
+def __getattr__(name: str) -> Any:
+    module_name = _NAME_TO_MODULE.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    try:
+        module = import_module(f"{__name__}.{module_name}")
+    except (ImportError, OSError) as error:
+        # OSError: DGL raises FileNotFoundError when its graphbolt .so does not match torch.
+        raise ImportError(
+            f"'{name}' needs optional dependencies that are not installed ({error}). "
+            f"Install the matching extra, e.g. pip install 'alinemol[all]'."
+        ) from error
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> List[str]:
+    return sorted(list(globals()) + __all__)

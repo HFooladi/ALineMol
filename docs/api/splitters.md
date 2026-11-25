@@ -2,6 +2,41 @@
 
 The splitters module provides a unified API for molecular dataset splitting with multiple strategies to simulate different types of distribution shift.
 
+## One call: split and measure the shift
+
+For most uses, including from other projects and from agents, start here:
+
+```python
+from alinemol.splitters import split_and_analyze, compare_splits
+
+result = split_and_analyze(smiles, "scaffold", labels, n_splits=5, test_size=0.2)
+train_idx, test_idx = result.splits[0]
+result.summary()     # one row per split: sizes, distance to nearest training molecules, scaffold overlap
+result.warnings      # e.g. realised test size far from the request
+result.save("runs/splits/my_data/scaffold", data=df)
+
+comparison = compare_splits(smiles, ["random", "scaffold", "kmeans"], labels)
+comparison.to_frame()   # one row per splitter
+comparison.errors       # splitters that failed, with the reason
+```
+
+The same from the shell: `alinemol list`, `alinemol split -f data.csv -s scaffold --json`,
+`alinemol analyze -f data.csv --splits <dir>`, `alinemol guide`.
+
+::: alinemol.splitters.api.split_and_analyze
+
+::: alinemol.splitters.api.compare_splits
+
+::: alinemol.splitters.api.SplitResult
+
+::: alinemol.splitters.api.SplitComparison
+
+::: alinemol.splitters.shift.nearest_train_distances
+
+::: alinemol.splitters.shift.summarize_distances
+
+::: alinemol.splitters.factory.describe_splitters
+
 ## Quick Start
 
 ### Using the Factory Function (Recommended)

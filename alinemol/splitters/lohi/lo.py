@@ -16,7 +16,14 @@ from alinemol.splitters.base import BaseMolecularSplitter
 from alinemol.splitters.factory import register_splitter
 
 
-@register_splitter("lo", aliases=["lo_split", "losplit"])
+@register_splitter(
+    "lo",
+    aliases=["lo_split", "losplit"],
+    family="similarity",
+    test_size="ignored",
+    needs_labels=True,
+    deterministic=True,
+)
 class LoSplit(BaseMolecularSplitter):
     def __init__(
         self,

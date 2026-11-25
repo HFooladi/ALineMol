@@ -14,7 +14,7 @@ from alinemol.splitters.base import BaseMolecularSplitter
 from alinemol.splitters.factory import register_splitter
 
 
-@register_splitter("kmeans", aliases=["k-means", "k_means"])
+@register_splitter("kmeans", aliases=["k-means", "k_means"], family="clustering")
 class KMeansSplit(BaseMolecularSplitter):
     """
     K-Means clustering based molecular splitter.
@@ -82,7 +82,7 @@ class KMeansSplit(BaseMolecularSplitter):
         yield from self._splitter.split(X_features, y, groups)
 
 
-@register_splitter("scaffold", aliases=["murcko", "bemis_murcko"])
+@register_splitter("scaffold", aliases=["murcko", "bemis_murcko"], family="scaffold")
 class ScaffoldSplit(BaseMolecularSplitter):
     """
     Bemis-Murcko scaffold-based molecular splitter.
@@ -146,7 +146,7 @@ class ScaffoldSplit(BaseMolecularSplitter):
         yield from self._splitter.split(smiles, y, groups)
 
 
-@register_splitter("scaffold_generic", aliases=["generic_scaffold"])
+@register_splitter("scaffold_generic", aliases=["generic_scaffold"], family="scaffold")
 class ScaffoldGenericSplit(ScaffoldSplit):
     """
     Generic scaffold-based molecular splitter.
@@ -180,7 +180,9 @@ class ScaffoldGenericSplit(ScaffoldSplit):
         )
 
 
-@register_splitter("molecular_weight", aliases=["mw", "molecular-weight"])
+@register_splitter(
+    "molecular_weight", aliases=["mw", "molecular-weight"], family="property", test_size="exact", deterministic=True
+)
 class MolecularWeightSplit(BaseMolecularSplitter):
     """
     Molecular weight-based splitter.
@@ -240,7 +242,9 @@ class MolecularWeightSplit(BaseMolecularSplitter):
         yield from self._splitter.split(smiles, y, groups)
 
 
-@register_splitter("molecular_weight_reverse", aliases=["mw_reverse"])
+@register_splitter(
+    "molecular_weight_reverse", aliases=["mw_reverse"], family="property", test_size="exact", deterministic=True
+)
 class MolecularWeightReverseSplit(MolecularWeightSplit):
     """
     Reverse molecular weight-based splitter.
@@ -271,7 +275,7 @@ class MolecularWeightReverseSplit(MolecularWeightSplit):
         )
 
 
-@register_splitter("max_dissimilarity", aliases=["maxdiss", "maxdissimilarity"])
+@register_splitter("max_dissimilarity", aliases=["maxdiss", "maxdissimilarity"], family="clustering")
 class MaxDissimilaritySplit(BaseMolecularSplitter):
     """
     Maximum dissimilarity-based splitter.
@@ -340,7 +344,7 @@ class MaxDissimilaritySplit(BaseMolecularSplitter):
         yield from self._splitter.split(X_features, y, groups)
 
 
-@register_splitter("perimeter", aliases=["perimeter_split"])
+@register_splitter("perimeter", aliases=["perimeter_split"], family="clustering")
 class PerimeterSplit(BaseMolecularSplitter):
     """
     Perimeter-based molecular splitter.
