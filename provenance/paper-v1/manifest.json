@@ -1,0 +1,37 @@
+{
+  "label": "paper-v1",
+  "paper_doi": "10.1021/acs.jcim.5c00475",
+  "created": "2026-11-25T16:23:09+01:00",
+  "git_commit": "386b6e223f39b1952493fb54e1ef2ca29f74a42a",
+  "frozen_roots": [
+    "datasets",
+    "classification_results",
+    "classification_inference_results",
+    "assets/figures",
+    "assets/tables"
+  ],
+  "hash": "sha256",
+  "sets": {
+    "datasets": {
+      "files": 3094,
+      "bytes": 16224657621,
+      "paper_files": 1901,
+      "paper_bytes": 15962744551,
+      "manifest_sha256": "68632f4738bfe3c55f16db559269910f093fef28ffe84306ec06ffbdf1a9304c"
+    },
+    "results-core": {
+      "files": 62529,
+      "bytes": 3813395486,
+      "paper_files": 49422,
+      "paper_bytes": 1519047300,
+      "manifest_sha256": "fa2a3d2c013852044321dca14c1856499df9d36cf86d1757b35798e0927c57a2"
+    },
+    "results-weights": {
+      "files": 17652,
+      "bytes": 537572845709,
+      "paper_files": 12320,
+      "paper_bytes": 299940583164,
+      "manifest_sha256": "5aba72f1851a51ee27571600b15cc09319bdc280f3bf52a1f961914014b46060"
+    }
+  }
+}
